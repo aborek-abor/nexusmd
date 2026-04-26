@@ -2,10 +2,8 @@
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openbabel \
-    libopenbabel-dev \
     curl wget \
-    && rm -rf /var/lib/apt/lists/* \
-    && obabel --version
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /nexusmd
 
