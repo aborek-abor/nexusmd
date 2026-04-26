@@ -57,6 +57,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 .bf{background:rgba(0,236,140,.12);color:var(--green);border:1px solid rgba(0,236,140,.2)}
 .ba{background:rgba(0,198,207,.12);color:var(--teal);border:1px solid rgba(0,198,207,.2)}
 .br{background:rgba(139,92,246,.12);color:var(--purple);border:1px solid rgba(139,92,246,.2)}
+/* ===== SOURCE PANELS ===== */
+.src-panel{animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.af-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);color:var(--purple);font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;font-family:"DM Mono",monospace}
+.pdb-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(0,198,207,.12);border:1px solid rgba(0,198,207,.25);color:var(--teal);font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;font-family:"DM Mono",monospace}
+.srch-result-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .15s;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.srch-result-card:hover{border-color:var(--teal);background:rgba(0,198,207,.05)}
+.src-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.src-meta{font-size:11px;color:var(--muted);font-family:"DM Mono",monospace}
 /* ===== APP ===== */
 #app{height:100vh;flex-direction:column;background:var(--bg)}
 .atb{display:flex;align-items:center;justify-content:space-between;height:50px;padding:0 18px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;z-index:100}
@@ -349,18 +358,82 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 
       <!-- PAGE: TARGET -->
       <div class="pg active" id="pg-target">
-        <div class="pgh"><div class="pgt">Choose a Target Protein</div><div class="pgs">Load any structure from the Protein Data Bank by PDB ID, or click a common disease target below.</div></div>
+        <div class="pgh"><div class="pgt">Choose a Target Protein</div><div class="pgs">Load from RCSB PDB by ID, fetch any protein from AlphaFold DB by UniProt accession, search by name, or click a preset target below.</div></div>
         <div class="card">
-          <div class="ch"><div class="ct">🔍 Search by PDB ID</div></div>
+          <div class="ch"><div class="ct">🔍 Search Target Structure</div></div>
           <div class="cb">
-            <div class="fr">
-              <div class="fc2">
-                <label class="lbl">PDB ID (4 characters, e.g. 1HSG)</label>
-                <input class="inp" id="pdb-inp" placeholder="Enter PDB ID…" maxlength="6" style="text-transform:uppercase;font-family:DM Mono,monospace;font-size:15px" oninput="this.value=this.value.toUpperCase()">
-              </div>
-              <div style="align-self:flex-end"><button class="btn btn-p" onclick="fetchPDB()">Fetch Structure</button></div>
+            <!-- Source toggle -->
+            <div style="display:flex;gap:6px;margin-bottom:14px">
+              <button class="vcbtn active" id="src-pdb-btn" onclick="setTargetSource('pdb')">🗄️ RCSB PDB</button>
+              <button class="vcbtn" id="src-af-btn" onclick="setTargetSource('af')">🧬 AlphaFold DB</button>
+              <button class="vcbtn" id="src-text-btn" onclick="setTargetSource('text')">🔤 Search by name</button>
             </div>
-            <div id="pdb-res" style="display:none" class="ib ok"><div class="ibi">✅</div><div class="ibt" id="pdb-res-txt"></div></div>
+
+            <!-- PDB ID input -->
+            <div id="src-pdb" class="src-panel">
+              <div class="fr">
+                <div class="fc2">
+                  <label class="lbl">PDB ID (e.g. 1HSG, 6LU7, 3ERT)</label>
+                  <input class="inp" id="pdb-inp" placeholder="Enter 4-character PDB ID…" maxlength="8"
+                    style="text-transform:uppercase;font-family:DM Mono,monospace;font-size:15px"
+                    oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')fetchPDB()">
+                </div>
+                <div style="align-self:flex-end"><button class="btn btn-p" onclick="fetchPDB()">Fetch from RCSB</button></div>
+              </div>
+              <div class="ib tip" style="margin-top:6px">
+                <div class="ibi">💡</div>
+                <div class="ibt">Find PDB IDs at <b>rcsb.org</b> — search your protein name and use the 4-character code (e.g. 1HSG for HIV protease).</div>
+              </div>
+            </div>
+
+            <!-- AlphaFold UniProt input -->
+            <div id="src-af" class="src-panel" style="display:none">
+              <div class="fr">
+                <div class="fc2">
+                  <label class="lbl">UniProt Accession (e.g. P0DTD1, P68871, Q9Y233)</label>
+                  <input class="inp" id="af-inp" placeholder="Enter UniProt ID…" maxlength="12"
+                    style="text-transform:uppercase;font-family:DM Mono,monospace;font-size:15px"
+                    oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')fetchAlphaFold()">
+                </div>
+                <div style="align-self:flex-end"><button class="btn btn-p" onclick="fetchAlphaFold()">Fetch from AlphaFold</button></div>
+              </div>
+              <div class="ib tip" style="margin-top:6px">
+                <div class="ibi">🧬</div>
+                <div class="ibt">AlphaFold DB contains <b>200M+ predicted structures</b> for any protein with a UniProt ID — including those with no experimental structure. Find UniProt IDs at <b>uniprot.org</b>.</div>
+              </div>
+              <!-- Common AlphaFold targets -->
+              <div style="margin-top:12px">
+                <div class="sb-lbl" style="padding:0 0 8px">Common AlphaFold targets:</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P0DTD1';fetchAlphaFold()">P0DTD1 — SARS-CoV-2 nsp12</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P68871';fetchAlphaFold()">P68871 — Haemoglobin β</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P00533';fetchAlphaFold()">P00533 — EGFR kinase</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P03372';fetchAlphaFold()">P03372 — Estrogen receptor</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='O15379';fetchAlphaFold()">O15379 — HDAC3</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='Q9Y233';fetchAlphaFold()">Q9Y233 — PfDHFR (Malaria)</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P56817';fetchAlphaFold()">P56817 — BACE1 (Alzheimer)</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P10275';fetchAlphaFold()">P10275 — Androgen receptor</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Text search -->
+            <div id="src-text" class="src-panel" style="display:none">
+              <div class="fr">
+                <div class="fc2">
+                  <label class="lbl">Search protein name (e.g. "HIV protease", "EGFR", "malaria DHFR")</label>
+                  <input class="inp" id="text-srch-inp" placeholder="Type protein name…"
+                    onkeydown="if(event.key==='Enter')searchPDBByName()">
+                </div>
+                <div style="align-self:flex-end"><button class="btn btn-p" onclick="searchPDBByName()">Search</button></div>
+              </div>
+              <div id="text-srch-results" style="display:none;margin-top:10px"></div>
+            </div>
+
+            <!-- Shared result box -->
+            <div id="pdb-res" style="display:none;margin-top:10px" class="ib ok">
+              <div class="ibi">✅</div><div class="ibt" id="pdb-res-txt"></div>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -1032,6 +1105,190 @@ function setPill(on,txt){
 }
 async function apiPost(path,body){const r=await fetch(apiBase()+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});if(!r.ok)throw new Error(r.status);return r.json();}
 async function apiGet(path){const r=await fetch(apiBase()+path);if(!r.ok)throw new Error(r.status);return r.json();}
+
+
+// ════════════════════════════════════════════════
+// TARGET SOURCE SWITCHING
+// ════════════════════════════════════════════════
+function setTargetSource(src) {
+  ['pdb','af','text'].forEach(s => {
+    const panel = document.getElementById('src-'+s);
+    const btn   = document.getElementById('src-'+s+'-btn');
+    if(panel) panel.style.display = s===src ? 'block' : 'none';
+    if(btn)   btn.classList.toggle('active', s===src);
+  });
+  document.getElementById('pdb-res').style.display='none';
+}
+
+// ════════════════════════════════════════════════
+// ALPHAFOLD FETCH
+// ════════════════════════════════════════════════
+async function fetchAlphaFold() {
+  const uid = document.getElementById('af-inp').value.toUpperCase().trim();
+  if(!uid || uid.length < 4) { alert('Enter a valid UniProt accession (e.g. P0DTD1)'); return; }
+
+  const box = document.getElementById('pdb-res');
+  const txt = document.getElementById('pdb-res-txt');
+  box.style.display='flex'; box.className='ib tip';
+  txt.textContent = 'Fetching ' + uid + ' from AlphaFold DB…';
+
+  try {
+    let name='', organism='', seqLen=0, plddt=0, version='';
+
+    // Try backend first
+    if(S.backendMode) {
+      try {
+        const info = await apiGet('/api/protein/alphafold/'+uid+'/info');
+        name     = info.protein_name || info.title || uid;
+        organism = info.organism || '';
+        seqLen   = info.sequence_length || 0;
+        plddt    = info.mean_plddt || 0;
+        version  = info.model_version || 'v4';
+      } catch(_) {}
+    }
+
+    // Direct AlphaFold EBI API (CORS-friendly)
+    if(!name) {
+      // Try v4 then v3
+      for(const ver of ['v4','v3','v2']) {
+        try {
+          const r = await fetch(`https://alphafold.ebi.ac.uk/api/prediction/${uid}?key=AIzaSyCeurAJz7ZGjPQUtEaerUkBZ3TbkOL5LiQ`);
+          if(r.ok) {
+            const data = await r.json();
+            const entry = Array.isArray(data) ? data[0] : data;
+            name     = entry.uniprotDescription || entry.proteinFullName || uid;
+            organism = entry.organismScientificName || entry.taxonName || '';
+            seqLen   = entry.uniprotSequenceLength || entry.seqLength || 0;
+            plddt    = entry.confidenceAvgLocalScore || 0;
+            version  = entry.latestVersion || ver;
+            break;
+          }
+        } catch(_) {}
+      }
+    }
+
+    // UniProt fallback for metadata
+    if(!name || name === uid) {
+      try {
+        const r = await fetch(`https://rest.uniprot.org/uniprotkb/${uid}.json`);
+        if(r.ok) {
+          const d = await r.json();
+          name     = d.proteinDescription?.recommendedName?.fullName?.value
+                  || d.proteinDescription?.submittedName?.[0]?.fullName?.value
+                  || uid;
+          organism = d.organism?.scientificName || '';
+          seqLen   = d.sequence?.length || 0;
+        }
+      } catch(_) {}
+    }
+
+    if(!name) throw new Error('UniProt entry not found. Check the accession at uniprot.org');
+
+    box.className='ib ok';
+    txt.innerHTML =
+      `<div>
+        <b>${uid}</b> — ${name}
+        ${organism ? `<span style="color:var(--muted)"> · ${organism}</span>` : ''}
+        <br>
+        <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="af-badge">🧬 AlphaFold ${version}</span>
+          ${seqLen  ? `<span class="pdb-badge">${seqLen} residues</span>` : ''}
+          ${plddt   ? `<span class="pdb-badge" style="color:${plddt>=70?'var(--green)':'var(--amber)'}">pLDDT ${plddt.toFixed(1)}</span>` : ''}
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--muted)">
+          ⚠ AlphaFold structures are predicted — verify the binding site before docking.
+          Grid coordinates set to protein centre (0,0,0) — adjust in Step 3 if needed.
+        </div>
+      </div>`;
+
+    // Set as target — grid at origin (user adjusts in dock step)
+    S.target = {
+      id: uid,
+      name: name + (organism?' ('+organism+')':''),
+      center: {x:0, y:0, z:0},
+      res: plddt ? 'pLDDT '+plddt.toFixed(1) : 'AlphaFold predicted',
+      source: 'alphafold',
+      uid: uid,
+    };
+    document.getElementById('tgt-name').textContent = uid + ' — ' + name;
+    document.getElementById('target-done').style.display='block';
+    document.getElementById('ss-target').textContent = uid;
+    document.getElementById('sessbox').style.display='block';
+    document.getElementById('gsrc').textContent = 'AlphaFold';
+    markDone('target');
+    updatePrereqs();
+
+  } catch(e) {
+    box.className='ib warn';
+    txt.innerHTML = '⚠ ' + e.message +
+      '<br><span style="font-size:11px;color:var(--muted)">Try searching at <a href="https://www.uniprot.org" target="_blank" style="color:var(--teal)">uniprot.org</a> to find the correct accession.</span>';
+  }
+}
+
+// ════════════════════════════════════════════════
+// PDB TEXT SEARCH
+// ════════════════════════════════════════════════
+async function searchPDBByName() {
+  const q = document.getElementById('text-srch-inp').value.trim();
+  if(!q) return;
+  const resBox = document.getElementById('text-srch-results');
+  resBox.style.display='block';
+  resBox.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px">⏳ Searching RCSB…</div>';
+
+  try {
+    // RCSB Search API
+    const payload = {
+      query: {
+        type: "terminal",
+        service: "full_text",
+        parameters: { value: q }
+      },
+      return_type: "entry",
+      request_options: { paginate: { start: 0, rows: 10 } }
+    };
+    const r = await fetch('https://search.rcsb.org/rcsbsearch/v2/query', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    const data = await r.json();
+    const hits = data?.result_set || [];
+
+    if(!hits.length) {
+      resBox.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px">No results found. Try a different search term.</div>';
+      return;
+    }
+
+    // Fetch metadata for top hits
+    const ids = hits.slice(0,8).map(h=>h.identifier);
+    const metaUrl = `https://data.rcsb.org/graphql?query={entries(entry_ids:${JSON.stringify(ids)}){rcsb_id,struct{title},rcsb_entry_info{resolution_combined,experimental_method}}}`;
+    const metaR = await fetch(metaUrl);
+    const metaData = await metaR.json();
+    const entries = metaData?.data?.entries || [];
+
+    resBox.innerHTML = entries.map(e => {
+      const res = e.rcsb_entry_info?.resolution_combined?.[0];
+      const method = e.rcsb_entry_info?.experimental_method || 'Unknown';
+      return `<div class="srch-result-card" onclick="loadPDBFromSearch('${e.rcsb_id}','${(e.struct?.title||e.rcsb_id).replace(/'/g,"\'")}')">
+        <div>
+          <div class="src-title">${e.rcsb_id} — ${e.struct?.title || 'Unknown'}</div>
+          <div class="src-meta">${method}${res?' · '+parseFloat(res).toFixed(2)+' Å':''}</div>
+        </div>
+        <button class="btn btn-p btn-sm">Load →</button>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    resBox.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Search failed — check connection.</div>';
+  }
+}
+
+function loadPDBFromSearch(id, title) {
+  document.getElementById('text-srch-results').style.display='none';
+  document.getElementById('text-srch-inp').value='';
+  // Switch to PDB tab and load
+  setTargetSource('pdb');
+  document.getElementById('pdb-inp').value=id;
+  fetchPDB();
+}
 
 // ===== TARGET =====
 function loadTarget(id,name,center,res){
