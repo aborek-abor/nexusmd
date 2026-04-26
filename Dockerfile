@@ -1,11 +1,6 @@
 ﻿FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openbabel \
-    libopenbabel-dev \
-    curl wget \
-    && rm -rf /var/lib/apt/lists/* \
-    && obabel --version
+RUN apt-get update && apt-get install -y --no-install-recommends openbabel curl wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /nexusmd
 
