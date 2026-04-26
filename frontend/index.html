@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>NexusMD — Free Virtual Screening for Everyone</title>
+<title>NexusMD &mdash; Free Virtual Screening for Everyone</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300;1,600&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#04080F;--bg2:#080E1A;--bg3:#0C1423;--panel:#0F1C2E;--border:#1A2D45;--border2:#243D5C;--teal:#00C6CF;--green:#00EC8C;--amber:#F5A623;--red:#FF4D6D;--purple:#8B5CF6;--text:#E8F4FF;--muted:#6B8BAA;--dim:#3A5068;font-family:"Syne",sans-serif}
@@ -139,7 +139,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 .cc{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:13px;cursor:pointer;transition:all .2s;position:relative}
 .cc:hover{border-color:var(--teal);transform:translateY(-2px)}
 .cc.sel{border-color:var(--green);background:rgba(0,236,140,.06)}
-.cc.sel::after{content:"✓";position:absolute;top:7px;right:9px;color:var(--green);font-size:13px;font-weight:700}
+.cc.sel::after{content:"&#10003;";position:absolute;top:7px;right:9px;color:var(--green);font-size:13px;font-weight:700}
 .cn{font-size:13px;font-weight:700;margin-bottom:3px}
 .cp{font-size:11px;color:var(--muted);margin-bottom:7px;font-style:italic}
 .ctags{display:flex;gap:3px;flex-wrap:wrap}
@@ -228,34 +228,34 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script src="https://3dmol.org/build/3Dmol-min.js"></script>
 <style>
-/* ── 3D VIEWER ── */
+/* &#9472;&#9472; 3D VIEWER &#9472;&#9472; */
 #viewer-3d{width:100%;height:360px;border-radius:10px;background:#020810;position:relative;overflow:hidden}
 .viewer-ctrl{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;align-items:center}
 .vcbtn{font-family:"Syne",sans-serif;font-size:11px;font-weight:700;padding:5px 11px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all .15s}
 .vcbtn:hover{color:var(--text);border-color:var(--teal)}
 .vcbtn.active{background:rgba(0,198,207,.12);border-color:var(--teal);color:var(--teal)}
-/* ── HEATMAP ── */
+/* &#9472;&#9472; HEATMAP &#9472;&#9472; */
 .hm-wrap{overflow-x:auto;margin-top:12px}
 .hm-table{border-collapse:collapse;font-size:11px}
 .hm-table th{padding:6px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);font-family:"DM Mono",monospace;font-weight:500;white-space:nowrap}
 .hm-table td{padding:6px 10px;border:1px solid var(--border);text-align:center;cursor:pointer;transition:filter .15s;font-family:"DM Mono",monospace;font-size:12px;font-weight:700}
 .hm-table td:hover{filter:brightness(1.25)}
 .hm-compound{text-align:left!important;font-family:"Syne",sans-serif;font-weight:700;color:var(--text);white-space:nowrap;font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis}
-/* ── PUBCHEM SEARCH ── */
+/* &#9472;&#9472; PUBCHEM SEARCH &#9472;&#9472; */
 .pc-results{max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:6px;background:var(--bg3)}
 .pc-item{padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
 .pc-item:hover{background:rgba(0,198,207,.06)}
 .pc-item:last-child{border-bottom:none}
 .pc-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
 .pc-meta{font-size:11px;color:var(--muted);font-family:"DM Mono",monospace}
-/* ── SCAFFOLD HOP ── */
+/* &#9472;&#9472; SCAFFOLD HOP &#9472;&#9472; */
 .sh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px;margin-top:10px}
 .sh-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:10px;padding:12px;cursor:pointer;transition:all .2s}
 .sh-card:hover{border-color:var(--teal);transform:translateY(-2px)}
 .sh-sim{font-family:"DM Mono",monospace;font-size:18px;font-weight:700;color:var(--teal);margin-bottom:4px}
 .sh-name{font-size:12px;font-weight:700;margin-bottom:3px;color:var(--text)}
 .sh-meta{font-size:11px;color:var(--muted)}
-/* ── MULTI-TARGET ── */
+/* &#9472;&#9472; MULTI-TARGET &#9472;&#9472; */
 .mt-target-pill{display:flex;align-items:center;gap:6px;background:rgba(0,198,207,.1);border:1px solid rgba(0,198,207,.25);border-radius:100px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--teal)}
 .mt-target-pill .cx{color:rgba(0,198,207,.6)}
 .mt-hm-wrap{overflow-x:auto}
@@ -270,16 +270,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
   <div class="lnav-r">
     <a onclick="document.querySelector('.steps').scrollIntoView({behavior:'smooth'})">How it works</a>
     <a onclick="document.querySelector('.feats').scrollIntoView({behavior:'smooth'})">Features</a>
-    <button class="cta1" style="font-size:13px;padding:9px 20px" onclick="launchApp()">Open Platform →</button>
+    <button class="cta1" style="font-size:13px;padding:9px 20px" onclick="launchApp()">Open Platform &rarr;</button>
   </div>
 </nav>
 <div class="hero">
-  <div class="htag">Free · No signup · No install required</div>
+  <div class="htag">Free &middot; No signup &middot; No install required</div>
   <h1>Drug discovery<br>for <em>everyone</em></h1>
-  <p class="hsub">Run real molecular docking, screen 70 phytochemical compounds, predict ADMET safety profiles, and fold proteins from sequence — all in your browser, completely free.</p>
+  <p class="hsub">Run real molecular docking, screen 70 phytochemical compounds, predict ADMET safety profiles, and fold proteins from sequence &mdash; all in your browser, completely free.</p>
   <div class="hcta">
-    <button class="cta1" onclick="launchApp()">▶ Start Virtual Screening</button>
-    <button class="cta2" onclick="launchDemo()">🧪 Load Demo Session</button>
+    <button class="cta1" onclick="launchApp()">&#9654; Start Virtual Screening</button>
+    <button class="cta2" onclick="launchDemo()">&#x1F9EA; Load Demo Session</button>
   </div>
   <div class="trust">
     <div class="ti"><div class="dot"></div>AutoDock Vina engine</div>
@@ -289,21 +289,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
   </div>
 </div>
 <div class="steps">
-  <div class="sc"><div class="sn">Step 01</div><div class="si">🎯</div><div class="st">Choose your target</div><div class="sd">Search RCSB by PDB ID or pick a disease target. Click to auto-configure the docking grid.</div><div class="sa">→</div></div>
-  <div class="sc"><div class="sn">Step 02</div><div class="si">🌿</div><div class="st">Pick compounds</div><div class="sd">Browse 35 African and 35 TCM phytochemicals, or paste your own SMILES strings.</div><div class="sa">→</div></div>
-  <div class="sc"><div class="sn">Step 03</div><div class="si">⚙️</div><div class="st">Run docking</div><div class="sd">One click sends your job. Watch AutoDock Vina run live. Results in 30–90 seconds.</div><div class="sa">→</div></div>
-  <div class="sc"><div class="sn">Step 04</div><div class="si">📊</div><div class="st">Analyse results</div><div class="sd">Ranked binding scores, ADMET profiles, 3D visualisation, CSV export — all free.</div></div>
+  <div class="sc"><div class="sn">Step 01</div><div class="si">&#127919;</div><div class="st">Choose your target</div><div class="sd">Search RCSB by PDB ID or pick a disease target. Click to auto-configure the docking grid.</div><div class="sa">&rarr;</div></div>
+  <div class="sc"><div class="sn">Step 02</div><div class="si">&#127807;</div><div class="st">Pick compounds</div><div class="sd">Browse 35 African and 35 TCM phytochemicals, or paste your own SMILES strings.</div><div class="sa">&rarr;</div></div>
+  <div class="sc"><div class="sn">Step 03</div><div class="si">&#9881;&#65039;</div><div class="st">Run docking</div><div class="sd">One click sends your job. Watch AutoDock Vina run live. Results in 30&ndash;90 seconds.</div><div class="sa">&rarr;</div></div>
+  <div class="sc"><div class="sn">Step 04</div><div class="si">&#128202;</div><div class="st">Analyse results</div><div class="sd">Ranked binding scores, ADMET profiles, 3D visualisation, CSV export &mdash; all free.</div></div>
 </div>
 <div class="feats">
   <p class="slbl">What is included</p>
   <p class="stitle">Everything a lab needs, at zero cost</p>
   <div class="fg">
-    <div class="fc"><div class="fi">🔬</div><div class="ft">Molecular Docking</div><div class="fd">AutoDock Vina 1.2.5 with full grid control, exhaustiveness setting and multi-pose output. Real binding energies in kcal/mol.</div><span class="fbdg br">Real engine</span></div>
-    <div class="fc"><div class="fi">🌿</div><div class="ft">Phytochemical Libraries</div><div class="fd">35 African (AfroDB) + 35 TCM compounds with SMILES, MW, logP and activity data. Plus 4,992 FDA / clinical / preclinical drugs.</div><span class="fbdg bf">Free</span></div>
-    <div class="fc"><div class="fi">🏗️</div><div class="ft">Structure Prediction</div><div class="fd">Fold any protein from amino acid sequence using Meta ESMFold. Real PDB coordinates and per-residue pLDDT confidence scores.</div><span class="fbdg ba">Live API</span></div>
-    <div class="fc"><div class="fi">⚗️</div><div class="ft">ADMET Prediction</div><div class="fd">Lipinski Ro5, Veber rules, hERG risk, BBB permeability, CYP inhibition, Ames mutagenicity and oral bioavailability estimates.</div><span class="fbdg bf">Free</span></div>
-    <div class="fc"><div class="fi">🗄️</div><div class="ft">Live PDB Access</div><div class="fd">Search and load any entry from the Protein Data Bank instantly. Real metadata: resolution, organism, method, bound ligands.</div><span class="fbdg ba">Live API</span></div>
-    <div class="fc"><div class="fi">📤</div><div class="ft">Export Everything</div><div class="fd">Download docking results as CSV, SDF pose files for 3D viewing, PDB structures, and ADMET reports. All data is yours.</div><span class="fbdg bf">Free</span></div>
+    <div class="fc"><div class="fi">&#128300;</div><div class="ft">Molecular Docking</div><div class="fd">AutoDock Vina 1.2.5 with full grid control, exhaustiveness setting and multi-pose output. Real binding energies in kcal/mol.</div><span class="fbdg br">Real engine</span></div>
+    <div class="fc"><div class="fi">&#127807;</div><div class="ft">Phytochemical Libraries</div><div class="fd">35 African (AfroDB) + 35 TCM compounds with SMILES, MW, logP and activity data. Plus 4,992 FDA / clinical / preclinical drugs.</div><span class="fbdg bf">Free</span></div>
+    <div class="fc"><div class="fi">&#127959;&#65039;</div><div class="ft">Structure Prediction</div><div class="fd">Fold any protein from amino acid sequence using Meta ESMFold. Real PDB coordinates and per-residue pLDDT confidence scores.</div><span class="fbdg ba">Live API</span></div>
+    <div class="fc"><div class="fi">&#9879;&#65039;</div><div class="ft">ADMET Prediction</div><div class="fd">Lipinski Ro5, Veber rules, hERG risk, BBB permeability, CYP inhibition, Ames mutagenicity and oral bioavailability estimates.</div><span class="fbdg bf">Free</span></div>
+    <div class="fc"><div class="fi">&#128452;&#65039;</div><div class="ft">Live PDB Access</div><div class="fd">Search and load any entry from the Protein Data Bank instantly. Real metadata: resolution, organism, method, bound ligands.</div><span class="fbdg ba">Live API</span></div>
+    <div class="fc"><div class="fi">&#128228;</div><div class="ft">Export Everything</div><div class="fd">Download docking results as CSV, SDF pose files for 3D viewing, PDB structures, and ADMET reports. All data is yours.</div><span class="fbdg bf">Free</span></div>
   </div>
 </div>
 </div><!-- /landing -->
@@ -317,15 +317,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       <button class="tb" onclick="navTo('library',this)">2. Library</button>
       <button class="tb" onclick="navTo('dock',this)">3. Dock</button>
       <button class="tb" onclick="navTo('results',this)">4. Results</button>
-      <button class="tb" onclick="navTo('drugs',this)">💊 Drug Library</button>
-      <button class="tb" onclick="navTo('multitarget',this)">🎯 Multi-Target</button>
-      <button class="tb" onclick="navTo('history',this)">📈 History</button>
+      <button class="tb" onclick="navTo('drugs',this)">&#128138; Drug Library</button>
+      <button class="tb" onclick="navTo('multitarget',this)">&#127919; Multi-Target</button>
+      <button class="tb" onclick="navTo('history',this)">&#128200; History</button>
       <button class="tb" onclick="navTo('admet',this)">ADMET</button>
-      <button class="tb" onclick="navTo('fasta',this)">FASTA→3D</button>
+      <button class="tb" onclick="navTo('fasta',this)">FASTA&rarr;3D</button>
     </div>
     <div class="atb-r">
-      <div class="bkpill">🧺 <span class="bkc" id="tb-basket">0</span></div>
-      <div class="bpill off" id="bpill"><div class="bpulse off" id="bpulse"></div><span id="blbl">Checking…</span></div>
+      <div class="bkpill">&#129530; <span class="bkc" id="tb-basket">0</span></div>
+      <div class="bpill off" id="bpill"><div class="bpulse off" id="bpulse"></div><span id="blbl">Checking&#8230;</span></div>
     </div>
   </div>
   <div class="abody">
@@ -339,15 +339,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       </div>
       <div class="sb-sec">
         <div class="sb-lbl">Analysis</div>
-        <div class="sbstep" id="sb-multitarget" onclick="navTo('multitarget',null)"><div class="sind" id="si-multitarget">🎯</div><div class="slabel">Multi-Target</div></div>
-        <div class="sbstep" id="sb-history" onclick="navTo('history',null)"><div class="sind" id="si-history">📈</div><div class="slabel">Run History</div></div>
-        <div class="sbstep" id="sb-drugs" onclick="navTo('drugs',null)"><div class="sind" id="si-drugs">💊</div><div class="slabel">Drug Library</div></div>
+        <div class="sbstep" id="sb-multitarget" onclick="navTo('multitarget',null)"><div class="sind" id="si-multitarget">&#127919;</div><div class="slabel">Multi-Target</div></div>
+        <div class="sbstep" id="sb-history" onclick="navTo('history',null)"><div class="sind" id="si-history">&#128200;</div><div class="slabel">Run History</div></div>
+        <div class="sbstep" id="sb-drugs" onclick="navTo('drugs',null)"><div class="sind" id="si-drugs">&#128138;</div><div class="slabel">Drug Library</div></div>
         <div class="sbstep" id="sb-admet" onclick="navTo('admet',null)"><div class="sind" id="si-admet">A</div><div class="slabel">ADMET Profile</div></div>
-        <div class="sbstep" id="sb-fasta" onclick="navTo('fasta',null)"><div class="sind" id="si-fasta">F</div><div class="slabel">FASTA → 3D</div></div>
+        <div class="sbstep" id="sb-fasta" onclick="navTo('fasta',null)"><div class="sind" id="si-fasta">F</div><div class="slabel">FASTA &rarr; 3D</div></div>
       </div>
       <div class="sessbox" id="sessbox" style="display:none">
         <div class="sb-lbl" style="padding:0 0 7px">Session</div>
-        <div class="sr"><span class="sk">Target</span><span class="sv" id="ss-target">—</span></div>
+        <div class="sr"><span class="sk">Target</span><span class="sv" id="ss-target">&#8212;</span></div>
         <div class="sr"><span class="sk">Basket</span><span class="sv" id="ss-basket">0</span></div>
         <div class="sr"><span class="sk">Results</span><span class="sv" id="ss-results">none</span></div>
         <div class="sr"><span class="sk">Mode</span><span class="sv" id="ss-mode">Sim</span></div>
@@ -360,13 +360,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       <div class="pg active" id="pg-target">
         <div class="pgh"><div class="pgt">Choose a Target Protein</div><div class="pgs">Load from RCSB PDB by ID, fetch any protein from AlphaFold DB by UniProt accession, search by name, or click a preset target below.</div></div>
         <div class="card">
-          <div class="ch"><div class="ct">🔍 Search Target Structure</div></div>
+          <div class="ch"><div class="ct">&#128269; Search Target Structure</div></div>
           <div class="cb">
             <!-- Source toggle -->
             <div style="display:flex;gap:6px;margin-bottom:14px">
-              <button class="vcbtn active" id="src-pdb-btn" onclick="setTargetSource('pdb')">🗄️ RCSB PDB</button>
-              <button class="vcbtn" id="src-af-btn" onclick="setTargetSource('af')">🧬 AlphaFold DB</button>
-              <button class="vcbtn" id="src-text-btn" onclick="setTargetSource('text')">🔤 Search by name</button>
+              <button class="vcbtn active" id="src-pdb-btn" onclick="setTargetSource('pdb')">&#128452;&#65039; RCSB PDB</button>
+              <button class="vcbtn" id="src-af-btn" onclick="setTargetSource('af')">&#129516; AlphaFold DB</button>
+              <button class="vcbtn" id="src-text-btn" onclick="setTargetSource('text')">&#128292; Search by name</button>
             </div>
 
             <!-- PDB ID input -->
@@ -374,15 +374,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
               <div class="fr">
                 <div class="fc2">
                   <label class="lbl">PDB ID (e.g. 1HSG, 6LU7, 3ERT)</label>
-                  <input class="inp" id="pdb-inp" placeholder="Enter 4-character PDB ID…" maxlength="8"
+                  <input class="inp" id="pdb-inp" placeholder="Enter 4-character PDB ID&#8230;" maxlength="8"
                     style="text-transform:uppercase;font-family:DM Mono,monospace;font-size:15px"
                     oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')fetchPDB()">
                 </div>
                 <div style="align-self:flex-end"><button class="btn btn-p" onclick="fetchPDB()">Fetch from RCSB</button></div>
               </div>
               <div class="ib tip" style="margin-top:6px">
-                <div class="ibi">💡</div>
-                <div class="ibt">Find PDB IDs at <b>rcsb.org</b> — search your protein name and use the 4-character code (e.g. 1HSG for HIV protease).</div>
+                <div class="ibi">&#128161;</div>
+                <div class="ibt">Find PDB IDs at <b>rcsb.org</b> &mdash; search your protein name and use the 4-character code (e.g. 1HSG for HIV protease).</div>
               </div>
             </div>
 
@@ -391,28 +391,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
               <div class="fr">
                 <div class="fc2">
                   <label class="lbl">UniProt Accession (e.g. P0DTD1, P68871, Q9Y233)</label>
-                  <input class="inp" id="af-inp" placeholder="Enter UniProt ID…" maxlength="12"
+                  <input class="inp" id="af-inp" placeholder="Enter UniProt ID&#8230;" maxlength="12"
                     style="text-transform:uppercase;font-family:DM Mono,monospace;font-size:15px"
                     oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')fetchAlphaFold()">
                 </div>
                 <div style="align-self:flex-end"><button class="btn btn-p" onclick="fetchAlphaFold()">Fetch from AlphaFold</button></div>
               </div>
               <div class="ib tip" style="margin-top:6px">
-                <div class="ibi">🧬</div>
-                <div class="ibt">AlphaFold DB contains <b>200M+ predicted structures</b> for any protein with a UniProt ID — including those with no experimental structure. Find UniProt IDs at <b>uniprot.org</b>.</div>
+                <div class="ibi">&#129516;</div>
+                <div class="ibt">AlphaFold DB contains <b>200M+ predicted structures</b> for any protein with a UniProt ID &mdash; including those with no experimental structure. Find UniProt IDs at <b>uniprot.org</b>.</div>
               </div>
               <!-- Common AlphaFold targets -->
               <div style="margin-top:12px">
                 <div class="sb-lbl" style="padding:0 0 8px">Common AlphaFold targets:</div>
                 <div style="display:flex;gap:6px;flex-wrap:wrap">
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P0DTD1';fetchAlphaFold()">P0DTD1 — SARS-CoV-2 nsp12</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P68871';fetchAlphaFold()">P68871 — Haemoglobin β</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P00533';fetchAlphaFold()">P00533 — EGFR kinase</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P03372';fetchAlphaFold()">P03372 — Estrogen receptor</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='O15379';fetchAlphaFold()">O15379 — HDAC3</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='Q9Y233';fetchAlphaFold()">Q9Y233 — PfDHFR (Malaria)</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P56817';fetchAlphaFold()">P56817 — BACE1 (Alzheimer)</button>
-                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P10275';fetchAlphaFold()">P10275 — Androgen receptor</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P0DTD1';fetchAlphaFold()">P0DTD1 &mdash; SARS-CoV-2 nsp12</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P68871';fetchAlphaFold()">P68871 &mdash; Haemoglobin &#946;</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P00533';fetchAlphaFold()">P00533 &mdash; EGFR kinase</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P03372';fetchAlphaFold()">P03372 &mdash; Estrogen receptor</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='O15379';fetchAlphaFold()">O15379 &mdash; HDAC3</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='Q9Y233';fetchAlphaFold()">Q9Y233 &mdash; PfDHFR (Malaria)</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P56817';fetchAlphaFold()">P56817 &mdash; BACE1 (Alzheimer)</button>
+                  <button class="vcbtn" onclick="document.getElementById('af-inp').value='P10275';fetchAlphaFold()">P10275 &mdash; Androgen receptor</button>
                 </div>
               </div>
             </div>
@@ -422,7 +422,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
               <div class="fr">
                 <div class="fc2">
                   <label class="lbl">Search protein name (e.g. "HIV protease", "EGFR", "malaria DHFR")</label>
-                  <input class="inp" id="text-srch-inp" placeholder="Type protein name…"
+                  <input class="inp" id="text-srch-inp" placeholder="Search any protein by name &mdash; e.g. HIV protease, EGFR kinase, malaria DHFR&#8230;"
                     onkeydown="if(event.key==='Enter')searchPDBByName()">
                 </div>
                 <div style="align-self:flex-end"><button class="btn btn-p" onclick="searchPDBByName()">Search</button></div>
@@ -432,29 +432,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 
             <!-- Shared result box -->
             <div id="pdb-res" style="display:none;margin-top:10px" class="ib ok">
-              <div class="ibi">✅</div><div class="ibt" id="pdb-res-txt"></div>
+              <div class="ibi">&#9989;</div><div class="ibt" id="pdb-res-txt"></div>
             </div>
           </div>
         </div>
         <div class="card">
-          <div class="ch"><div class="ct">🎯 Common Disease Targets</div><span class="bdg bg-t">click to load</span></div>
+          <div class="ch"><div class="ct">&#127919; Common Disease Targets</div><span class="bdg bg-t">click to load</span></div>
           <div class="cb">
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:7px">
-              <div class="cc" onclick="loadTarget('1HSG','HIV-1 Protease',{x:2.2,y:5.4,z:-1.1},'2.0 Å')"><div class="cn">1HSG — HIV-1 Protease</div><div class="cp">HIV / AIDS · 2.0 Å X-ray</div><div class="ctags"><span class="ctag">Antiviral</span><span class="ctag g">Benchmark</span></div></div>
-              <div class="cc" onclick="loadTarget('6LU7','SARS-CoV-2 Mpro',{x:10.5,y:12.0,z:68.0},'2.16 Å')"><div class="cn">6LU7 — SARS-CoV-2 Mpro</div><div class="cp">COVID-19 main protease · 2.16 Å</div><div class="ctags"><span class="ctag">Antiviral</span><span class="ctag a">Hot target</span></div></div>
-              <div class="cc" onclick="loadTarget('3ERT','Estrogen Receptor α',{x:5.1,y:22.0,z:-3.5},'1.8 Å')"><div class="cn">3ERT — Estrogen Receptor α</div><div class="cp">Breast cancer · 1.8 Å</div><div class="ctags"><span class="ctag">Anticancer</span></div></div>
-              <div class="cc" onclick="loadTarget('4HJJ','VEGFR2 Kinase',{x:-2.7,y:12.0,z:6.9},'1.7 Å')"><div class="cn">4HJJ — VEGFR2 Kinase</div><div class="cp">Angiogenesis / Cancer · 1.7 Å</div><div class="ctags"><span class="ctag">Kinase</span><span class="ctag">Anticancer</span></div></div>
-              <div class="cc" onclick="loadTarget('2B8T','P.f. DHFR — Malaria',{x:10.4,y:4.2,z:50.6},'1.9 Å')"><div class="cn">2B8T — P.f. DHFR</div><div class="cp">Malaria · 1.9 Å</div><div class="ctags"><span class="ctag">Antimalarial</span><span class="ctag a">Africa focus</span></div></div>
-              <div class="cc" onclick="loadTarget('5NIL','COX-2 Cyclooxygenase',{x:-2.5,y:22.0,z:24.5},'2.4 Å')"><div class="cn">5NIL — COX-2</div><div class="cp">Inflammation / Pain · 2.4 Å</div><div class="ctags"><span class="ctag">Anti-inflam.</span></div></div>
-              <div class="cc" onclick="loadTarget('6M0J','ACE2 — SARS-CoV-2',{x:-35.0,y:9.0,z:18.0},'2.45 Å')"><div class="cn">6M0J — ACE2 receptor</div><div class="cp">SARS-CoV-2 binding · 2.45 Å</div><div class="ctags"><span class="ctag">Antiviral</span><span class="ctag a">Hot target</span></div></div>
-              <div class="cc" onclick="loadTarget('1AHP','Acetylcholinesterase',{x:2.5,y:-15.0,z:4.0},'2.5 Å')"><div class="cn">1AHP — AChE</div><div class="cp">Alzheimer disease · 2.5 Å</div><div class="ctags"><span class="ctag">Neurology</span></div></div>
+              <div class="cc" onclick="loadTarget('1HSG','HIV-1 Protease',{x:2.2,y:5.4,z:-1.1},'2.0 &#197;')"><div class="cn">1HSG &mdash; HIV-1 Protease</div><div class="cp">HIV / AIDS &middot; 2.0 &#197; X-ray</div><div class="ctags"><span class="ctag">Antiviral</span><span class="ctag g">Benchmark</span></div></div>
+              <div class="cc" onclick="loadTarget('6LU7','SARS-CoV-2 Mpro',{x:10.5,y:12.0,z:68.0},'2.16 &#197;')"><div class="cn">6LU7 &mdash; SARS-CoV-2 Mpro</div><div class="cp">COVID-19 main protease &middot; 2.16 &#197;</div><div class="ctags"><span class="ctag">Antiviral</span><span class="ctag a">Hot target</span></div></div>
+              <div class="cc" onclick="loadTarget('3ERT','Estrogen Receptor &#945;',{x:5.1,y:22.0,z:-3.5},'1.8 &#197;')"><div class="cn">3ERT &mdash; Estrogen Receptor &#945;</div><div class="cp">Breast cancer &middot; 1.8 &#197;</div><div class="ctags"><span class="ctag">Anticancer</span></div></div>
+              <div class="cc" onclick="loadTarget('4HJJ','VEGFR2 Kinase',{x:-2.7,y:12.0,z:6.9},'1.7 &#197;')"><div class="cn">4HJJ &mdash; VEGFR2 Kinase</div><div class="cp">Angiogenesis / Cancer &middot; 1.7 &#197;</div><div class="ctags"><span class="ctag">Kinase</span><span class="ctag">Anticancer</span></div></div>
+              <div class="cc" onclick="loadTarget('2B8T','P.f. DHFR &mdash; Malaria',{x:10.4,y:4.2,z:50.6},'1.9 &#197;')"><div class="cn">2B8T &mdash; P.f. DHFR</div><div class="cp">Malaria &middot; 1.9 &#197;</div><div class="ctags"><span class="ctag">Antimalarial</span><span class="ctag a">Africa focus</span></div></div>
+              <div class="cc" onclick="loadTarget('5NIL','COX-2 Cyclooxygenase',{x:-2.5,y:22.0,z:24.5},'2.4 &#197;')"><div class="cn">5NIL &mdash; COX-2</div><div class="cp">Inflammation / Pain &middot; 2.4 &#197;</div><div class="ctags"><span class="ctag">Anti-inflam.</span></div></div>
+              <div class="cc" onclick="loadTarget('6M0J','ACE2 &mdash; SARS-CoV-2',{x:-35.0,y:9.0,z:18.0},'2.45 &#197;')"><div class="cn">6M0J &mdash; ACE2 receptor</div><div class="cp">SARS-CoV-2 binding &middot; 2.45 &#197;</div><div class="ctags"><span class="ctag">Antiviral</span><span class="ctag a">Hot target</span></div></div>
+              <div class="cc" onclick="loadTarget('1AHP','Acetylcholinesterase',{x:2.5,y:-15.0,z:4.0},'2.5 &#197;')"><div class="cn">1AHP &mdash; AChE</div><div class="cp">Alzheimer disease &middot; 2.5 &#197;</div><div class="ctags"><span class="ctag">Neurology</span></div></div>
             </div>
           </div>
         </div>
         <div id="target-done" style="display:none">
-          <div class="ib ok"><div class="ibi">🎯</div><div class="ibt"><b>Target loaded: <span id="tgt-name">—</span></b><br><span style="color:var(--muted);font-size:12px">Grid auto-configured · Proceed to Step 2</span></div></div>
+          <div class="ib ok"><div class="ibi">&#127919;</div><div class="ibt"><b>Target loaded: <span id="tgt-name">&#8212;</span></b><br><span style="color:var(--muted);font-size:12px">Grid auto-configured &middot; Proceed to Step 2</span></div></div>
           <div style="display:flex;gap:9px;margin-top:9px">
-            <button class="btn btn-s btn-sm" onclick="navTo('library',null)">Next: Add Compounds →</button>
+            <button class="btn btn-s btn-sm" onclick="navTo('library',null)">Next: Add Compounds &rarr;</button>
           </div>
         </div>
       </div>
@@ -464,29 +464,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div class="pgh"><div class="pgt">Compound Library</div><div class="pgs">Select compounds to screen. Click cards to add to basket, or paste custom SMILES below.</div></div>
         <div class="card" style="margin-bottom:11px">
           <div class="ch">
-            <div class="ct">🧺 Your Basket (<span id="bk-count">0</span> compounds)</div>
+            <div class="ct">&#129530; Your Basket (<span id="bk-count">0</span> compounds)</div>
             <div style="display:flex;gap:7px">
               <button class="btn btn-g btn-sm" onclick="clearBasket()">Clear all</button>
-              <button class="btn btn-s btn-sm" id="proc-btn" disabled onclick="navTo('dock',null)">Proceed to Docking →</button>
+              <button class="btn btn-s btn-sm" id="proc-btn" disabled onclick="navTo('dock',null)">Proceed to Docking &rarr;</button>
             </div>
           </div>
-          <div class="cb" style="padding:10px 14px"><div class="bstrip" id="bstrip"><span class="bemp">No compounds added yet — click cards below to add them</span></div></div>
+          <div class="cb" style="padding:10px 14px"><div class="bstrip" id="bstrip"><span class="bemp">No compounds added yet &mdash; click cards below to add them</span></div></div>
         </div>
         <div class="tbbar">
-          <button class="tbbtn active" onclick="switchLib('af',this)">🌿 African Phytochemicals (35)</button>
-          <button class="tbbtn" onclick="switchLib('cn',this)">🍵 TCM Compounds (35)</button>
-          <button class="tbbtn" onclick="switchLib('custom',this)">✏️ Custom SMILES</button>
+          <button class="tbbtn active" onclick="switchLib('af',this)">&#127807; African Phytochemicals (35)</button>
+          <button class="tbbtn" onclick="switchLib('cn',this)">&#127861; TCM Compounds (35)</button>
+          <button class="tbbtn" onclick="switchLib('custom',this)">&#9999;&#65039; Custom SMILES</button>
         </div>
         <div class="tbpanel active" id="lib-af">
           <div class="fr" style="margin-bottom:11px">
-            <div class="fc2"><input class="inp" id="afsrch" placeholder="Search name, plant, activity, region…" oninput="renderLib('af')"></div>
+            <div class="fc2"><input class="inp" id="afsrch" placeholder="Search name, plant, activity, region&#8230;" oninput="renderLib('af')"></div>
             <div><select class="sel" id="afcls" style="width:130px" onchange="renderLib('af')"><option value="">All classes</option><option>Alkaloid</option><option>Flavonoid</option><option>Terpenoid</option><option>Phenolic</option><option>Quinone</option></select></div>
           </div>
           <div class="cgrid" id="grid-af"></div>
         </div>
         <div class="tbpanel" id="lib-cn">
           <div class="fr" style="margin-bottom:11px">
-            <div class="fc2"><input class="inp" id="cnsrch" placeholder="Search name, herb, activity…" oninput="renderLib('cn')"></div>
+            <div class="fc2"><input class="inp" id="cnsrch" placeholder="Search name, herb, activity&#8230;" oninput="renderLib('cn')"></div>
             <div><select class="sel" id="cncls" style="width:130px" onchange="renderLib('cn')"><option value="">All classes</option><option>Alkaloid</option><option>Flavonoid</option><option>Terpenoid</option><option>Phenolic</option><option>Saponin</option></select></div>
           </div>
           <div class="cgrid" id="grid-cn"></div>
@@ -494,29 +494,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div class="tbpanel" id="lib-custom">
           <!-- PubChem live search -->
           <div class="card" style="margin-bottom:12px">
-            <div class="ch"><div class="ct">🔍 PubChem Live Search</div><span class="bdg bg-t">Searches PubChem + ChEMBL in real time</span></div>
+            <div class="ch"><div class="ct">&#128269; PubChem Live Search</div><span class="bdg bg-t">Searches PubChem + ChEMBL in real time</span></div>
             <div class="cb">
               <div class="fr">
                 <div class="fc2">
                   <label class="lbl">Search by drug name (e.g. "imatinib", "aspirin", "remdesivir")</label>
-                  <input class="inp" id="pc-query" placeholder="Type compound name…" oninput="pcSearch()">
+                  <input class="inp" id="pc-query" placeholder="Type compound name&#8230;" oninput="pcSearch()">
                 </div>
               </div>
               <div id="pc-results" class="pc-results" style="display:none"></div>
-              <div id="pc-loading" style="display:none;padding:10px;color:var(--muted);font-size:13px">⏳ Searching PubChem…</div>
+              <div id="pc-loading" style="display:none;padding:10px;color:var(--muted);font-size:13px">&#9203; Searching PubChem&#8230;</div>
             </div>
           </div>
 
           <!-- Manual SMILES entry -->
           <div class="card">
-            <div class="ch"><div class="ct">✏️ Paste SMILES directly</div></div>
+            <div class="ch"><div class="ct">&#9999;&#65039; Paste SMILES directly</div></div>
             <div class="cb">
               <div class="fr">
                 <div class="fc2"><label class="lbl">Name</label><input class="inp" id="cust-name" placeholder="My Compound"></div>
                 <div class="fc2" style="flex:2"><label class="lbl">SMILES string</label><input class="inp" id="cust-smi" placeholder="CC(C)Cc1ccc(cc1)C(C)C(=O)O"></div>
                 <div style="align-self:flex-end"><button class="btn btn-p" onclick="addCustom()">+ Add</button></div>
               </div>
-              <div class="ib tip"><div class="ibi">💡</div><div class="ibt">Find SMILES on <b>PubChem.ncbi.nlm.nih.gov</b> — search your compound name and copy the Canonical SMILES.</div></div>
+              <div class="ib tip"><div class="ibi">&#128161;</div><div class="ibt">Find SMILES on <b>PubChem.ncbi.nlm.nih.gov</b> &mdash; search your compound name and copy the Canonical SMILES.</div></div>
             </div>
           </div>
         </div>
@@ -530,29 +530,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
               <div style="display:flex;align-items:center;gap:7px"><div id="prq-t" style="width:9px;height:9px;border-radius:50%;background:var(--dim)"></div><span style="font-size:13px;color:var(--muted)">Target: <b id="prq-tl" style="color:var(--text)">none</b></span></div>
               <div style="display:flex;align-items:center;gap:7px"><div id="prq-b" style="width:9px;height:9px;border-radius:50%;background:var(--dim)"></div><span style="font-size:13px;color:var(--muted)">Basket: <b id="prq-bl" style="color:var(--text)">0 compounds</b></span></div>
-              <div style="display:flex;align-items:center;gap:7px"><div id="prq-k" style="width:9px;height:9px;border-radius:50%;background:var(--amber)"></div><span style="font-size:13px;color:var(--muted)">Backend: <b id="prq-kl" style="color:var(--text)">checking…</b></span></div>
+              <div style="display:flex;align-items:center;gap:7px"><div id="prq-k" style="width:9px;height:9px;border-radius:50%;background:var(--amber)"></div><span style="font-size:13px;color:var(--muted)">Backend: <b id="prq-kl" style="color:var(--text)">checking&#8230;</b></span></div>
             </div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
           <div class="card">
-            <div class="ch"><div class="ct">🔲 Binding Site Grid</div><span class="bdg bg-t" id="gsrc">manual</span></div>
+            <div class="ch"><div class="ct">&#128306; Binding Site Grid</div><span class="bdg bg-t" id="gsrc">manual</span></div>
             <div class="cb">
-              <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Centre of the docking box (Å) — auto-filled from target</div>
+              <div style="margin-bottom:8px;font-size:12px;color:var(--muted)">Centre of the docking box (&#197;) &mdash; auto-filled from target</div>
               <div class="grow"><div><div class="glbl">Centre X</div><input class="ginp" id="gx" value="2.2"></div><div><div class="glbl">Centre Y</div><input class="ginp" id="gy" value="5.4"></div><div><div class="glbl">Centre Z</div><input class="ginp" id="gz" value="-1.1"></div></div>
-              <div style="margin:8px 0;font-size:12px;color:var(--muted)">Box size (Å) — 20-25 is standard for most targets</div>
+              <div style="margin:8px 0;font-size:12px;color:var(--muted)">Box size (&#197;) &mdash; 20-25 is standard for most targets</div>
               <div class="grow"><div><div class="glbl">Size X</div><input class="ginp" id="bx" value="22"></div><div><div class="glbl">Size Y</div><input class="ginp" id="by" value="22"></div><div><div class="glbl">Size Z</div><input class="ginp" id="bz" value="22"></div></div>
             </div>
           </div>
           <div class="card">
-            <div class="ch"><div class="ct">⚙️ Search Settings</div></div>
+            <div class="ch"><div class="ct">&#9881;&#65039; Search Settings</div></div>
             <div class="cb">
               <label class="lbl">Search depth (thoroughness)</label>
               <select class="sel" id="exh" style="margin-bottom:12px">
-                <option value="4">Quick (4) — about 15 seconds</option>
-                <option value="8" selected>Standard (8) — about 45 seconds</option>
-                <option value="16">Thorough (16) — about 90 seconds</option>
-                <option value="32">Deep (32) — about 3 minutes</option>
+                <option value="4">Quick (4) &mdash; about 15 seconds</option>
+                <option value="8" selected>Standard (8) &mdash; about 45 seconds</option>
+                <option value="16">Thorough (16) &mdash; about 90 seconds</option>
+                <option value="32">Deep (32) &mdash; about 3 minutes</option>
               </select>
               <label class="lbl">Poses per compound</label>
               <select class="sel" id="nmod" style="margin-bottom:12px">
@@ -569,10 +569,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div class="card">
           <div class="cb">
             <div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">
-              <button class="btn btn-s" id="dock-btn" onclick="runDocking()" style="font-size:15px;padding:11px 26px">▶ Run Docking</button>
+              <button class="btn btn-s" id="dock-btn" onclick="runDocking()" style="font-size:15px;padding:11px 26px">&#9654; Run Docking</button>
               <div style="flex:1">
                 <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px">
-                  <span id="dock-lbl">Ready — select target and add compounds first</span>
+                  <span id="dock-lbl">Ready &mdash; select target and add compounds first</span>
                   <span id="dock-pct">0%</span>
                 </div>
                 <div class="pt"><div class="pf" id="dock-fill"></div></div>
@@ -580,7 +580,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
             </div>
             <div class="log" id="dock-log">
               <div class="ldim">// Docking log will appear here in real time</div>
-              <div class="ldim">// If backend is offline, simulation mode is used automatically — all features still work</div>
+              <div class="ldim">// If backend is offline, simulation mode is used automatically &mdash; all features still work</div>
             </div>
           </div>
         </div>
@@ -589,29 +589,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       <!-- PAGE: RESULTS -->
       <div class="pg" id="pg-results">
         <div class="pgh"><div class="pgt">Docking Results</div><div class="pgs">Compounds ranked by binding affinity. More negative scores = stronger predicted binding.</div></div>
-        <div id="res-empty" class="ib note"><div class="ibi">⏳</div><div class="ibt">No results yet — complete Steps 1–3 first. <a onclick="navTo('dock',null)" style="color:var(--teal);cursor:pointer">Go to Docking →</a></div></div>
+        <div id="res-empty" class="ib note"><div class="ibi">&#9203;</div><div class="ibt">No results yet &mdash; complete Steps 1&ndash;3 first. <a onclick="navTo('dock',null)" style="color:var(--teal);cursor:pointer">Go to Docking &rarr;</a></div></div>
         <div id="res-content" style="display:none">
           <div class="srow">
             <div class="sbox"><div class="snum" id="rs-n">0</div><div class="slb">Compounds docked</div></div>
-            <div class="sbox"><div class="snum" id="rs-best">—</div><div class="slb">Best score (kcal/mol)</div></div>
+            <div class="sbox"><div class="snum" id="rs-best">&#8212;</div><div class="slb">Best score (kcal/mol)</div></div>
             <div class="sbox"><div class="snum" id="rs-pass" style="color:var(--green)">0</div><div class="slb">ADMET pass</div></div>
-            <div class="sbox"><div class="snum" id="rs-src" style="font-size:16px">—</div><div class="slb">Data source</div></div>
+            <div class="sbox"><div class="snum" id="rs-src" style="font-size:16px">&#8212;</div><div class="slb">Data source</div></div>
           </div>
           <div class="ib tip" style="margin-bottom:14px">
-            <div class="ibi">📖</div>
-            <div class="ibt"><b>How to read scores:</b> ≤ −10 kcal/mol = excellent (potential drug candidate) · −8 to −10 = good · −6 to −8 = moderate (worth optimising) · > −6 = weak binding. These are free-energy estimates, not IC₅₀ values — experimental validation is always needed.</div>
+            <div class="ibi">&#128214;</div>
+            <div class="ibt"><b>How to read scores:</b> &#8804; &#8722;10 kcal/mol = excellent (potential drug candidate) &middot; &#8722;8 to &#8722;10 = good &middot; &#8722;6 to &#8722;8 = moderate (worth optimising) &middot; > &#8722;6 = weak binding. These are free-energy estimates, not IC&#8325;&#8320; values &mdash; experimental validation is always needed.</div>
           </div>
           <div class="card">
             <div class="ch">
-              <div class="ct">📊 Ranked Binding Scores</div>
+              <div class="ct">&#128202; Ranked Binding Scores</div>
               <div style="display:flex;gap:7px">
-                <button class="btn btn-g btn-sm" onclick="exportCSV()">↓ Export CSV</button>
-                <button class="btn btn-p btn-sm" onclick="navTo('admet',null)">→ ADMET Analysis</button>
+                <button class="btn btn-g btn-sm" onclick="exportCSV()">&darr; Export CSV</button>
+                <button class="btn btn-p btn-sm" onclick="navTo('admet',null)">&rarr; ADMET Analysis</button>
               </div>
             </div>
             <div class="cb" style="padding:0">
               <table class="rtbl">
-                <thead><tr><th>#</th><th>Compound</th><th>Source</th><th>Score (kcal/mol)</th><th>RMSD (Å)</th><th>ADMET</th><th>Details</th></tr></thead>
+                <thead><tr><th>#</th><th>Compound</th><th>Source</th><th>Score (kcal/mol)</th><th>RMSD (&#197;)</th><th>ADMET</th><th>Details</th></tr></thead>
                 <tbody id="res-tbody"></tbody>
               </table>
             </div>
@@ -624,32 +624,32 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
                 <span class="bdg bg-t" id="dp-stage-badge" style="display:none"></span>
               </div>
               <div style="display:flex;gap:7px">
-                <button class="btn btn-g btn-sm" onclick="findAnalogues()">🔗 Find Analogues</button>
-                <button class="btn btn-g btn-sm" onclick="document.getElementById('detail-panel').classList.remove('open')">✕</button>
+                <button class="btn btn-g btn-sm" onclick="findAnalogues()">&#128279; Find Analogues</button>
+                <button class="btn btn-g btn-sm" onclick="document.getElementById('detail-panel').classList.remove('open')">&#10005;</button>
               </div>
             </div>
 
             <!-- Score stats -->
             <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px">
               <div class="sbox"><div class="snum" id="dp-sc" style="font-size:20px"></div><div class="slb">Score kcal/mol</div></div>
-              <div class="sbox"><div class="snum" id="dp-rm" style="font-size:20px"></div><div class="slb">RMSD Å</div></div>
+              <div class="sbox"><div class="snum" id="dp-rm" style="font-size:20px"></div><div class="slb">RMSD &#197;</div></div>
               <div class="sbox"><div class="snum" id="dp-ad" style="font-size:20px"></div><div class="slb">ADMET</div></div>
-              <div class="sbox"><div class="snum" id="dp-mw" style="font-size:18px;color:var(--muted)">—</div><div class="slb">MW (Da)</div></div>
-              <div class="sbox"><div class="snum" id="dp-lp" style="font-size:18px;color:var(--muted)">—</div><div class="slb">LogP</div></div>
+              <div class="sbox"><div class="snum" id="dp-mw" style="font-size:18px;color:var(--muted)">&#8212;</div><div class="slb">MW (Da)</div></div>
+              <div class="sbox"><div class="snum" id="dp-lp" style="font-size:18px;color:var(--muted)">&#8212;</div><div class="slb">LogP</div></div>
             </div>
 
             <!-- Tab bar inside detail -->
             <div class="tbbar" style="margin-bottom:14px">
-              <button class="tbbtn active" onclick="dpTab('interp',this)">📖 Interpretation</button>
-              <button class="tbbtn" onclick="dpTab('viewer',this)">🧬 3D Structure</button>
-              <button class="tbbtn" onclick="dpTab('analogues',this)">🔗 Analogues</button>
+              <button class="tbbtn active" onclick="dpTab('interp',this)">&#128214; Interpretation</button>
+              <button class="tbbtn" onclick="dpTab('viewer',this)">&#129516; 3D Structure</button>
+              <button class="tbbtn" onclick="dpTab('analogues',this)">&#128279; Analogues</button>
             </div>
 
             <!-- Tab: Interpretation -->
             <div class="tbpanel active" id="dpt-interp">
-              <div class="ib tip"><div class="ibi">📖</div><div class="ibt" id="dp-interp"></div></div>
+              <div class="ib tip"><div class="ibi">&#128214;</div><div class="ibt" id="dp-interp"></div></div>
               <div id="dp-target-info" style="margin-top:10px;display:none" class="ib tip">
-                <div class="ibi">🎯</div><div class="ibt" id="dp-target-txt"></div>
+                <div class="ibi">&#127919;</div><div class="ibt" id="dp-target-txt"></div>
               </div>
             </div>
 
@@ -667,10 +667,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
               </div>
               <div id="viewer-3d"></div>
               <div class="ib tip" style="margin-top:8px">
-                <div class="ibi">💡</div>
+                <div class="ibi">&#128161;</div>
                 <div class="ibt">
-                  <b style="color:var(--teal)">Cyan = ligand</b> · <b style="color:#888">Grey = protein surface</b><br>
-                  Drag to rotate · Scroll to zoom · Right-drag to translate.<br>
+                  <b style="color:var(--teal)">Cyan = ligand</b> &middot; <b style="color:#888">Grey = protein surface</b><br>
+                  Drag to rotate &middot; Scroll to zoom &middot; Right-drag to translate.<br>
                   <span style="color:var(--muted);font-size:11px">Connect backend for real docked pose SDF. Simulation shows energy-minimised 3D conformation.</span>
                 </div>
               </div>
@@ -679,12 +679,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
             <!-- Tab: Analogues (Scaffold Hopping) -->
             <div class="tbpanel" id="dpt-analogues">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                <span style="font-size:13px;color:var(--muted)">Searching 4,992 drugs for structural similarity…</span>
+                <span style="font-size:13px;color:var(--muted)">Searching 4,992 drugs for structural similarity&#8230;</span>
                 <span class="bdg bg-t" id="sh-method">Tanimoto / Morgan</span>
               </div>
               <div id="sh-results" class="sh-grid"></div>
               <div id="sh-empty" class="ib note" style="display:none">
-                <div class="ibi">🔍</div><div class="ibt">No drug library loaded or no similar compounds found (threshold: 0.3 Tanimoto).</div>
+                <div class="ibi">&#128269;</div><div class="ibt">No drug library loaded or no similar compounds found (threshold: 0.3 Tanimoto).</div>
               </div>
             </div>
           </div>
@@ -697,21 +697,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       <div class="pg" id="pg-multitarget">
         <div class="pgh">
           <div class="pgt">Multi-Target Screening</div>
-          <div class="pgs">Screen your compound basket against multiple disease targets simultaneously. Results shown as a colour-coded heatmap — identify selective and pan-active hits at a glance.</div>
+          <div class="pgs">Screen your compound basket against multiple disease targets simultaneously. Results shown as a colour-coded heatmap &mdash; identify selective and pan-active hits at a glance.</div>
         </div>
 
         <div class="card">
-          <div class="ch"><div class="ct">🎯 Select Targets (up to 6)</div><span class="bdg bg-t" id="mt-count">0 selected</span></div>
+          <div class="ch"><div class="ct">&#127919; Select Targets (up to 6)</div><span class="bdg bg-t" id="mt-count">0 selected</span></div>
           <div class="cb">
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:7px;margin-bottom:14px" id="mt-target-grid">
-              <div class="cc" onclick="mtToggleTarget('1HSG','HIV-1 Protease',{x:2.2,y:5.4,z:-1.1})"><div class="cn">1HSG — HIV-1 Protease</div><div class="cp">HIV / AIDS · Antiviral</div><div class="ctags"><span class="ctag g">Benchmark</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('6LU7','SARS-CoV-2 Mpro',{x:10.5,y:12.0,z:68.0})"><div class="cn">6LU7 — SARS-CoV-2 Mpro</div><div class="cp">COVID-19 · Antiviral</div><div class="ctags"><span class="ctag a">Hot target</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('3ERT','Estrogen Receptor α',{x:5.1,y:22.0,z:-3.5})"><div class="cn">3ERT — Estrogen Receptor α</div><div class="cp">Breast cancer</div><div class="ctags"><span class="ctag">Anticancer</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('4HJJ','VEGFR2 Kinase',{x:-2.7,y:12.0,z:6.9})"><div class="cn">4HJJ — VEGFR2 Kinase</div><div class="cp">Angiogenesis / Cancer</div><div class="ctags"><span class="ctag">Kinase</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('2B8T','P.f. DHFR',{x:10.4,y:4.2,z:50.6})"><div class="cn">2B8T — P.f. DHFR</div><div class="cp">Malaria</div><div class="ctags"><span class="ctag a">Africa focus</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('5NIL','COX-2',{x:-2.5,y:22.0,z:24.5})"><div class="cn">5NIL — COX-2</div><div class="cp">Inflammation / Pain</div><div class="ctags"><span class="ctag">Anti-inflam.</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('6M0J','ACE2',{x:-35.0,y:9.0,z:18.0})"><div class="cn">6M0J — ACE2 receptor</div><div class="cp">SARS-CoV-2 binding</div><div class="ctags"><span class="ctag a">Hot target</span></div></div>
-              <div class="cc" onclick="mtToggleTarget('1AHP','AChE (Alzheimer)',{x:2.5,y:-15.0,z:4.0})"><div class="cn">1AHP — AChE</div><div class="cp">Alzheimer disease</div><div class="ctags"><span class="ctag">Neurology</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('1HSG','HIV-1 Protease',{x:2.2,y:5.4,z:-1.1})"><div class="cn">1HSG &mdash; HIV-1 Protease</div><div class="cp">HIV / AIDS &middot; Antiviral</div><div class="ctags"><span class="ctag g">Benchmark</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('6LU7','SARS-CoV-2 Mpro',{x:10.5,y:12.0,z:68.0})"><div class="cn">6LU7 &mdash; SARS-CoV-2 Mpro</div><div class="cp">COVID-19 &middot; Antiviral</div><div class="ctags"><span class="ctag a">Hot target</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('3ERT','Estrogen Receptor &#945;',{x:5.1,y:22.0,z:-3.5})"><div class="cn">3ERT &mdash; Estrogen Receptor &#945;</div><div class="cp">Breast cancer</div><div class="ctags"><span class="ctag">Anticancer</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('4HJJ','VEGFR2 Kinase',{x:-2.7,y:12.0,z:6.9})"><div class="cn">4HJJ &mdash; VEGFR2 Kinase</div><div class="cp">Angiogenesis / Cancer</div><div class="ctags"><span class="ctag">Kinase</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('2B8T','P.f. DHFR',{x:10.4,y:4.2,z:50.6})"><div class="cn">2B8T &mdash; P.f. DHFR</div><div class="cp">Malaria</div><div class="ctags"><span class="ctag a">Africa focus</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('5NIL','COX-2',{x:-2.5,y:22.0,z:24.5})"><div class="cn">5NIL &mdash; COX-2</div><div class="cp">Inflammation / Pain</div><div class="ctags"><span class="ctag">Anti-inflam.</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('6M0J','ACE2',{x:-35.0,y:9.0,z:18.0})"><div class="cn">6M0J &mdash; ACE2 receptor</div><div class="cp">SARS-CoV-2 binding</div><div class="ctags"><span class="ctag a">Hot target</span></div></div>
+              <div class="cc" onclick="mtToggleTarget('1AHP','AChE (Alzheimer)',{x:2.5,y:-15.0,z:4.0})"><div class="cn">1AHP &mdash; AChE</div><div class="cp">Alzheimer disease</div><div class="ctags"><span class="ctag">Neurology</span></div></div>
             </div>
             <div style="margin-bottom:10px">
               <div class="sb-lbl" style="padding:0 0 8px">Selected targets:</div>
@@ -725,7 +725,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div class="card">
           <div class="cb">
             <div style="display:flex;align-items:center;gap:13px;margin-bottom:13px">
-              <button class="btn btn-s" id="mt-run-btn" onclick="runMultiTarget()" style="font-size:15px;padding:11px 26px">▶ Run Multi-Target Screen</button>
+              <button class="btn btn-s" id="mt-run-btn" onclick="runMultiTarget()" style="font-size:15px;padding:11px 26px">&#9654; Run Multi-Target Screen</button>
               <div style="flex:1">
                 <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px">
                   <span id="mt-lbl">Select targets and compounds first</span>
@@ -744,27 +744,27 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div id="mt-heatmap-section" style="display:none">
           <div class="card">
             <div class="ch">
-              <div class="ct">🗺️ Binding Affinity Heatmap</div>
+              <div class="ct">&#128506;&#65039; Binding Affinity Heatmap</div>
               <div style="display:flex;gap:7px">
-                <button class="btn btn-g btn-sm" onclick="exportHeatmapCSV()">↓ Export CSV</button>
-                <button class="btn btn-p btn-sm" onclick="saveToHistory()">💾 Save to History</button>
+                <button class="btn btn-g btn-sm" onclick="exportHeatmapCSV()">&darr; Export CSV</button>
+                <button class="btn btn-p btn-sm" onclick="saveToHistory()">&#128190; Save to History</button>
               </div>
             </div>
             <div class="cb">
               <div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px;color:var(--muted)">
                 <span>Score colour scale (kcal/mol):</span>
-                <span style="color:var(--green)">■ ≤ −10 excellent</span>
-                <span style="color:#4DB8FF">■ −8 to −10 good</span>
-                <span style="color:var(--amber)">■ −6 to −8 moderate</span>
-                <span style="color:var(--red)">■ > −6 weak</span>
-                <span style="color:var(--border2)">■ — not docked</span>
+                <span style="color:var(--green)">&#9632; &#8804; &#8722;10 excellent</span>
+                <span style="color:#4DB8FF">&#9632; &#8722;8 to &#8722;10 good</span>
+                <span style="color:var(--amber)">&#9632; &#8722;6 to &#8722;8 moderate</span>
+                <span style="color:var(--red)">&#9632; > &#8722;6 weak</span>
+                <span style="color:var(--border2)">&#9632; &mdash; not docked</span>
               </div>
               <div class="hm-wrap">
                 <table class="hm-table" id="hm-table"></table>
               </div>
               <div class="ib tip" style="margin-top:12px">
-                <div class="ibi">💡</div>
-                <div class="ibt"><b>Reading the heatmap:</b> Rows = compounds, Columns = targets. Green cells = strong binders (potential hits). A compound green across all targets = <b>pan-active</b>. Green in only one column = <b>selective</b> — more desirable for drugs. Click any cell to see full details.</div>
+                <div class="ibi">&#128161;</div>
+                <div class="ibt"><b>Reading the heatmap:</b> Rows = compounds, Columns = targets. Green cells = strong binders (potential hits). A compound green across all targets = <b>pan-active</b>. Green in only one column = <b>selective</b> &mdash; more desirable for drugs. Click any cell to see full details.</div>
               </div>
             </div>
           </div>
@@ -779,15 +779,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         </div>
 
         <div id="hist-empty" class="ib note">
-          <div class="ibi">📋</div>
-          <div class="ibt">No runs yet — complete at least one docking run or multi-target screen first.</div>
+          <div class="ibi">&#128203;</div>
+          <div class="ibt">No runs yet &mdash; complete at least one docking run or multi-target screen first.</div>
         </div>
 
         <div id="hist-content" style="display:none">
           <div style="display:flex;gap:9px;margin-bottom:16px;flex-wrap:wrap">
-            <button class="btn btn-s" onclick="exportReport()">📄 Export Publication Report (DOCX)</button>
-            <button class="btn btn-g btn-sm" onclick="exportAllCSV()">↓ Export All Results CSV</button>
-            <button class="btn btn-g btn-sm" onclick="clearHistory()">🗑 Clear history</button>
+            <button class="btn btn-s" onclick="exportReport()">&#128196; Export Publication Report (DOCX)</button>
+            <button class="btn btn-g btn-sm" onclick="exportAllCSV()">&darr; Export All Results CSV</button>
+            <button class="btn btn-g btn-sm" onclick="clearHistory()">&#128465; Clear history</button>
           </div>
           <div id="hist-cards"></div>
         </div>
@@ -796,7 +796,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       <!-- PAGE: DRUG LIBRARY -->
       <div class="pg" id="pg-drugs">
         <div class="pgh">
-          <div class="pgt">Drug Library — 4,992 Compounds</div>
+          <div class="pgt">Drug Library &mdash; 4,992 Compounds</div>
           <div class="pgs">Browse, filter and add FDA-approved drugs, clinical-stage and preclinical compounds to your docking basket. All 4 libraries merged and deduplicated.</div>
         </div>
 
@@ -810,10 +810,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 
         <!-- Filters -->
         <div class="card" style="margin-bottom:12px">
-          <div class="ch"><div class="ct">🔍 Search & Filter</div><span id="dl-count" class="bdg bg-t">4992 shown</span></div>
+          <div class="ch"><div class="ct">&#128269; Search & Filter</div><span id="dl-count" class="bdg bg-t">4992 shown</span></div>
           <div class="cb">
             <div class="fr">
-              <div class="fc2"><label class="lbl">Search name / CAS / target</label><input class="inp" id="dl-q" placeholder="e.g. imatinib, cancer, EGFR, 71-63-6…" oninput="renderDrugs()"></div>
+              <div class="fc2"><label class="lbl">Search name / CAS / target</label><input class="inp" id="dl-q" placeholder="e.g. imatinib, cancer, EGFR, 71-63-6&#8230;" oninput="renderDrugs()"></div>
               <div><label class="lbl">Stage</label><select class="sel" id="dl-stage" style="width:160px" onchange="renderDrugs()">
                 <option value="">All stages</option>
                 <option>FDA Approved</option>
@@ -852,7 +852,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
             <div class="ct" id="dl-shown">Showing all 4992 compounds</div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-g btn-sm" onclick="addFilteredToBasket()">+ Add filtered to basket</button>
-              <button class="btn btn-s btn-sm" id="dl-proc" disabled onclick="navTo('dock',null)">Proceed to Docking →</button>
+              <button class="btn btn-s btn-sm" id="dl-proc" disabled onclick="navTo('dock',null)">Proceed to Docking &rarr;</button>
             </div>
           </div>
           <div class="cb" style="padding:0;max-height:480px;overflow-y:auto">
@@ -864,9 +864,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
             </table>
           </div>
           <div style="padding:10px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-            <span style="font-size:12px;color:var(--muted)">Showing first <b id="dl-showing">500</b> of <b id="dl-total">4992</b> matching compounds · <a onclick="dlShowMore()" style="color:var(--teal);cursor:pointer">Load more</a></span>
+            <span style="font-size:12px;color:var(--muted)">Showing first <b id="dl-showing">500</b> of <b id="dl-total">4992</b> matching compounds &middot; <a onclick="dlShowMore()" style="color:var(--teal);cursor:pointer">Load more</a></span>
             <div style="display:flex;gap:7px">
-              <button class="btn btn-g btn-sm" onclick="exportDrugCSV()">↓ Export filtered CSV</button>
+              <button class="btn btn-g btn-sm" onclick="exportDrugCSV()">&darr; Export filtered CSV</button>
             </div>
           </div>
         </div>
@@ -876,10 +876,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
       <div class="pg" id="pg-admet">
         <div class="pgh"><div class="pgt">ADMET Safety Profile</div><div class="pgs">Predict drug-likeness, oral bioavailability, toxicity risks and metabolism properties for all basket compounds.</div></div>
         <div style="display:flex;gap:9px;margin-bottom:18px">
-          <button class="btn btn-p" onclick="runADMET()">▶ Score All Compounds</button>
-          <button class="btn btn-g btn-sm" onclick="exportADMET()">↓ Export CSV</button>
+          <button class="btn btn-p" onclick="runADMET()">&#9654; Score All Compounds</button>
+          <button class="btn btn-g btn-sm" onclick="exportADMET()">&darr; Export CSV</button>
         </div>
-        <div id="admet-empty" class="ib note"><div class="ibi">💊</div><div class="ibt">Add compounds to your basket and click "Score All Compounds" to generate drug-likeness profiles.</div></div>
+        <div id="admet-empty" class="ib note"><div class="ibi">&#128138;</div><div class="ibt">Add compounds to your basket and click "Score All Compounds" to generate drug-likeness profiles.</div></div>
         <div id="admet-content" style="display:none">
           <div class="srow">
             <div class="sbox"><div class="snum" id="at-n">0</div><div class="slb">Scored</div></div>
@@ -893,44 +893,44 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 
       <!-- PAGE: FASTA -->
       <div class="pg" id="pg-fasta">
-        <div class="pgh"><div class="pgt">FASTA → 3D Structure Prediction</div><div class="pgs">Predict a protein 3D structure from its amino acid sequence using ESMFold (Meta AI). Free, no account needed.</div></div>
+        <div class="pgh"><div class="pgt">FASTA &rarr; 3D Structure Prediction</div><div class="pgs">Predict a protein 3D structure from its amino acid sequence using ESMFold (Meta AI). Free, no account needed.</div></div>
         <div class="card">
-          <div class="ch"><div class="ct">🧬 Paste your amino acid sequence</div></div>
+          <div class="ch"><div class="ct">&#129516; Paste your amino acid sequence</div></div>
           <div class="cb">
             <textarea class="inp" id="fasta-inp" rows="6" style="font-family:DM Mono,monospace;font-size:12px;resize:vertical" placeholder=">Protein name (optional header line)
-SGFRKMAFPSGKVEGCMVQVTCGTTTLNGLWLDDVVYCPRHVICTSEDM…"></textarea>
+SGFRKMAFPSGKVEGCMVQVTCGTTTLNGLWLDDVVYCPRHVICTSEDM&#8230;"></textarea>
             <div style="margin-top:11px;display:flex;gap:9px;align-items:center;flex-wrap:wrap">
-              <button class="btn btn-s" id="fasta-btn" onclick="runFASTA()">▶ Predict Structure</button>
+              <button class="btn btn-s" id="fasta-btn" onclick="runFASTA()">&#9654; Predict Structure</button>
               <button class="btn btn-g btn-sm" onclick="document.getElementById('fasta-inp').value=FASTA_EXAMPLE">Load example (SARS-CoV-2 Mpro)</button>
               <span style="font-size:12px;color:var(--muted)">Best for sequences under 700 amino acids</span>
             </div>
-            <div class="ib tip" style="margin-top:11px"><div class="ibi">🔬</div><div class="ibt">ESMFold uses Meta AI's protein language model to predict structure from sequence alone — no multiple sequence alignment needed. Results include real PDB coordinates and per-residue confidence scores (pLDDT).</div></div>
+            <div class="ib tip" style="margin-top:11px"><div class="ibi">&#128300;</div><div class="ibt">ESMFold uses Meta AI's protein language model to predict structure from sequence alone &mdash; no multiple sequence alignment needed. Results include real PDB coordinates and per-residue confidence scores (pLDDT).</div></div>
           </div>
         </div>
         <div id="fasta-res-card" style="display:none">
           <div class="card">
             <div class="ch">
-              <div class="ct">📊 Prediction Results</div>
-              <button class="btn btn-g btn-sm" id="fasta-dl" style="display:none" onclick="downloadFastaPDB()">↓ Download PDB</button>
+              <div class="ct">&#128202; Prediction Results</div>
+              <button class="btn btn-g btn-sm" id="fasta-dl" style="display:none" onclick="downloadFastaPDB()">&darr; Download PDB</button>
             </div>
             <div class="cb">
               <div class="pt" style="margin-bottom:11px"><div class="pf" id="fasta-fill"></div></div>
               <div class="log" id="fasta-log" style="height:150px"></div>
               <div id="fasta-metrics" style="display:none;margin-top:15px">
                 <div class="srow">
-                  <div class="sbox"><div class="snum" id="fm-plddt" style="color:var(--green)">—</div><div class="slb">Mean pLDDT</div></div>
-                  <div class="sbox"><div class="snum" id="fm-len">—</div><div class="slb">Residues</div></div>
-                  <div class="sbox"><div class="snum" id="fm-ptm">—</div><div class="slb">pTM score</div></div>
+                  <div class="sbox"><div class="snum" id="fm-plddt" style="color:var(--green)">&#8212;</div><div class="slb">Mean pLDDT</div></div>
+                  <div class="sbox"><div class="snum" id="fm-len">&#8212;</div><div class="slb">Residues</div></div>
+                  <div class="sbox"><div class="snum" id="fm-ptm">&#8212;</div><div class="slb">pTM score</div></div>
                   <div class="sbox"><div class="snum" id="fm-eng" style="font-size:13px">ESMFold</div><div class="slb">Engine</div></div>
                 </div>
                 <canvas id="plddt-cv" height="80" style="width:100%;border-radius:8px;margin-top:3px"></canvas>
                 <div style="display:flex;gap:14px;margin-top:7px;font-size:12px;color:var(--muted)">
-                  <span style="color:var(--green)">■ Very high ≥90</span>
-                  <span style="color:#4DB8FF">■ Confident 70–90</span>
-                  <span style="color:var(--amber)">■ Low 50–70</span>
-                  <span style="color:var(--red)">■ Very low &lt;50</span>
+                  <span style="color:var(--green)">&#9632; Very high &#8805;90</span>
+                  <span style="color:#4DB8FF">&#9632; Confident 70&ndash;90</span>
+                  <span style="color:var(--amber)">&#9632; Low 50&ndash;70</span>
+                  <span style="color:var(--red)">&#9632; Very low &lt;50</span>
                 </div>
-                <div class="ib tip" style="margin-top:12px"><div class="ibi">💡</div><div class="ibt" id="plddt-interp"></div></div>
+                <div class="ib tip" style="margin-top:12px"><div class="ibi">&#128161;</div><div class="ibt" id="plddt-interp"></div></div>
               </div>
             </div>
           </div>
@@ -943,6 +943,8 @@ SGFRKMAFPSGKVEGCMVQVTCGTTTLNGLWLDDVVYCPRHVICTSEDM…"></textarea>
 <script>
 const FASTA_EXAMPLE = `>SARS-CoV-2 Main Protease (Mpro)
 SGFRKMAFPSGKVEGCMVQVTCGTTTLNGLWLDDVVYCPRHVICTSEDMLNPNYEDLLIRKSNHNFLVQAGNVQLRVIGHSMQNCVLKLKVDTANPKTPKYKFVRIQPGQTFSVLACYNGSPSGVYSWLWNTRSIIAHTDEFDRERYAQFKSLEIISSGLREQAGNSPESAENFIFKLTDNQNLFLSGNLNLAQLKVNSGSIASAIETREHTFPQVIMHAQHIQLRESGDAPVLHVIATYGCLCSLAQKASRPEPFPRGYSSIELTSPFFMQVLSGMDVTAIGTTLQEVLALQDYDQLISHNPQILQLQSEGMVNF`;
+
+const PROTEIN_INDEX = [{"n":"HIV-1 Protease","pdb":"1HSG","uni":"P04585","dis":"HIV/AIDS","type":"Protease","org":"HIV-1","res":"2.0 \u00c5","grid":{"x":2.2,"y":5.4,"z":-1.1},"tags":["Antiviral","Benchmark"]},{"n":"HIV-1 Reverse Transcriptase","pdb":"1RTD","uni":"P03366","dis":"HIV/AIDS","type":"Polymerase","org":"HIV-1","res":"3.0 \u00c5","grid":{"x":27.0,"y":2.0,"z":7.0},"tags":["Antiviral"]},{"n":"HIV-1 Integrase","pdb":"1BIS","uni":"P04591","dis":"HIV/AIDS","type":"Integrase","org":"HIV-1","res":"2.6 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiviral"]},{"n":"SARS-CoV-2 Main Protease Mpro","pdb":"6LU7","uni":"P0DTD1","dis":"COVID-19","type":"Protease","org":"SARS-CoV-2","res":"2.16 \u00c5","grid":{"x":10.5,"y":12.0,"z":68.0},"tags":["Antiviral","Hot target"]},{"n":"SARS-CoV-2 RdRp nsp12","pdb":"7BV2","uni":"P0DTD1","dis":"COVID-19","type":"Polymerase","org":"SARS-CoV-2","res":"2.9 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiviral"]},{"n":"SARS-CoV-2 Spike ACE2 complex","pdb":"6M0J","uni":"P0DTC2","dis":"COVID-19","type":"Receptor","org":"SARS-CoV-2","res":"2.45 \u00c5","grid":{"x":-35.0,"y":9.0,"z":18.0},"tags":["Antiviral"]},{"n":"Influenza Neuraminidase","pdb":"2HU4","uni":"P03468","dis":"Influenza","type":"Enzyme","org":"Influenza A","res":"2.2 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiviral"]},{"n":"HCV NS3 Protease","pdb":"1CU1","uni":"P26664","dis":"Hepatitis C","type":"Protease","org":"HCV","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiviral"]},{"n":"Ebola VP35","pdb":"3L25","uni":"Q05128","dis":"Ebola","type":"Protein","org":"Ebola virus","res":"1.9 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiviral","Africa focus"]},{"n":"P. falciparum DHFR Malaria","pdb":"2B8T","uni":"Q9Y233","dis":"Malaria","type":"Enzyme","org":"P. falciparum","res":"1.9 \u00c5","grid":{"x":10.4,"y":4.2,"z":50.6},"tags":["Antimalarial","Africa focus"]},{"n":"P. falciparum DHODH Malaria","pdb":"4RX3","uni":"Q8ILT8","dis":"Malaria","type":"Enzyme","org":"P. falciparum","res":"2.6 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antimalarial","Africa focus"]},{"n":"P. falciparum Falcipain-2","pdb":"3BPF","uni":"Q9U3D4","dis":"Malaria","type":"Protease","org":"P. falciparum","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antimalarial","Africa focus"]},{"n":"M. tuberculosis InhA","pdb":"1P44","uni":"P0A619","dis":"Tuberculosis","type":"Enzyme","org":"M. tuberculosis","res":"2.7 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antibacterial","Africa focus"]},{"n":"M. tuberculosis Enoyl-ACP","pdb":"1ENY","uni":"P0A5X4","dis":"Tuberculosis","type":"Enzyme","org":"M. tuberculosis","res":"2.3 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antibacterial"]},{"n":"Trypanosoma brucei TbREL1","pdb":"2FP7","uni":"Q57ZP3","dis":"Sleeping sickness","type":"Ligase","org":"T. brucei","res":"2.3 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiparasitic","Africa focus"]},{"n":"Leishmania DHFR-TS","pdb":"2H2Q","uni":"Q4QDJ7","dis":"Leishmaniasis","type":"Enzyme","org":"L. major","res":"2.5 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiparasitic","Africa focus"]},{"n":"S. aureus DNA Gyrase B","pdb":"3TTZ","uni":"P0A0I6","dis":"Staph infection","type":"Enzyme","org":"S. aureus","res":"2.5 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antibacterial"]},{"n":"E. coli DNA Gyrase","pdb":"1KZN","uni":"P0AES6","dis":"Bacterial infection","type":"Enzyme","org":"E. coli","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antibacterial"]},{"n":"EGFR Kinase","pdb":"1IEP","uni":"P00533","dis":"Lung cancer","type":"Kinase","org":"Human","res":"2.4 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Kinase"]},{"n":"BCR-ABL Kinase","pdb":"1IEP","uni":"P00519","dis":"Leukemia","type":"Kinase","org":"Human","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Kinase"]},{"n":"VEGFR2 Kinase","pdb":"4HJJ","uni":"P35968","dis":"Cancer angiogenesis","type":"Kinase","org":"Human","res":"1.7 \u00c5","grid":{"x":-2.7,"y":12.0,"z":6.9},"tags":["Anticancer","Kinase"]},{"n":"BRAF Kinase V600E","pdb":"1UWH","uni":"P15056","dis":"Melanoma","type":"Kinase","org":"Human","res":"2.7 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Kinase"]},{"n":"CDK2 Cyclin-dependent kinase","pdb":"1HCL","uni":"P24941","dis":"Cancer","type":"Kinase","org":"Human","res":"2.0 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Kinase"]},{"n":"PARP1 DNA repair","pdb":"4DQY","uni":"P09874","dis":"Breast/Ovarian cancer","type":"Enzyme","org":"Human","res":"2.0 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer"]},{"n":"Estrogen Receptor alpha","pdb":"3ERT","uni":"P03372","dis":"Breast cancer","type":"Nuclear receptor","org":"Human","res":"1.8 \u00c5","grid":{"x":5.1,"y":22.0,"z":-3.5},"tags":["Anticancer","Hormone"]},{"n":"Androgen Receptor","pdb":"2AXA","uni":"P10275","dis":"Prostate cancer","type":"Nuclear receptor","org":"Human","res":"1.6 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Hormone"]},{"n":"MDM2 p53 interaction","pdb":"1YCR","uni":"Q00987","dis":"Cancer","type":"Protein-protein","org":"Human","res":"2.6 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer"]},{"n":"HDAC3 Histone deacetylase","pdb":"4A69","uni":"O15379","dis":"Cancer","type":"Enzyme","org":"Human","res":"2.06 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Epigenetic"]},{"n":"HDAC6","pdb":"5EDU","uni":"Q9UBN7","dis":"Cancer","type":"Enzyme","org":"Human","res":"1.8 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Epigenetic"]},{"n":"Topoisomerase II","pdb":"1ZXM","uni":"P11388","dis":"Cancer","type":"Enzyme","org":"Human","res":"2.16 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer"]},{"n":"Aurora Kinase A","pdb":"1MQ4","uni":"O14965","dis":"Cancer","type":"Kinase","org":"Human","res":"2.0 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Kinase"]},{"n":"HER2 ErbB2 kinase","pdb":"3PP0","uni":"P04626","dis":"Breast cancer","type":"Kinase","org":"Human","res":"2.5 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anticancer","Kinase"]},{"n":"COX-2 Cyclooxygenase","pdb":"5NIL","uni":"P35354","dis":"Inflammation/Pain","type":"Enzyme","org":"Human","res":"2.4 \u00c5","grid":{"x":-2.5,"y":22.0,"z":24.5},"tags":["Anti-inflammatory","NSAID target"]},{"n":"COX-1 Cyclooxygenase","pdb":"1EQH","uni":"P23219","dis":"Inflammation","type":"Enzyme","org":"Human","res":"2.6 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anti-inflammatory"]},{"n":"5-LOX Lipoxygenase","pdb":"3O8Y","uni":"P09917","dis":"Asthma/Inflammation","type":"Enzyme","org":"Human","res":"2.4 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anti-inflammatory"]},{"n":"TNF-alpha","pdb":"2AZ5","uni":"P01375","dis":"Rheumatoid arthritis","type":"Cytokine","org":"Human","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anti-inflammatory"]},{"n":"IL-6 receptor","pdb":"1P9M","uni":"P08887","dis":"Inflammation/Cancer","type":"Receptor","org":"Human","res":"2.4 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anti-inflammatory"]},{"n":"JAK2 kinase","pdb":"2B7A","uni":"O60674","dis":"Inflammation/Blood cancer","type":"Kinase","org":"Human","res":"2.0 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anti-inflammatory","Kinase"]},{"n":"PDE4 Phosphodiesterase","pdb":"1XMU","uni":"P27815","dis":"COPD/Psoriasis","type":"Enzyme","org":"Human","res":"1.6 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Anti-inflammatory"]},{"n":"Acetylcholinesterase AChE","pdb":"1AHP","uni":"P22303","dis":"Alzheimer disease","type":"Enzyme","org":"Human","res":"2.5 \u00c5","grid":{"x":2.5,"y":-15.0,"z":4.0},"tags":["Neurology","Alzheimer"]},{"n":"BACE1 Beta secretase","pdb":"1W50","uni":"P56817","dis":"Alzheimer disease","type":"Protease","org":"Human","res":"1.9 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Neurology","Alzheimer"]},{"n":"Gamma secretase","pdb":"5A63","uni":"Q92542","dis":"Alzheimer disease","type":"Protease","org":"Human","res":"3.4 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Neurology","Alzheimer"]},{"n":"Dopamine D2 receptor","pdb":"6CM4","uni":"P14416","dis":"Parkinson/Schizophrenia","type":"GPCR","org":"Human","res":"3.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Neurology","GPCR"]},{"n":"Serotonin transporter SERT","pdb":"5I6X","uni":"P31645","dis":"Depression","type":"Transporter","org":"Human","res":"3.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Neurology","Antidepressant"]},{"n":"Monoamine oxidase A MAO-A","pdb":"2Z5X","uni":"P21397","dis":"Depression/Anxiety","type":"Enzyme","org":"Human","res":"2.2 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Neurology","Antidepressant"]},{"n":"NMDA receptor GluN1","pdb":"4TLL","uni":"Q05586","dis":"Neurology/Pain","type":"Ion channel","org":"Human","res":"3.7 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Neurology"]},{"n":"Thrombin","pdb":"1PPB","uni":"P00734","dis":"Thrombosis","type":"Protease","org":"Human","res":"1.9 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Cardiovascular","Anticoagulant"]},{"n":"Factor Xa","pdb":"1LPK","uni":"P00742","dis":"Thrombosis","type":"Protease","org":"Human","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Cardiovascular","Anticoagulant"]},{"n":"ACE Angiotensin converting enzyme","pdb":"1O86","uni":"P12821","dis":"Hypertension","type":"Enzyme","org":"Human","res":"2.0 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Cardiovascular","Hypertension"]},{"n":"HMG-CoA Reductase statin target","pdb":"1HWK","uni":"P04035","dis":"High cholesterol","type":"Enzyme","org":"Human","res":"2.2 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Cardiovascular","Statin"]},{"n":"PCSK9","pdb":"2PMW","uni":"Q8NBP7","dis":"Cardiovascular disease","type":"Protease","org":"Human","res":"2.3 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Cardiovascular"]},{"n":"DPP-4 Dipeptidyl peptidase","pdb":"1X70","uni":"P27487","dis":"Type 2 diabetes","type":"Enzyme","org":"Human","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Metabolic","Diabetes"]},{"n":"GLP-1 receptor","pdb":"5VAI","uni":"P43220","dis":"Type 2 diabetes/Obesity","type":"GPCR","org":"Human","res":"3.3 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Metabolic","Diabetes","GPCR"]},{"n":"Insulin receptor kinase","pdb":"1IRK","uni":"P06213","dis":"Diabetes","type":"Kinase","org":"Human","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Metabolic","Diabetes","Kinase"]},{"n":"PPARgamma nuclear receptor","pdb":"2PRG","uni":"P37231","dis":"Diabetes/Obesity","type":"Nuclear receptor","org":"Human","res":"2.3 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Metabolic","Diabetes"]},{"n":"Schistosoma TGR thioredoxin","pdb":"2VVJ","uni":"A7YU13","dis":"Schistosomiasis","type":"Enzyme","org":"S. mansoni","res":"2.7 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiparasitic","Africa focus","NTD"]},{"n":"Onchocerca volvulus","pdb":"4TRJ","uni":"Q9NA19","dis":"River blindness","type":"Enzyme","org":"O. volvulus","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antiparasitic","Africa focus","NTD"]},{"n":"Plasmodium falciparum PfCRT","pdb":"6UKJ","uni":"Q9U0K9","dis":"Malaria drug resistance","type":"Transporter","org":"P. falciparum","res":"3.2 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antimalarial","Africa focus"]},{"n":"Burkholderia pseudomallei","pdb":"3NHB","uni":"Q3JIX4","dis":"Melioidosis","type":"Enzyme","org":"B. pseudomallei","res":"2.0 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antibacterial","Africa focus"]},{"n":"Mycobacterium ulcerans Enoyl","pdb":"2B36","uni":"Q8G4J6","dis":"Buruli ulcer","type":"Enzyme","org":"M. ulcerans","res":"2.1 \u00c5","grid":{"x":0,"y":0,"z":0},"tags":["Antibacterial","Africa focus","NTD"]}];
 
 const SMILES_DB={
   'Artemisinin':'O=C1OC2CC3(C)CCCC(=O)C3(C)C2O1',
@@ -1007,41 +1009,41 @@ const AF_DATA=[
 ];
 
 const CN_DATA=[
-  {name:'Baicalein',herb:'Huangqin',cn:'黄芩',cls:'Flavonoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:270,ro5:'Yes',logp:2.0,cid:'5281605',formula:'C15H10O5'},
-  {name:'Tanshinone IIA',herb:'Danshen',cn:'丹参',cls:'Terpenoid',activity:'Cardioprotective',cat:'Blood-activating',mw:294,ro5:'Yes',logp:3.0,cid:'164676',formula:'C19H18O3'},
-  {name:'Andrographolide',herb:'Chuanxinlian',cn:'穿心莲',cls:'Terpenoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:350,ro5:'Yes',logp:1.1,cid:'5318517',formula:'C20H30O5'},
-  {name:'Curcumin',herb:'Jianghuang',cn:'姜黄',cls:'Phenolic',activity:'Anti-inflammatory',cat:'Qi-regulating',mw:368,ro5:'Yes',logp:3.3,cid:'969516',formula:'C21H20O6'},
-  {name:'Emodin',herb:'Dahuang',cn:'大黄',cls:'Quinone',activity:'Anticancer',cat:'Digestive',mw:270,ro5:'Yes',logp:2.3,cid:'3220',formula:'C15H10O5'},
-  {name:'Matrine',herb:'Kushen',cn:'苦参',cls:'Alkaloid',activity:'Anticancer',cat:'Heat-clearing',mw:248,ro5:'Yes',logp:0.6,cid:'442495',formula:'C15H24N2O'},
-  {name:'Celastrol',herb:'Leigong Teng',cn:'雷公藤',cls:'Terpenoid',activity:'Anti-inflammatory',cat:'Wind-dispelling',mw:450,ro5:'Yes',logp:5.8,cid:'122724',formula:'C29H38O4'},
-  {name:'Triptolide',herb:'Leigong Teng',cn:'雷公藤',cls:'Terpenoid',activity:'Anticancer',cat:'Wind-dispelling',mw:360,ro5:'Yes',logp:2.0,cid:'107985',formula:'C20H24O6'},
-  {name:'Honokiol',herb:'Houpo',cn:'厚朴',cls:'Phenolic',activity:'Neuroprotective',cat:'Qi-regulating',mw:266,ro5:'Yes',logp:3.8,cid:'72303',formula:'C18H16O2'},
-  {name:'Berberine',herb:'Huanglian',cn:'黄连',cls:'Alkaloid',activity:'Antimicrobial',cat:'Heat-clearing',mw:336,ro5:'Yes',logp:1.3,cid:'2353',formula:'C20H18NO4+'},
-  {name:'Ligustrazine',herb:'Chuanxiong',cn:'川芎',cls:'Alkaloid',activity:'Cardioprotective',cat:'Blood-activating',mw:136,ro5:'Yes',logp:0.8,cid:'12337',formula:'C8H12N2'},
-  {name:'Oxymatrine',herb:'Kushen',cn:'苦参',cls:'Alkaloid',activity:'Antiviral',cat:'Heat-clearing',mw:264,ro5:'Yes',logp:1.1,cid:'116785',formula:'C15H24N2O2'},
-  {name:'Ginsenoside Rg1',herb:'Renshen',cn:'人参',cls:'Saponin',activity:'Neuroprotective',cat:'Tonifying',mw:801,ro5:'No',logp:0.2,cid:'441923',formula:'C42H72O14'},
-  {name:'Naringenin',herb:'Chenpi',cn:'陈皮',cls:'Flavonoid',activity:'Antidiabetic',cat:'Qi-regulating',mw:272,ro5:'Yes',logp:2.1,cid:'932',formula:'C15H12O5'},
-  {name:'Nobiletin',herb:'Chenpi',cn:'陈皮',cls:'Flavonoid',activity:'Anticancer',cat:'Qi-regulating',mw:402,ro5:'Yes',logp:4.1,cid:'72344',formula:'C21H22O8'},
-  {name:'Quercetin',herb:'Huaimi',cn:'槐米',cls:'Flavonoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:302,ro5:'Yes',logp:1.5,cid:'5280343',formula:'C15H10O7'},
-  {name:'Astragaloside IV',herb:'Huangqi',cn:'黄芪',cls:'Saponin',activity:'Immunomodulatory',cat:'Tonifying',mw:868,ro5:'No',logp:-0.4,cid:'9908089',formula:'C41H68O14'},
-  {name:'Ferulic acid',herb:'Danggui',cn:'当归',cls:'Phenolic',activity:'Anti-inflammatory',cat:'Blood-activating',mw:194,ro5:'Yes',logp:1.5,cid:'445858',formula:'C10H10O4'},
-  {name:'Cryptotanshinone',herb:'Danshen',cn:'丹参',cls:'Terpenoid',activity:'Anticancer',cat:'Blood-activating',mw:296,ro5:'Yes',logp:3.1,cid:'160254',formula:'C19H20O3'},
-  {name:'Wogonin',herb:'Huangqin',cn:'黄芩',cls:'Flavonoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:284,ro5:'Yes',logp:2.9,cid:'5281703',formula:'C16H12O5'},
-  {name:'Icariin',herb:'Yinyanghuo',cn:'淫羊藿',cls:'Flavonoid',activity:'Neuroprotective',cat:'Tonifying',mw:676,ro5:'No',logp:1.8,cid:'5318997',formula:'C33H40O15'},
-  {name:'Paeoniflorin',herb:'Baishao',cn:'白芍',cls:'Glycoside',activity:'Anti-inflammatory',cat:'Blood-tonifying',mw:480,ro5:'Yes',logp:0.3,cid:'442495',formula:'C23H28O11'},
-  {name:'Astragalus polysaccharide',herb:'Huangqi',cn:'黄芪',cls:'Saponin',activity:'Immunomodulatory',cat:'Tonifying',mw:720,ro5:'No',logp:-2.1,cid:'16158999',formula:'C36H54O18'},
-  {name:'Schisandrin B',herb:'Wuweizi',cn:'五味子',cls:'Lignan',activity:'Hepatoprotective',cat:'Tonifying',mw:432,ro5:'Yes',logp:3.6,cid:'5315432',formula:'C23H28O7'},
-  {name:'Tetrandrine',herb:'Fangji',cn:'防己',cls:'Alkaloid',activity:'Anti-inflammatory',cat:'Wind-dispelling',mw:622,ro5:'No',logp:4.9,cid:'73078',formula:'C38H42N2O6'},
-  {name:'Resveratrol',herb:'Huzhang',cn:'虎杖',cls:'Phenolic',activity:'Cardioprotective',cat:'Heat-clearing',mw:228,ro5:'Yes',logp:3.1,cid:'445154',formula:'C14H12O3'},
-  {name:'Coptisine',herb:'Huanglian',cn:'黄连',cls:'Alkaloid',activity:'Antimicrobial',cat:'Heat-clearing',mw:321,ro5:'Yes',logp:0.7,cid:'72594',formula:'C19H14NO4+'},
-  {name:'Dioscin',herb:'Chaihu',cn:'柴胡',cls:'Saponin',activity:'Anticancer',cat:'Heat-clearing',mw:868,ro5:'No',logp:3.1,cid:'28034',formula:'C45H72O16'},
-  {name:'Osthole',herb:'Shejuancao',cn:'蛇床子',cls:'Phenolic',activity:'Antifungal',cat:'Wind-dispelling',mw:244,ro5:'Yes',logp:3.6,cid:'10212',formula:'C15H16O3'},
-  {name:'Baicalin',herb:'Huangqin',cn:'黄芩',cls:'Flavonoid',activity:'Antiviral',cat:'Heat-clearing',mw:446,ro5:'Yes',logp:0.7,cid:'64982',formula:'C21H18O11'},
-  {name:'Sophoricoside',herb:'Huai',cn:'槐',cls:'Flavonoid',activity:'Anticancer',cat:'Heat-clearing',mw:434,ro5:'Yes',logp:0.9,cid:'5281676',formula:'C21H22O10'},
-  {name:'Capsaicin',herb:'Lajiao',cn:'辣椒',cls:'Phenolic',activity:'Analgesic',cat:'Warming',mw:305,ro5:'Yes',logp:3.5,cid:'1548943',formula:'C18H27NO3'},
-  {name:'Hydroxysafflor yellow A',herb:'Honghua',cn:'红花',cls:'Flavonoid',activity:'Cardioprotective',cat:'Blood-activating',mw:612,ro5:'No',logp:-2.3,cid:'13992416',formula:'C27H32O16'},
-  {name:'Magnolol',herb:'Houpo',cn:'厚朴',cls:'Phenolic',activity:'Anti-inflammatory',cat:'Qi-regulating',mw:266,ro5:'Yes',logp:3.8,cid:'73337',formula:'C18H16O2'},
-  {name:'Sinomenine',herb:'Qingfengteng',cn:'青风藤',cls:'Alkaloid',activity:'Anti-inflammatory',cat:'Wind-dispelling',mw:329,ro5:'Yes',logp:1.4,cid:'5070',formula:'C19H23NO4'},
+  {name:'Baicalein',herb:'Huangqin',cn:'&#40644;&#33449;',cls:'Flavonoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:270,ro5:'Yes',logp:2.0,cid:'5281605',formula:'C15H10O5'},
+  {name:'Tanshinone IIA',herb:'Danshen',cn:'&#20025;&#21442;',cls:'Terpenoid',activity:'Cardioprotective',cat:'Blood-activating',mw:294,ro5:'Yes',logp:3.0,cid:'164676',formula:'C19H18O3'},
+  {name:'Andrographolide',herb:'Chuanxinlian',cn:'&#31359;&#24515;&#33714;',cls:'Terpenoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:350,ro5:'Yes',logp:1.1,cid:'5318517',formula:'C20H30O5'},
+  {name:'Curcumin',herb:'Jianghuang',cn:'&#23004;&#40644;',cls:'Phenolic',activity:'Anti-inflammatory',cat:'Qi-regulating',mw:368,ro5:'Yes',logp:3.3,cid:'969516',formula:'C21H20O6'},
+  {name:'Emodin',herb:'Dahuang',cn:'&#22823;&#40644;',cls:'Quinone',activity:'Anticancer',cat:'Digestive',mw:270,ro5:'Yes',logp:2.3,cid:'3220',formula:'C15H10O5'},
+  {name:'Matrine',herb:'Kushen',cn:'&#33510;&#21442;',cls:'Alkaloid',activity:'Anticancer',cat:'Heat-clearing',mw:248,ro5:'Yes',logp:0.6,cid:'442495',formula:'C15H24N2O'},
+  {name:'Celastrol',herb:'Leigong Teng',cn:'&#38647;&#20844;&#34276;',cls:'Terpenoid',activity:'Anti-inflammatory',cat:'Wind-dispelling',mw:450,ro5:'Yes',logp:5.8,cid:'122724',formula:'C29H38O4'},
+  {name:'Triptolide',herb:'Leigong Teng',cn:'&#38647;&#20844;&#34276;',cls:'Terpenoid',activity:'Anticancer',cat:'Wind-dispelling',mw:360,ro5:'Yes',logp:2.0,cid:'107985',formula:'C20H24O6'},
+  {name:'Honokiol',herb:'Houpo',cn:'&#21402;&#26420;',cls:'Phenolic',activity:'Neuroprotective',cat:'Qi-regulating',mw:266,ro5:'Yes',logp:3.8,cid:'72303',formula:'C18H16O2'},
+  {name:'Berberine',herb:'Huanglian',cn:'&#40644;&#36830;',cls:'Alkaloid',activity:'Antimicrobial',cat:'Heat-clearing',mw:336,ro5:'Yes',logp:1.3,cid:'2353',formula:'C20H18NO4+'},
+  {name:'Ligustrazine',herb:'Chuanxiong',cn:'&#24029;&#33422;',cls:'Alkaloid',activity:'Cardioprotective',cat:'Blood-activating',mw:136,ro5:'Yes',logp:0.8,cid:'12337',formula:'C8H12N2'},
+  {name:'Oxymatrine',herb:'Kushen',cn:'&#33510;&#21442;',cls:'Alkaloid',activity:'Antiviral',cat:'Heat-clearing',mw:264,ro5:'Yes',logp:1.1,cid:'116785',formula:'C15H24N2O2'},
+  {name:'Ginsenoside Rg1',herb:'Renshen',cn:'&#20154;&#21442;',cls:'Saponin',activity:'Neuroprotective',cat:'Tonifying',mw:801,ro5:'No',logp:0.2,cid:'441923',formula:'C42H72O14'},
+  {name:'Naringenin',herb:'Chenpi',cn:'&#38472;&#30382;',cls:'Flavonoid',activity:'Antidiabetic',cat:'Qi-regulating',mw:272,ro5:'Yes',logp:2.1,cid:'932',formula:'C15H12O5'},
+  {name:'Nobiletin',herb:'Chenpi',cn:'&#38472;&#30382;',cls:'Flavonoid',activity:'Anticancer',cat:'Qi-regulating',mw:402,ro5:'Yes',logp:4.1,cid:'72344',formula:'C21H22O8'},
+  {name:'Quercetin',herb:'Huaimi',cn:'&#27088;&#31859;',cls:'Flavonoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:302,ro5:'Yes',logp:1.5,cid:'5280343',formula:'C15H10O7'},
+  {name:'Astragaloside IV',herb:'Huangqi',cn:'&#40644;&#33450;',cls:'Saponin',activity:'Immunomodulatory',cat:'Tonifying',mw:868,ro5:'No',logp:-0.4,cid:'9908089',formula:'C41H68O14'},
+  {name:'Ferulic acid',herb:'Danggui',cn:'&#24403;&#24402;',cls:'Phenolic',activity:'Anti-inflammatory',cat:'Blood-activating',mw:194,ro5:'Yes',logp:1.5,cid:'445858',formula:'C10H10O4'},
+  {name:'Cryptotanshinone',herb:'Danshen',cn:'&#20025;&#21442;',cls:'Terpenoid',activity:'Anticancer',cat:'Blood-activating',mw:296,ro5:'Yes',logp:3.1,cid:'160254',formula:'C19H20O3'},
+  {name:'Wogonin',herb:'Huangqin',cn:'&#40644;&#33449;',cls:'Flavonoid',activity:'Anti-inflammatory',cat:'Heat-clearing',mw:284,ro5:'Yes',logp:2.9,cid:'5281703',formula:'C16H12O5'},
+  {name:'Icariin',herb:'Yinyanghuo',cn:'&#28139;&#32650;&#34303;',cls:'Flavonoid',activity:'Neuroprotective',cat:'Tonifying',mw:676,ro5:'No',logp:1.8,cid:'5318997',formula:'C33H40O15'},
+  {name:'Paeoniflorin',herb:'Baishao',cn:'&#30333;&#33421;',cls:'Glycoside',activity:'Anti-inflammatory',cat:'Blood-tonifying',mw:480,ro5:'Yes',logp:0.3,cid:'442495',formula:'C23H28O11'},
+  {name:'Astragalus polysaccharide',herb:'Huangqi',cn:'&#40644;&#33450;',cls:'Saponin',activity:'Immunomodulatory',cat:'Tonifying',mw:720,ro5:'No',logp:-2.1,cid:'16158999',formula:'C36H54O18'},
+  {name:'Schisandrin B',herb:'Wuweizi',cn:'&#20116;&#21619;&#23376;',cls:'Lignan',activity:'Hepatoprotective',cat:'Tonifying',mw:432,ro5:'Yes',logp:3.6,cid:'5315432',formula:'C23H28O7'},
+  {name:'Tetrandrine',herb:'Fangji',cn:'&#38450;&#24049;',cls:'Alkaloid',activity:'Anti-inflammatory',cat:'Wind-dispelling',mw:622,ro5:'No',logp:4.9,cid:'73078',formula:'C38H42N2O6'},
+  {name:'Resveratrol',herb:'Huzhang',cn:'&#34382;&#26454;',cls:'Phenolic',activity:'Cardioprotective',cat:'Heat-clearing',mw:228,ro5:'Yes',logp:3.1,cid:'445154',formula:'C14H12O3'},
+  {name:'Coptisine',herb:'Huanglian',cn:'&#40644;&#36830;',cls:'Alkaloid',activity:'Antimicrobial',cat:'Heat-clearing',mw:321,ro5:'Yes',logp:0.7,cid:'72594',formula:'C19H14NO4+'},
+  {name:'Dioscin',herb:'Chaihu',cn:'&#26612;&#32993;',cls:'Saponin',activity:'Anticancer',cat:'Heat-clearing',mw:868,ro5:'No',logp:3.1,cid:'28034',formula:'C45H72O16'},
+  {name:'Osthole',herb:'Shejuancao',cn:'&#34503;&#24202;&#23376;',cls:'Phenolic',activity:'Antifungal',cat:'Wind-dispelling',mw:244,ro5:'Yes',logp:3.6,cid:'10212',formula:'C15H16O3'},
+  {name:'Baicalin',herb:'Huangqin',cn:'&#40644;&#33449;',cls:'Flavonoid',activity:'Antiviral',cat:'Heat-clearing',mw:446,ro5:'Yes',logp:0.7,cid:'64982',formula:'C21H18O11'},
+  {name:'Sophoricoside',herb:'Huai',cn:'&#27088;',cls:'Flavonoid',activity:'Anticancer',cat:'Heat-clearing',mw:434,ro5:'Yes',logp:0.9,cid:'5281676',formula:'C21H22O10'},
+  {name:'Capsaicin',herb:'Lajiao',cn:'&#36771;&#26898;',cls:'Phenolic',activity:'Analgesic',cat:'Warming',mw:305,ro5:'Yes',logp:3.5,cid:'1548943',formula:'C18H27NO3'},
+  {name:'Hydroxysafflor yellow A',herb:'Honghua',cn:'&#32418;&#33457;',cls:'Flavonoid',activity:'Cardioprotective',cat:'Blood-activating',mw:612,ro5:'No',logp:-2.3,cid:'13992416',formula:'C27H32O16'},
+  {name:'Magnolol',herb:'Houpo',cn:'&#21402;&#26420;',cls:'Phenolic',activity:'Anti-inflammatory',cat:'Qi-regulating',mw:266,ro5:'Yes',logp:3.8,cid:'73337',formula:'C18H16O2'},
+  {name:'Sinomenine',herb:'Qingfengteng',cn:'&#38738;&#39118;&#34276;',cls:'Alkaloid',activity:'Anti-inflammatory',cat:'Wind-dispelling',mw:329,ro5:'Yes',logp:1.4,cid:'5070',formula:'C19H23NO4'},
 ];
 
 
@@ -1072,7 +1074,7 @@ function launchApp(){
 function launchDemo(){
   launchApp();
   setTimeout(()=>{
-    loadTarget('1HSG','HIV-1 Protease',{x:2.2,y:5.4,z:-1.1},'2.0 Å');
+    loadTarget('1HSG','HIV-1 Protease',{x:2.2,y:5.4,z:-1.1},'2.0 &#197;');
     ['Quercetin','Artemisinin','Berberine','Curcumin'].forEach(n=>{
       const c=AF_DATA.find(d=>d.name===n)||CN_DATA.find(d=>d.name===n);
       if(c)addToBasket({...c,src:'Demo'});
@@ -1095,7 +1097,7 @@ function apiBase(){
 async function checkBackend(){
   try{
     const r=await fetch(apiBase()+'/api/health',{signal:AbortSignal.timeout(2800)});
-    if(r.ok){const h=await r.json();S.backendMode=true;setPill(true,`Live · Vina ${h.vina?'✓':'✗'}`);document.getElementById('ss-mode').textContent='Real';updatePrereqs();return;}
+    if(r.ok){const h=await r.json();S.backendMode=true;setPill(true,`Live &middot; Vina ${h.vina?'&#10003;':'&#10007;'}`);document.getElementById('ss-mode').textContent='Real';updatePrereqs();return;}
   }catch(_){}
   S.backendMode=false; setPill(false,'Simulation mode'); document.getElementById('ss-mode').textContent='Sim'; updatePrereqs();
 }
@@ -1107,9 +1109,9 @@ async function apiPost(path,body){const r=await fetch(apiBase()+path,{method:'PO
 async function apiGet(path){const r=await fetch(apiBase()+path);if(!r.ok)throw new Error(r.status);return r.json();}
 
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // TARGET SOURCE SWITCHING
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 function setTargetSource(src) {
   ['pdb','af','text'].forEach(s => {
     const panel = document.getElementById('src-'+s);
@@ -1120,9 +1122,9 @@ function setTargetSource(src) {
   document.getElementById('pdb-res').style.display='none';
 }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // ALPHAFOLD FETCH
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 async function fetchAlphaFold() {
   const uid = document.getElementById('af-inp').value.toUpperCase().trim();
   if(!uid || uid.length < 4) { alert('Enter a valid UniProt accession (e.g. P0DTD1)'); return; }
@@ -1130,7 +1132,7 @@ async function fetchAlphaFold() {
   const box = document.getElementById('pdb-res');
   const txt = document.getElementById('pdb-res-txt');
   box.style.display='flex'; box.className='ib tip';
-  txt.textContent = 'Fetching ' + uid + ' from AlphaFold DB…';
+  txt.textContent = 'Fetching ' + uid + ' from AlphaFold DB&#8230;';
 
   try {
     let name='', organism='', seqLen=0, plddt=0, version='';
@@ -1187,21 +1189,21 @@ async function fetchAlphaFold() {
     box.className='ib ok';
     txt.innerHTML =
       `<div>
-        <b>${uid}</b> — ${name}
-        ${organism ? `<span style="color:var(--muted)"> · ${organism}</span>` : ''}
+        <b>${uid}</b> &mdash; ${name}
+        ${organism ? `<span style="color:var(--muted)"> &middot; ${organism}</span>` : ''}
         <br>
         <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
-          <span class="af-badge">🧬 AlphaFold ${version}</span>
+          <span class="af-badge">&#129516; AlphaFold ${version}</span>
           ${seqLen  ? `<span class="pdb-badge">${seqLen} residues</span>` : ''}
           ${plddt   ? `<span class="pdb-badge" style="color:${plddt>=70?'var(--green)':'var(--amber)'}">pLDDT ${plddt.toFixed(1)}</span>` : ''}
         </div>
         <div style="margin-top:8px;font-size:12px;color:var(--muted)">
-          ⚠ AlphaFold structures are predicted — verify the binding site before docking.
-          Grid coordinates set to protein centre (0,0,0) — adjust in Step 3 if needed.
+          &#9888; AlphaFold structures are predicted &mdash; verify the binding site before docking.
+          Grid coordinates set to protein centre (0,0,0) &mdash; adjust in Step 3 if needed.
         </div>
       </div>`;
 
-    // Set as target — grid at origin (user adjusts in dock step)
+    // Set as target &mdash; grid at origin (user adjusts in dock step)
     S.target = {
       id: uid,
       name: name + (organism?' ('+organism+')':''),
@@ -1210,7 +1212,7 @@ async function fetchAlphaFold() {
       source: 'alphafold',
       uid: uid,
     };
-    document.getElementById('tgt-name').textContent = uid + ' — ' + name;
+    document.getElementById('tgt-name').textContent = uid + ' &mdash; ' + name;
     document.getElementById('target-done').style.display='block';
     document.getElementById('ss-target').textContent = uid;
     document.getElementById('sessbox').style.display='block';
@@ -1220,64 +1222,125 @@ async function fetchAlphaFold() {
 
   } catch(e) {
     box.className='ib warn';
-    txt.innerHTML = '⚠ ' + e.message +
+    txt.innerHTML = '&#9888; ' + e.message +
       '<br><span style="font-size:11px;color:var(--muted)">Try searching at <a href="https://www.uniprot.org" target="_blank" style="color:var(--teal)">uniprot.org</a> to find the correct accession.</span>';
   }
 }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // PDB TEXT SEARCH
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 async function searchPDBByName() {
-  const q = document.getElementById('text-srch-inp').value.trim();
-  if(!q) return;
-  const resBox = document.getElementById('text-srch-results');
-  resBox.style.display='block';
-  resBox.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px">⏳ Searching RCSB…</div>';
+  var q = document.getElementById('text-srch-inp').value.trim();
+  if(!q || q.length < 2) return;
+  var resBox = document.getElementById('text-srch-results');
+  resBox.style.display = 'block';
+  resBox.innerHTML = '<div style="padding:10px;color:#6B8BAA;font-size:13px">Searching PDB + AlphaFold...</div>';
 
+  var pdbResults = [];
+  var afResults = [];
+
+  // Step 1: Search PDB via our backend proxy (no CORS issues)
   try {
-    // RCSB Search API
-    const payload = {
-      query: {
-        type: "terminal",
-        service: "full_text",
-        parameters: { value: q }
-      },
-      return_type: "entry",
-      request_options: { paginate: { start: 0, rows: 10 } }
-    };
-    const r = await fetch('https://search.rcsb.org/rcsbsearch/v2/query', {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
-    });
-    const data = await r.json();
-    const hits = data?.result_set || [];
-
-    if(!hits.length) {
-      resBox.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px">No results found. Try a different search term.</div>';
-      return;
+    var resp = await fetch(apiBase() + '/api/search/pdb?q=' + encodeURIComponent(q));
+    if(resp.ok) {
+      var data = await resp.json();
+      pdbResults = data.results || [];
     }
+  } catch(e1) {}
 
-    // Fetch metadata for top hits
-    const ids = hits.slice(0,8).map(h=>h.identifier);
-    const metaUrl = `https://data.rcsb.org/graphql?query={entries(entry_ids:${JSON.stringify(ids)}){rcsb_id,struct{title},rcsb_entry_info{resolution_combined,experimental_method}}}`;
-    const metaR = await fetch(metaUrl);
-    const metaData = await metaR.json();
-    const entries = metaData?.data?.entries || [];
+  // Step 2: Search UniProt for AlphaFold structures (CORS-friendly)
+  try {
+    var ur = await fetch(
+      'https://rest.uniprot.org/uniprotkb/search?query=' +
+      encodeURIComponent(q + ' AND reviewed:true') +
+      '&fields=accession,protein_name,organism_name,sequence&format=json&size=6'
+    );
+    if(ur.ok) {
+      var ud = await ur.json();
+      (ud.results || []).forEach(function(e) {
+        var name = (e.proteinDescription &&
+                    e.proteinDescription.recommendedName &&
+                    e.proteinDescription.recommendedName.fullName &&
+                    e.proteinDescription.recommendedName.fullName.value) ||
+                   (e.proteinDescription &&
+                    e.proteinDescription.submittedName &&
+                    e.proteinDescription.submittedName[0] &&
+                    e.proteinDescription.submittedName[0].fullName &&
+                    e.proteinDescription.submittedName[0].fullName.value) || e.primaryAccession;
+        var org = (e.organism && e.organism.scientificName) || '';
+        var len = (e.sequence && e.sequence.length) || 0;
+        afResults.push({ acc: e.primaryAccession, name: name, org: org, len: len });
+      });
+    }
+  } catch(e2) {}
 
-    resBox.innerHTML = entries.map(e => {
-      const res = e.rcsb_entry_info?.resolution_combined?.[0];
-      const method = e.rcsb_entry_info?.experimental_method || 'Unknown';
-      return `<div class="srch-result-card" onclick="loadPDBFromSearch('${e.rcsb_id}','${(e.struct?.title||e.rcsb_id).replace(/'/g,"\'")}')">
-        <div>
-          <div class="src-title">${e.rcsb_id} — ${e.struct?.title || 'Unknown'}</div>
-          <div class="src-meta">${method}${res?' · '+parseFloat(res).toFixed(2)+' Å':''}</div>
-        </div>
-        <button class="btn btn-p btn-sm">Load →</button>
-      </div>`;
+  // No results
+  if(!pdbResults.length && !afResults.length) {
+    resBox.innerHTML = '<div style="padding:14px">' +
+      '<div style="color:#6B8BAA;font-size:13px;margin-bottom:8px">No results for <b style="color:#E8F4FF">' + q + '</b></div>' +
+      '<div style="font-size:12px;color:#3A5068;margin-bottom:8px">Try these:</div>' +
+      '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
+      ['HIV protease','EGFR','malaria DHFR','thrombin','COX-2','BRAF','acetylcholinesterase','insulin receptor'].map(function(s) {
+        return '<button class="vcbtn" onclick="document.getElementById(\'text-srch-inp\').value=\''+s+'\';searchPDBByName()">'+s+'</button>';
+      }).join('') + '</div></div>';
+    return;
+  }
+
+  var html = '';
+
+  if(pdbResults.length) {
+    html += '<div style="padding:6px 14px;font-size:10px;font-weight:700;color:#00C6CF;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1A2D45">RCSB PDB &mdash; ' + pdbResults.length + ' structures</div>';
+    html += pdbResults.map(function(p) {
+      var safeId = p.id;
+      var safeName = (p.title || p.id).replace(/['"\]/g, '').slice(0, 70);
+      return '<div class="srch-result-card" onclick="loadSearchResult('' + safeId + '','' + safeName + '','pdb')">' +
+        '<div style="flex:1"><div class="src-title">' + safeId + ' &mdash; ' + (p.title||'').slice(0,65) + '</div>' +
+        '<div class="src-meta">' + (p.method||'X-RAY') + (p.resolution ? ' &middot; ' + p.resolution + ' &Aring;' : '') + '</div></div>' +
+        '<span class="pdb-badge" style="margin-left:8px;flex-shrink:0">Load PDB</span></div>';
     }).join('');
+  }
 
-  } catch(e) {
-    resBox.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Search failed — check connection.</div>';
+  if(afResults.length) {
+    html += '<div style="padding:6px 14px;font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1A2D45;margin-top:4px">AlphaFold &mdash; ' + afResults.length + ' predicted structures</div>';
+    html += afResults.map(function(a) {
+      var safeAcc = a.acc;
+      var safeName = (a.name || a.acc).replace(/['"\]/g, '').slice(0, 70);
+      return '<div class="srch-result-card" onclick="loadSearchResult('' + safeAcc + '','' + safeName + '','af')">' +
+        '<div style="flex:1"><div class="src-title">' + safeAcc + ' &mdash; ' + (a.name||'').slice(0,65) + '</div>' +
+        '<div class="src-meta">' + a.org + (a.len ? ' &middot; ' + a.len + ' aa' : '') + ' &middot; AlphaFold predicted</div></div>' +
+        '<span class="af-badge" style="margin-left:8px;flex-shrink:0">Load AF</span></div>';
+    }).join('');
+  }
+
+  resBox.innerHTML = html;
+}
+
+function loadSearchResult(id, name, source) {
+  document.getElementById('text-srch-results').style.display = 'none';
+  document.getElementById('text-srch-inp').value = '';
+  if(source === 'af') {
+    document.getElementById('af-inp').value = id;
+    setTargetSource('af');
+    fetchAlphaFold();
+  } else {
+    document.getElementById('pdb-inp').value = id;
+    setTargetSource('pdb');
+    fetchPDB();
+  }
+}
+
+function loadSearchResult(id, name, source) {
+  document.getElementById('text-srch-results').style.display='none';
+  document.getElementById('text-srch-inp').value = '';
+  if(source === 'af') {
+    document.getElementById('af-inp').value = id;
+    setTargetSource('af');
+    fetchAlphaFold();
+  } else {
+    document.getElementById('pdb-inp').value = id;
+    setTargetSource('pdb');
+    fetchPDB();
   }
 }
 
@@ -1296,7 +1359,7 @@ function loadTarget(id,name,center,res){
   document.getElementById('gx').value=center.x;
   document.getElementById('gy').value=center.y;
   document.getElementById('gz').value=center.z;
-  document.getElementById('tgt-name').textContent=id+' — '+name;
+  document.getElementById('tgt-name').textContent=id+' &mdash; '+name;
   document.getElementById('target-done').style.display='block';
   document.getElementById('ss-target').textContent=id;
   document.getElementById('sessbox').style.display='block';
@@ -1309,22 +1372,22 @@ async function fetchPDB(){
   const id=document.getElementById('pdb-inp').value.toUpperCase().trim();
   if(id.length<3){alert('Enter a valid PDB ID (e.g. 1HSG)');return;}
   const box=document.getElementById('pdb-res'), txt=document.getElementById('pdb-res-txt');
-  box.style.display='flex'; box.className='ib tip'; txt.textContent='Fetching '+id+' from RCSB…';
+  box.style.display='flex'; box.className='ib tip'; txt.textContent='Fetching '+id+' from RCSB&#8230;';
   try{
     let info;
     if(S.backendMode){info=await apiGet('/api/protein/'+id+'/info');}
     else{const r=await fetch('https://data.rcsb.org/rest/v1/core/entry/'+id);if(!r.ok)throw new Error('Entry not found');const d=await r.json();info={pdb_id:id,title:d.struct?.title||id,resolution_a:d.refine?.[0]?.ls_d_res_high};}
     box.className='ib ok';
-    txt.innerHTML='<b>'+info.pdb_id+'</b> — "'+info.title+'" · '+(info.resolution_a?info.resolution_a.toFixed(2)+' Å':'—');
-    loadTarget(info.pdb_id,info.title||info.pdb_id,{x:0,y:0,z:0},info.resolution_a?info.resolution_a.toFixed(2)+' Å':'—');
-  }catch(e){box.className='ib warn';txt.textContent='⚠ '+e.message;}
+    txt.innerHTML='<b>'+info.pdb_id+'</b> &mdash; "'+info.title+'" &middot; '+(info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':'&#8212;');
+    loadTarget(info.pdb_id,info.title||info.pdb_id,{x:0,y:0,z:0},info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':'&#8212;');
+  }catch(e){box.className='ib warn';txt.textContent='&#9888; '+e.message;}
 }
 function updatePrereqs(){
   const ht=!!S.target, bn=Object.keys(S.basket).length;
   const set=(id,color,text)=>{const el=document.getElementById(id);if(el)el.style.background=color;const tl=document.getElementById(id+'l');if(tl)tl.textContent=text;};
   set('prq-t',ht?'var(--green)':'var(--dim)',S.target?S.target.id:'none');
   set('prq-b',bn>0?'var(--green)':'var(--dim)',bn+' compounds');
-  set('prq-k',S.backendMode?'var(--green)':'var(--amber)',S.backendMode?'Real backend ✓':'Simulation mode');
+  set('prq-k',S.backendMode?'var(--green)':'var(--amber)',S.backendMode?'Real backend &#10003;':'Simulation mode');
 }
 
 // ===== LIBRARY =====
@@ -1367,7 +1430,7 @@ function addCustom(){
   if(!n||!sm){alert('Enter both a name and SMILES string');return;}
   addToBasket({name:n,smiles:sm,src:'Custom',cls:'Custom',activity:'Unknown',mw:300,logp:2.0});
   document.getElementById('cust-name').value=''; document.getElementById('cust-smi').value='';
-  alert('✓ '+n+' added to basket');
+  alert('&#10003; '+n+' added to basket');
 }
 function renderBasket(){
   const items=Object.values(S.basket), n=items.length;
@@ -1376,8 +1439,8 @@ function renderBasket(){
   document.getElementById('ss-basket').textContent=n;
   const btn=document.getElementById('proc-btn'); if(btn)btn.disabled=n===0;
   const strip=document.getElementById('bstrip');
-  if(!n){strip.innerHTML='<span class="bemp">No compounds added yet — click cards below to add them</span>';return;}
-  strip.innerHTML=items.map(c=>`<div class="bchip">${c.name}<button class="cx" onclick="removeFromBasket('${c.name.replace(/'/g,"\\'")}')">×</button></div>`).join('');
+  if(!n){strip.innerHTML='<span class="bemp">No compounds added yet &mdash; click cards below to add them</span>';return;}
+  strip.innerHTML=items.map(c=>`<div class="bchip">${c.name}<button class="cx" onclick="removeFromBasket('${c.name.replace(/'/g,"\\'")}')">&#215;</button></div>`).join('');
 }
 function removeFromBasket(name){delete S.basket[name];renderLib('af');renderLib('cn');renderBasket();}
 function clearBasket(){S.basket={};renderLib('af');renderLib('cn');renderBasket();}
@@ -1395,32 +1458,32 @@ async function runDocking(){
   const items=Object.values(S.basket);
   if(!items.length){alert('Please add at least one compound first (Step 2)');navTo('library',null);return;}
   const btn=document.getElementById('dock-btn');
-  btn.disabled=true; btn.textContent='Running…';
+  btn.disabled=true; btn.textContent='Running&#8230;';
   document.getElementById('dock-log').innerHTML='';
   document.getElementById('dock-fill').style.width='0%';
   document.getElementById('dock-pct').textContent='0%';
   const grid={center_x:parseFloat(document.getElementById('gx').value)||0,center_y:parseFloat(document.getElementById('gy').value)||0,center_z:parseFloat(document.getElementById('gz').value)||0,size_x:parseFloat(document.getElementById('bx').value)||22,size_y:parseFloat(document.getElementById('by').value)||22,size_z:parseFloat(document.getElementById('bz').value)||22,exhaustiveness:parseInt(document.getElementById('exh').value)||8,num_modes:parseInt(document.getElementById('nmod').value)||9};
-  alog(`[NexusMD] ${S.backendMode?'⚡ REAL BACKEND — AutoDock Vina 1.2.5':'🔬 Simulation mode (connect backend for real docking)'}`,S.backendMode?'lr':'li');
+  alog(`[NexusMD] ${S.backendMode?'&#9889; REAL BACKEND &mdash; AutoDock Vina 1.2.5':'&#128300; Simulation mode (connect backend for real docking)'}`,S.backendMode?'lr':'li');
   alog(`[INFO] Target: ${S.target.id} | Compounds: ${items.length} | Exhaustiveness: ${grid.exhaustiveness}`,'li');
-  alog(`[INFO] Grid centre: (${grid.center_x}, ${grid.center_y}, ${grid.center_z}) | Box: ${grid.size_x}×${grid.size_y}×${grid.size_z} Å`,'li');
+  alog(`[INFO] Grid centre: (${grid.center_x}, ${grid.center_y}, ${grid.center_z}) | Box: ${grid.size_x}&#215;${grid.size_y}&#215;${grid.size_z} &#197;`,'li');
   if(S.backendMode){
     try{
-      alog('[API] Submitting job to backend…','li');
+      alog('[API] Submitting job to backend&#8230;','li');
       const smiles=items.map(i=>i.smiles||SMILES_DB[i.name]||'CC(C)Cc1ccc(cc1)C(C)C(=O)O');
       const job=await apiPost('/api/docking/submit',{protein_id:S.target.id,ligand_smiles:smiles,ligand_names:items.map(i=>i.name),engine:'vina',grid,admet_filter:document.getElementById('adpre').checked});
       S.activeJobId=job.job_id;
-      alog('[API] Job '+job.job_id+' — opening WebSocket…','li');
+      alog('[API] Job '+job.job_id+' &mdash; opening WebSocket&#8230;','li');
       const ws=new WebSocket(apiBase().replace(/^http/,'ws')+'/ws/'+job.job_id);
       ws.onmessage=evt=>{
         const m=JSON.parse(evt.data);
         if(m.line)alog(m.line,m.level==='done'?'ld':m.level==='warn'?'lw':m.line.includes('Vina')?'lr':'li');
         if(m.progress){document.getElementById('dock-fill').style.width=m.progress+'%';document.getElementById('dock-pct').textContent=m.progress+'%';document.getElementById('dock-lbl').textContent=(m.message||'').slice(0,55);}
         if(m.status==='done'){ws.close();finishDocking(m.result,true);}
-        if(m.status==='failed'){ws.close();alog('[ERROR] '+m.message,'lw');btn.disabled=false;btn.textContent='▶ Run Docking';}
+        if(m.status==='failed'){ws.close();alog('[ERROR] '+m.message,'lw');btn.disabled=false;btn.textContent='&#9654; Run Docking';}
       };
-      ws.onerror=()=>{alog('[WS] Fallback to polling…','lw');pollDocking(job.job_id);};
+      ws.onerror=()=>{alog('[WS] Fallback to polling&#8230;','lw');pollDocking(job.job_id);};
       return;
-    }catch(err){alog('[ERROR] '+err.message+' — falling back to simulation','lw');S.backendMode=false;}
+    }catch(err){alog('[ERROR] '+err.message+' &mdash; falling back to simulation','lw');S.backendMode=false;}
   }
   simulateDocking();
 }
@@ -1429,13 +1492,13 @@ async function pollDocking(jobId){
     try{const j=await apiGet('/api/docking/status/'+jobId);
       if(j.progress){document.getElementById('dock-fill').style.width=j.progress+'%';document.getElementById('dock-pct').textContent=j.progress+'%';}
       if(j.status==='done'){clearInterval(iv);finishDocking(j.result,true);}
-      if(j.status==='failed'){clearInterval(iv);alog('[FAILED] '+j.message,'lw');document.getElementById('dock-btn').disabled=false;document.getElementById('dock-btn').textContent='▶ Run Docking';}
+      if(j.status==='failed'){clearInterval(iv);alog('[FAILED] '+j.message,'lw');document.getElementById('dock-btn').disabled=false;document.getElementById('dock-btn').textContent='&#9654; Run Docking';}
     }catch(_){}
   },2500);
 }
 function simulateDocking(){
   const items=Object.values(S.basket);
-  const steps=['[SIM] Preparing receptor topology…','[SIM] Converting SMILES to 3D (Open Babel)…',...items.map((it,i)=>`[Vina] (${i+1}/${items.length}) Docking: ${it.name}`),'[Vina] Clustering poses by RMSD…','[Vina] Calculating binding energies…','[DONE] Docking complete — see Results tab'];
+  const steps=['[SIM] Preparing receptor topology&#8230;','[SIM] Converting SMILES to 3D (Open Babel)&#8230;',...items.map((it,i)=>`[Vina] (${i+1}/${items.length}) Docking: ${it.name}`),'[Vina] Clustering poses by RMSD&#8230;','[Vina] Calculating binding energies&#8230;','[DONE] Docking complete &mdash; see Results tab'];
   let i=0;
   const t=setInterval(()=>{
     if(i>=steps.length){clearInterval(t);document.getElementById('dock-fill').style.width='100%';document.getElementById('dock-pct').textContent='100%';finishDocking(null,false);return;}
@@ -1449,23 +1512,23 @@ function simulateDocking(){
 }
 function finishDocking(apiResult,real){
   const btn=document.getElementById('dock-btn');
-  btn.disabled=false; btn.textContent='▶ Run Docking';
+  btn.disabled=false; btn.textContent='&#9654; Run Docking';
   if(real&&apiResult?.poses){
-    S.results=apiResult.poses.map(p=>({name:p.name,score:p.score,rmsd:p.rmsd_lb??0,admet:p.admet_status||'—',real:true,src:S.basket[p.name]?.src||'API'}));
+    S.results=apiResult.poses.map(p=>({name:p.name,score:p.score,rmsd:p.rmsd_lb??0,admet:p.admet_status||'&#8212;',real:true,src:S.basket[p.name]?.src||'API'}));
   }else{
     S.results=Object.values(S.basket).map(item=>{
       const mw=item.mw||300, lp=item.logp||2;
       const base=-(4.5+Math.min(mw/75,4.5)+Math.min(Math.abs(lp-2.5),2)*0.6+Math.random()*1.8);
       const score=Math.max(-13,Math.min(-4,base));
       const ro5=(mw>500?1:0)+(lp>5?1:0)+(mw>700?1:0);
-      return{name:item.name,score:parseFloat(score.toFixed(1)),rmsd:parseFloat((Math.random()*2).toFixed(2)),admet:ro5>=2?'Fail':ro5>=1?'Warn':'Pass',real:false,src:item.src||'—'};
+      return{name:item.name,score:parseFloat(score.toFixed(1)),rmsd:parseFloat((Math.random()*2).toFixed(2)),admet:ro5>=2?'Fail':ro5>=1?'Warn':'Pass',real:false,src:item.src||'&#8212;'};
     });
   }
   S.results.sort((a,b)=>a.score-b.score);
   renderResults();
   markDone('dock');
   document.getElementById('ss-results').textContent=S.results.length+' poses';
-  alog('[DONE] '+S.results.length+' poses ready — opening Results tab…','ld');
+  alog('[DONE] '+S.results.length+' poses ready &mdash; opening Results tab&#8230;','ld');
   // Auto-save to history
   setTimeout(()=>saveToHistory(), 100);
   setTimeout(()=>navTo('results',document.querySelector('.tb[onclick*="results"]')),1100);
@@ -1479,7 +1542,7 @@ function renderResults(){
   document.getElementById('rs-n').textContent=S.results.length;
   document.getElementById('rs-best').textContent=S.results[0].score.toFixed(1);
   document.getElementById('rs-pass').textContent=S.results.filter(r=>r.admet==='Pass').length;
-  document.getElementById('rs-src').textContent=S.results[0]?.real?'Real ✓':'Simulated';
+  document.getElementById('rs-src').textContent=S.results[0]?.real?'Real &#10003;':'Simulated';
   const tbody=document.getElementById('res-tbody');
   tbody.innerHTML=S.results.map((r,i)=>{
     const sc=r.score<=-10?'sg':r.score<=-8?'so':r.score<=-6?'sm':'sp';
@@ -1488,9 +1551,9 @@ function renderResults(){
     const ac=r.admet==='Pass'?'var(--green)':r.admet==='Fail'?'var(--red)':'var(--amber)';
     return`<tr><td style="color:var(--dim);font-family:DM Mono,monospace">${i+1}</td>
       <td style="font-weight:700">${r.name}${rt}</td>
-      <td><span class="bdg ${srcB}">${r.src||'—'}</span></td>
+      <td><span class="bdg ${srcB}">${r.src||'&#8212;'}</span></td>
       <td class="${sc}">${r.score.toFixed(1)}</td>
-      <td style="color:var(--muted);font-family:DM Mono,monospace">${typeof r.rmsd==='number'?r.rmsd.toFixed(2):'—'}</td>
+      <td style="color:var(--muted);font-family:DM Mono,monospace">${typeof r.rmsd==='number'?r.rmsd.toFixed(2):'&#8212;'}</td>
       <td style="color:${ac};font-weight:600">${r.admet}</td>
       <td><button class="btn btn-g btn-sm" onclick="showDetail(${i})">Details</button></td>
     </tr>`;
@@ -1503,21 +1566,21 @@ function showDetail(i){
   document.getElementById('dp-name').textContent=r.name;
   document.getElementById('dp-sc').textContent=r.score.toFixed(1)+' kcal/mol';
   document.getElementById('dp-sc').style.color=r.score<=-10?'var(--green)':r.score<=-8?'var(--teal)':r.score<=-6?'var(--amber)':'var(--red)';
-  document.getElementById('dp-rm').textContent=(typeof r.rmsd==='number'?r.rmsd.toFixed(2):'—')+' Å';
+  document.getElementById('dp-rm').textContent=(typeof r.rmsd==='number'?r.rmsd.toFixed(2):'&#8212;')+' &#197;';
   document.getElementById('dp-ad').textContent=r.admet;
   document.getElementById('dp-ad').style.color=r.admet==='Pass'?'var(--green)':r.admet==='Fail'?'var(--red)':'var(--amber)';
 
   // MW / LogP from basket
   const bitem = S.basket[r.name];
-  document.getElementById('dp-mw').textContent = bitem?.mw ? bitem.mw+' Da' : '—';
-  document.getElementById('dp-lp').textContent = bitem?.logp !== undefined ? bitem.logp : '—';
+  document.getElementById('dp-mw').textContent = bitem?.mw ? bitem.mw+' Da' : '&#8212;';
+  document.getElementById('dp-lp').textContent = bitem?.logp !== undefined ? bitem.logp : '&#8212;';
 
   let tx='';
-  if(r.score<=-10)tx=`<b>${r.name}</b> shows excellent binding affinity. Scores ≤ −10 kcal/mol are typical of confirmed drug candidates and suggest strong, specific interaction with the binding site.`;
-  else if(r.score<=-8)tx=`<b>${r.name}</b> shows good binding affinity. This range often corresponds to low-micromolar IC₅₀ values and is worth pursuing with in vitro assays.`;
-  else if(r.score<=-6)tx=`<b>${r.name}</b> shows moderate binding. Could serve as a lead scaffold — consider structural analogues (see Analogues tab) or R-group substitution.`;
+  if(r.score<=-10)tx=`<b>${r.name}</b> shows excellent binding affinity. Scores &#8804; &#8722;10 kcal/mol are typical of confirmed drug candidates and suggest strong, specific interaction with the binding site.`;
+  else if(r.score<=-8)tx=`<b>${r.name}</b> shows good binding affinity. This range often corresponds to low-micromolar IC&#8325;&#8320; values and is worth pursuing with in vitro assays.`;
+  else if(r.score<=-6)tx=`<b>${r.name}</b> shows moderate binding. Could serve as a lead scaffold &mdash; consider structural analogues (see Analogues tab) or R-group substitution.`;
   else tx=`<b>${r.name}</b> shows weak binding at this site. Useful as a starting scaffold. Check the Analogues tab for structurally similar approved drugs with stronger binding potential.`;
-  if(!r.real)tx+=' <em style="color:var(--muted)">(Simulated score — connect backend for real Vina docking)</em>';
+  if(!r.real)tx+=' <em style="color:var(--muted)">(Simulated score &mdash; connect backend for real Vina docking)</em>';
   document.getElementById('dp-interp').innerHTML=tx;
 
   // Target info
@@ -1525,7 +1588,7 @@ function showDetail(i){
   const tt = document.getElementById('dp-target-txt');
   if(S.target && ti && tt){
     ti.style.display='flex';
-    tt.innerHTML=`Target: <b>${S.target.id}</b> — ${S.target.name} · Resolution: ${S.target.res||'—'}`;
+    tt.innerHTML=`Target: <b>${S.target.id}</b> &mdash; ${S.target.name} &middot; Resolution: ${S.target.res||'&#8212;'}`;
   }
 
   // Reset to interpretation tab
@@ -1542,8 +1605,8 @@ function showDetail(i){
 }
 function exportCSV(){
   if(!S.results.length){alert('No results to export');return;}
-  const rows=[['Rank','Compound','Source','Score (kcal/mol)','RMSD (Å)','ADMET','Real data']];
-  S.results.forEach((r,i)=>rows.push([i+1,r.name,r.src||'—',r.score.toFixed(1),typeof r.rmsd==='number'?r.rmsd.toFixed(2):'—',r.admet,r.real?'Yes':'No']));
+  const rows=[['Rank','Compound','Source','Score (kcal/mol)','RMSD (&#197;)','ADMET','Real data']];
+  S.results.forEach((r,i)=>rows.push([i+1,r.name,r.src||'&#8212;',r.score.toFixed(1),typeof r.rmsd==='number'?r.rmsd.toFixed(2):'&#8212;',r.admet,r.real?'Yes':'No']));
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download='nexusmd_results_'+( S.target?.id||'export')+'_'+new Date().toISOString().slice(0,10)+'.csv';
@@ -1591,20 +1654,20 @@ function renderADMET(real){
     const bars=[
       {label:'Mol. weight',val:Math.min(e.mw/500,1),raw:e.mw+' Da',good:e.mw<=500},
       {label:'logP',val:Math.max(0,Math.min((e.logp+2)/9,1)),raw:(e.logp||0).toFixed(2),good:e.logp>=-0.5&&e.logp<=5},
-      {label:'GI absorption',val:e.gi_absorption==='High'?.85:.3,raw:e.gi_absorption||'—',good:e.gi_absorption==='High'},
+      {label:'GI absorption',val:e.gi_absorption==='High'?.85:.3,raw:e.gi_absorption||'&#8212;',good:e.gi_absorption==='High'},
       {label:'BBB permeant',val:e.bbb_permeant?.8:.2,raw:e.bbb_permeant?'Yes':'No',good:null},
       {label:'hERG inhibitor',val:e.herg_inhibitor?.8:.15,raw:e.herg_inhibitor?'Risk':'Low',good:!e.herg_inhibitor},
     ];
     const barsH=bars.map(b=>`<div class="arow"><div class="albl">${b.label}</div><div class="atrack"><div class="afill" style="width:${(b.val*100).toFixed(0)}%;background:${b.good===null?'var(--teal)':b.good?'var(--green)':'var(--red)'}"></div></div><div class="aval" style="color:${b.good===null?'var(--muted)':b.good?'var(--green)':'var(--red)'}">${b.raw}</div></div>`).join('');
     const flagsH=(e.flags||[]).map(f=>`<span class="bdg bg-a" style="margin:2px">${f}</span>`).join('');
-    return`<div class="card"><div class="ch"><div style="display:flex;align-items:center;gap:9px"><span style="font-size:14px;color:${sc}">●</span><div class="ct">${e.name}</div><span class="bdg ${scls}">${e.status}</span>${real?'<span class="bdg bg-t">REAL</span>':''}</div><div style="display:flex;gap:5px;flex-wrap:wrap">${flagsH}</div></div><div class="cb">${barsH}</div></div>`;
+    return`<div class="card"><div class="ch"><div style="display:flex;align-items:center;gap:9px"><span style="font-size:14px;color:${sc}">&#9679;</span><div class="ct">${e.name}</div><span class="bdg ${scls}">${e.status}</span>${real?'<span class="bdg bg-t">REAL</span>':''}</div><div style="display:flex;gap:5px;flex-wrap:wrap">${flagsH}</div></div><div class="cb">${barsH}</div></div>`;
   }).join('');
 }
 function exportADMET(){
   const entries=Object.values(S.admet);
   if(!entries.length){alert('Run ADMET scoring first');return;}
   const rows=[['Compound','MW','LogP','GI Absorption','BBB Permeant','hERG Risk','Ames Toxicity','Ro5 Violations','Status']];
-  entries.forEach(e=>rows.push([e.name,e.mw||'—',(e.logp||0).toFixed(2),e.gi_absorption||'—',e.bbb_permeant?'Yes':'No',e.herg_inhibitor?'Yes':'No',e.ames_toxicity?'Positive':'Negative',e.ro5_violations||0,e.status]));
+  entries.forEach(e=>rows.push([e.name,e.mw||'&#8212;',(e.logp||0).toFixed(2),e.gi_absorption||'&#8212;',e.bbb_permeant?'Yes':'No',e.herg_inhibitor?'Yes':'No',e.ames_toxicity?'Positive':'Negative',e.ro5_violations||0,e.status]));
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));a.download='nexusmd_admet.csv';a.click();
 }
 
@@ -1615,7 +1678,7 @@ async function runFASTA(){
   const seq=raw.replace(/^>.*[\r\n]+/m,'').replace(/\s/g,'').toUpperCase().replace(/[^ACDEFGHIKLMNPQRSTVWY]/g,'');
   if(seq.length<10){alert('Enter a valid amino acid sequence (at least 10 residues)');return;}
   const btn=document.getElementById('fasta-btn');
-  btn.disabled=true; btn.textContent='Predicting…';
+  btn.disabled=true; btn.textContent='Predicting&#8230;';
   document.getElementById('fasta-res-card').style.display='block';
   document.getElementById('fasta-metrics').style.display='none';
   document.getElementById('fasta-dl').style.display='none';
@@ -1623,21 +1686,21 @@ async function runFASTA(){
   document.getElementById('fasta-fill').style.width='0%';
   if(S.backendMode){
     try{
-      flog('[API] Submitting '+seq.length+'-residue sequence via backend…','li');
+      flog('[API] Submitting '+seq.length+'-residue sequence via backend&#8230;','li');
       const job=await apiPost('/api/fasta/fold',{sequence:seq,engine:'esm',relax:false});
       const iv=setInterval(async()=>{
         try{const s=await apiGet('/api/fasta/result/'+job.job_id);
-          if(s.mean_plddt){clearInterval(iv);flog('[DONE] Real ESMFold complete · pLDDT: '+s.mean_plddt.toFixed(1),'ld');showFASTAResults(seq,s.mean_plddt,s.ptm_score||0,true);btn.disabled=false;btn.textContent='▶ Predict Structure';}
-          if(s.status==='failed'){clearInterval(iv);flog('[ERROR] '+s.message,'lw');btn.disabled=false;btn.textContent='▶ Predict Structure';}
+          if(s.mean_plddt){clearInterval(iv);flog('[DONE] Real ESMFold complete &middot; pLDDT: '+s.mean_plddt.toFixed(1),'ld');showFASTAResults(seq,s.mean_plddt,s.ptm_score||0,true);btn.disabled=false;btn.textContent='&#9654; Predict Structure';}
+          if(s.status==='failed'){clearInterval(iv);flog('[ERROR] '+s.message,'lw');btn.disabled=false;btn.textContent='&#9654; Predict Structure';}
         }catch(_){}
       },3000);
       setTimeout(()=>clearInterval(iv),180000);
       return;
-    }catch(_){flog('[WARN] Backend error — trying direct ESMFold API…','lw');}
+    }catch(_){flog('[WARN] Backend error &mdash; trying direct ESMFold API&#8230;','lw');}
   }
   if(seq.length<=400){
-    flog('[ESMFold] Sending '+seq.length+' residues to api.esmatlas.com…','li');
-    flog('[NOTE] This takes 20–90 seconds depending on server load…','ldim');
+    flog('[ESMFold] Sending '+seq.length+' residues to api.esmatlas.com&#8230;','li');
+    flog('[NOTE] This takes 20&ndash;90 seconds depending on server load&#8230;','ldim');
     try{
       const r=await fetch('https://api.esmatlas.com/foldSequence/v1/pdb/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:seq});
       if(r.ok){
@@ -1646,18 +1709,18 @@ async function runFASTA(){
           S.fastaPDB=pdb;
           const plddts=parsePLDDT(pdb);
           const mean=plddts.length?plddts.reduce((a,b)=>a+b)/plddts.length:75;
-          flog('[DONE] Real ESMFold structure received · mean pLDDT: '+mean.toFixed(1),'ld');
+          flog('[DONE] Real ESMFold structure received &middot; mean pLDDT: '+mean.toFixed(1),'ld');
           showFASTAResults(seq,mean,mean/100*1.08,true);
           document.getElementById('fasta-dl').style.display='inline-block';
-          btn.disabled=false; btn.textContent='▶ Predict Structure'; return;
+          btn.disabled=false; btn.textContent='&#9654; Predict Structure'; return;
         }
       }
-    }catch(_){flog('[NOTE] Direct browser call blocked by CORS. Starting simulation…','lw');flog('[TIP] To get real structures: start the NexusMD backend (see Setup Guide)','ldim');}
+    }catch(_){flog('[NOTE] Direct browser call blocked by CORS. Starting simulation&#8230;','lw');flog('[TIP] To get real structures: start the NexusMD backend (see Setup Guide)','ldim');}
   }
-  const steps=['[ESMFold] Tokenising '+seq.length+' residues…','[ESMFold] Running ESM-2 650M language model…','[ESMFold] Folding trunk — attention layers 1/48…','[ESMFold] Folding trunk — attention layers 24/48…','[ESMFold] Predicting backbone torsion angles…','[ESMFold] Computing per-residue pLDDT confidence…','[DONE] Prediction complete (simulation).'];
+  const steps=['[ESMFold] Tokenising '+seq.length+' residues&#8230;','[ESMFold] Running ESM-2 650M language model&#8230;','[ESMFold] Folding trunk &mdash; attention layers 1/48&#8230;','[ESMFold] Folding trunk &mdash; attention layers 24/48&#8230;','[ESMFold] Predicting backbone torsion angles&#8230;','[ESMFold] Computing per-residue pLDDT confidence&#8230;','[DONE] Prediction complete (simulation).'];
   let i=0;
   const t=setInterval(()=>{
-    if(i>=steps.length){clearInterval(t);const m=68+Math.random()*18;showFASTAResults(seq,m,m/100*1.1,false);btn.disabled=false;btn.textContent='▶ Predict Structure';return;}
+    if(i>=steps.length){clearInterval(t);const m=68+Math.random()*18;showFASTAResults(seq,m,m/100*1.1,false);btn.disabled=false;btn.textContent='&#9654; Predict Structure';return;}
     flog(steps[i],steps[i].startsWith('[DONE]')?'ld':'li');
     document.getElementById('fasta-fill').style.width=((i+1)/steps.length*100)+'%';
     i++;
@@ -1676,7 +1739,7 @@ function showFASTAResults(seq,mean,ptm,real){
   document.getElementById('fm-plddt').style.color=pmean>=80?'var(--green)':pmean>=60?'var(--teal)':'var(--amber)';
   document.getElementById('fm-len').textContent=seq.length;
   document.getElementById('fm-ptm').textContent=(typeof ptm==='number'?ptm:parseFloat(ptm)).toFixed(2);
-  document.getElementById('fm-eng').textContent=real?'ESMFold ✓':'ESMFold (sim)';
+  document.getElementById('fm-eng').textContent=real?'ESMFold &#10003;':'ESMFold (sim)';
   let interp='';
   if(pmean>=90)interp='<b>Very high confidence.</b> Most residues are reliably predicted. The backbone and side chains are likely accurate enough for docking and virtual screening directly on this predicted structure.';
   else if(pmean>=70)interp='<b>Confident prediction.</b> Core secondary structure elements should be reliable. Flexible loops and termini may deviate from the real structure.';
@@ -1707,7 +1770,7 @@ function downloadFastaPDB(){
 function markDone(step){
   const si=document.getElementById('si-'+step);
   const sb=document.getElementById('sb-'+step);
-  if(si){si.textContent='✓';si.style.background='rgba(0,236,140,.15)';si.style.borderColor='var(--green)';si.style.color='var(--green)';}
+  if(si){si.textContent='&#10003;';si.style.background='rgba(0,236,140,.15)';si.style.borderColor='var(--green)';si.style.color='var(--green)';}
   if(sb)sb.classList.add('done');
 }
 
@@ -1754,11 +1817,11 @@ function renderDrugRows(rows) {
     return `<tr>
       <td style="font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.n}">${r.n}</td>
       <td><span class="bdg ${sc}" style="font-size:9px">${r.st}</span></td>
-      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted)" title="${r.dis}">${r.dis||'—'}</td>
-      <td style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">${r.mw||'—'}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted)" title="${r.dis}">${r.dis||'&#8212;'}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">${r.mw||'&#8212;'}</td>
       <td style="font-family:DM Mono,monospace;font-size:12px;color:${r.lp>5||r.lp<-0.5?'var(--amber)':'var(--muted)'}">${r.lp}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dim)" title="${r.tgt}">${r.tgt||'—'}</td>
-      <td><button class="btn btn-g btn-sm ${inB?'btn-s':''}" style="${inB?'color:#000;':''}min-width:56px" onclick="toggleDrugBasket('${r.n.replace(/'/g,"\\'")}','${r.s.replace(/'/g,"\\'")}',${r.mw},${r.lp},${r.hbd},${r.hba},'${r.src}')">${inB?'✓ Added':'+ Add'}</button></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dim)" title="${r.tgt}">${r.tgt||'&#8212;'}</td>
+      <td><button class="btn btn-g btn-sm ${inB?'btn-s':''}" style="${inB?'color:#000;':''}min-width:56px" onclick="toggleDrugBasket('${r.n.replace(/'/g,"\\'")}','${r.s.replace(/'/g,"\\'")}',${r.mw},${r.lp},${r.hbd},${r.hba},'${r.src}')">${inB?'&#10003; Added':'+ Add'}</button></td>
     </tr>`;
   }).join('');
   document.getElementById('dl-showing').textContent = Math.min(DL_OFFSET + rows.length, DL_FILTERED.length);
@@ -1782,7 +1845,7 @@ function addFilteredToBasket(){
   const slice = DL_FILTERED.slice(0, 50); // Max 50 at once to keep docking manageable
   slice.forEach(r => { if(!S.basket[r.n]) addToBasket({name:r.n, smiles:r.s, src:'Drug Library', cls:'Drug', activity:'Therapeutic', mw:r.mw, logp:r.lp, hbd:r.hbd, hba:r.hba}); });
   renderDrugs(); renderBasket();
-  alert('Added '+slice.length+' compounds to basket'+(DL_FILTERED.length>50?' (first 50 — use more specific filters for smaller sets)':''));
+  alert('Added '+slice.length+' compounds to basket'+(DL_FILTERED.length>50?' (first 50 &mdash; use more specific filters for smaller sets)':''));
 }
 
 function exportDrugCSV(){
@@ -1795,9 +1858,9 @@ function exportDrugCSV(){
 }
 
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // 3D VIEWER (3Dmol.js)
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 let viewer3d = null;
 let currentStyle3d = 'stick';
 let currentMolSMI = '';
@@ -1815,7 +1878,7 @@ function dpTab(tab, btn) {
 function initViewer3d(smiles) {
   const container = document.getElementById('viewer-3d');
   if(!container) return;
-  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px">⏳ Generating 3D conformation…</div>';
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px">&#9203; Generating 3D conformation&#8230;</div>';
 
   // If backend available, try to get real docked pose
   if(S.backendMode && S.activeJobId) {
@@ -1835,7 +1898,7 @@ function initViewer3d(smiles) {
       })
       .catch(() => render3dSimulated(smiles));
   } else {
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px">No structure data — add SMILES to see 3D view</div>';
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px">No structure data &mdash; add SMILES to see 3D view</div>';
   }
 }
 
@@ -1871,7 +1934,7 @@ function render3dSimulated(smiles) {
         viewer3d.addSphere({center:{x:Math.cos(ang)*2.5,y:Math.sin(ang)*2.5,z:(Math.random()-.5)*1.5},
           radius:0.4, color:a==='N'?'#4DB8FF':a==='O'?'#FF6B6B':a==='S'?'#FFD93D':a==='F'||a==='Cl'||a==='Br'?'#00EC8C':'#AAAAAA'});
       });
-      container.insertAdjacentHTML('beforeend','<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(107,139,170,.7)">Schematic view — connect backend for real docked pose</div>');
+      container.insertAdjacentHTML('beforeend','<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(107,139,170,.7)">Schematic view &mdash; connect backend for real docked pose</div>');
     }
     viewer3d.setStyle({}, {stick:{colorscheme:'Jmol',radius:0.15}});
     viewer3d.zoomTo(); viewer3d.render();
@@ -1898,9 +1961,9 @@ function applyStyle3d(style) {
 }
 function setStyle(s) { applyStyle3d(s); }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // SCAFFOLD HOPPING / ANALOGUE FINDER
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 function jaccardSim(a, b) {
   // Fast n-gram Jaccard similarity for SMILES (proxy for Tanimoto)
   const ngrams = s => new Set([...Array(s.length-2)].map((_,i) => s.slice(i,i+3)));
@@ -1922,7 +1985,7 @@ function findAnalogues() {
     return;
   }
 
-  shRes.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Computing similarities…</div>';
+  shRes.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Computing similarities&#8230;</div>';
 
   setTimeout(() => {
     const scored = DRUG_LIBRARY
@@ -1947,18 +2010,18 @@ function findAnalogues() {
         <div class="sh-sim">${pct}%</div>
         <div class="sh-name">${r.n}</div>
         <div class="sh-meta"><span class="bdg ${sc}" style="font-size:9px">${r.st}</span></div>
-        <div class="sh-meta" style="margin-top:4px">${r.dis?r.dis.split(';')[0].trim():'—'}</div>
+        <div class="sh-meta" style="margin-top:4px">${r.dis?r.dis.split(';')[0].trim():'&#8212;'}</div>
         <div style="margin-top:6px;font-size:11px;color:${inB?'var(--green)':'var(--teal)'}">
-          ${inB?'✓ In basket':'+ Add to basket'}
+          ${inB?'&#10003; In basket':'+ Add to basket'}
         </div>
       </div>`;
     }).join('');
   }, 50);
 }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // PUBCHEM LIVE SEARCH
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 let pcTimer = null;
 function pcSearch() {
   const q = document.getElementById('pc-query')?.value?.trim();
@@ -1970,7 +2033,7 @@ function pcSearch() {
   if(res) res.style.display='none';
   pcTimer = setTimeout(async () => {
     try {
-      // PubChem autocomplete → get CIDs → get properties
+      // PubChem autocomplete &rarr; get CIDs &rarr; get properties
       const ac = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent(q)}/JSON?limit=8`);
       const acData = await ac.json();
       const names = acData?.dictionary_terms?.compound || [];
@@ -1988,13 +2051,13 @@ function pcSearch() {
       res.innerHTML = props.map(p => `
         <div class="pc-item" onclick="pcSelect('${(p.IUPACName||names[props.indexOf(p)]||'').replace(/'/g,"\\'")}','${(p.IsomericSMILES||'').replace(/'/g,"\\'").replace(/\\/g,'\\\\')}',${p.MolecularWeight||0},${p.XLogP||0})">
           <div class="pc-name">${p.IUPACName || 'Unknown'}</div>
-          <div class="pc-meta">CID: ${p.CID} · MW: ${p.MolecularWeight||'—'} · Formula: ${p.MolecularFormula||'—'} · LogP: ${p.XLogP??'—'}</div>
-          <div class="pc-meta" style="color:var(--dim);margin-top:2px;font-size:10px">${(p.IsomericSMILES||'').slice(0,60)}…</div>
+          <div class="pc-meta">CID: ${p.CID} &middot; MW: ${p.MolecularWeight||'&#8212;'} &middot; Formula: ${p.MolecularFormula||'&#8212;'} &middot; LogP: ${p.XLogP??'&#8212;'}</div>
+          <div class="pc-meta" style="color:var(--dim);margin-top:2px;font-size:10px">${(p.IsomericSMILES||'').slice(0,60)}&#8230;</div>
         </div>`).join('');
       res.style.display='block';
     } catch(e) {
       if(loading) loading.style.display='none';
-      if(res) { res.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px">PubChem search failed — check connection or try a different name.</div>'; res.style.display='block'; }
+      if(res) { res.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px">PubChem search failed &mdash; check connection or try a different name.</div>'; res.style.display='block'; }
     }
   }, 500);
 }
@@ -2008,17 +2071,17 @@ function pcSelect(name, smiles, mw, logp) {
   // Auto-add if valid
   if(name && smiles) {
     addToBasket({name, smiles, src:'PubChem', cls:'Drug', activity:'Therapeutic', mw: parseFloat(mw)||300, logp: parseFloat(logp)||0, hbd:0, hba:0});
-    alert('✓ '+name+' added from PubChem');
+    alert('&#10003; '+name+' added from PubChem');
     document.getElementById('cust-name').value='';
     document.getElementById('cust-smi').value='';
   }
 }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // MULTI-TARGET SCREENING
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 const MT_TARGETS = {};
-let MT_RESULTS = {}; // target_id → [{name, score, rmsd}]
+let MT_RESULTS = {}; // target_id &rarr; [{name, score, rmsd}]
 
 function mtToggleTarget(id, name, center) {
   const cards = document.querySelectorAll('#mt-target-grid .cc');
@@ -2040,7 +2103,7 @@ function mtToggleTarget(id, name, center) {
   const strip = document.getElementById('mt-selected-strip');
   if(!n) { strip.innerHTML='<span style="color:var(--dim);font-size:12px;font-style:italic">Click targets above to add (max 6)</span>'; return; }
   strip.innerHTML = Object.values(MT_TARGETS).map(t =>
-    `<div class="mt-target-pill">${t.id} — ${t.name}<button class="cx" onclick="mtToggleTarget('${t.id}','${t.name.replace(/'/g,"\\'")}',{})">×</button></div>`
+    `<div class="mt-target-pill">${t.id} &mdash; ${t.name}<button class="cx" onclick="mtToggleTarget('${t.id}','${t.name.replace(/'/g,"\\'")}',{})">&#215;</button></div>`
   ).join('');
 }
 
@@ -2057,19 +2120,19 @@ async function runMultiTarget() {
   if(!compounds.length) { alert('Add compounds to basket first (Step 2)'); return; }
 
   const btn = document.getElementById('mt-run-btn');
-  btn.disabled = true; btn.textContent='Running…';
+  btn.disabled = true; btn.textContent='Running&#8230;';
   document.getElementById('mt-log').innerHTML='';
   document.getElementById('mt-heatmap-section').style.display='none';
   document.getElementById('mt-fill').style.width='0%';
   MT_RESULTS = {};
 
-  mtLog(`[NexusMD] Multi-target screen: ${compounds.length} compounds × ${targets.length} targets = ${compounds.length*targets.length} docking runs`,'lr');
-  mtLog(`[MODE] ${S.backendMode?'Real backend — AutoDock Vina':'Simulation mode'}`,'li');
+  mtLog(`[NexusMD] Multi-target screen: ${compounds.length} compounds &#215; ${targets.length} targets = ${compounds.length*targets.length} docking runs`,'lr');
+  mtLog(`[MODE] ${S.backendMode?'Real backend &mdash; AutoDock Vina':'Simulation mode'}`,'li');
 
   const total = targets.length;
   for(let ti=0; ti<total; ti++) {
     const tgt = targets[ti];
-    mtLog(`\n[TARGET ${ti+1}/${total}] ${tgt.id} — ${tgt.name}`,'lr');
+    mtLog(`\n[TARGET ${ti+1}/${total}] ${tgt.id} &mdash; ${tgt.name}`,'lr');
 
     if(S.backendMode) {
       try {
@@ -2091,14 +2154,14 @@ async function runMultiTarget() {
             if(s.status==='done'){
               MT_RESULTS[tgt.id] = s.result?.poses || [];
               done=true;
-              mtLog(`  ✓ ${tgt.id} complete — ${MT_RESULTS[tgt.id].length} poses`,'ld');
+              mtLog(`  &#10003; ${tgt.id} complete &mdash; ${MT_RESULTS[tgt.id].length} poses`,'ld');
             }
-            if(s.status==='failed'){done=true; mtLog(`  ✗ ${tgt.id} failed: ${s.message}`,'lw');}
+            if(s.status==='failed'){done=true; mtLog(`  &#10007; ${tgt.id} failed: ${s.message}`,'lw');}
           } catch(_){}
         }
-        if(!done) mtLog(`  ✗ ${tgt.id} timed out`,'lw');
+        if(!done) mtLog(`  &#10007; ${tgt.id} timed out`,'lw');
       } catch(e) {
-        mtLog(`  [ERROR] ${e.message} — using simulation`,'lw');
+        mtLog(`  [ERROR] ${e.message} &mdash; using simulation`,'lw');
         MT_RESULTS[tgt.id] = simDockResults(compounds, tgt);
       }
     } else {
@@ -2106,7 +2169,7 @@ async function runMultiTarget() {
       await new Promise(r => setTimeout(r, 600 + Math.random()*400));
       MT_RESULTS[tgt.id] = simDockResults(compounds, tgt);
       MT_RESULTS[tgt.id].forEach(r => mtLog(`  ${r.name}: ${r.score.toFixed(1)} kcal/mol`,'li'));
-      mtLog(`  ✓ ${tgt.id} complete`,'ld');
+      mtLog(`  &#10003; ${tgt.id} complete`,'ld');
     }
 
     const pct = Math.round((ti+1)/total*100);
@@ -2115,9 +2178,9 @@ async function runMultiTarget() {
     document.getElementById('mt-lbl').textContent=`Target ${ti+1}/${total}: ${tgt.name}`;
   }
 
-  mtLog('\n[DONE] All targets complete — rendering heatmap…','ld');
+  mtLog('\n[DONE] All targets complete &mdash; rendering heatmap&#8230;','ld');
   renderHeatmap();
-  btn.disabled=false; btn.textContent='▶ Run Multi-Target Screen';
+  btn.disabled=false; btn.textContent='&#9654; Run Multi-Target Screen';
 }
 
 function simDockResults(compounds, target) {
@@ -2163,7 +2226,7 @@ function renderHeatmap() {
       const score = hit ? hit.score : null;
       if(score !== null && score < best) best = score;
       const bg = score !== null ? scoreColor(score) : '#1A2D45';
-      const txt = score !== null ? score.toFixed(1) : '—';
+      const txt = score !== null ? score.toFixed(1) : '&#8212;';
       const textColor = score !== null ? (score <= -8 ? '#000':'#000') : '#3A5068';
       html += `<td style="background:${bg};color:${textColor}" title="${cname} vs ${tid}: ${txt} kcal/mol" onclick="mtShowDetail('${cname}','${tid}',${score})">${txt}</td>`;
     });
@@ -2180,7 +2243,7 @@ function renderHeatmap() {
 }
 
 function mtShowDetail(compound, targetId, score) {
-  alert(`${compound} vs ${targetId}:\nBinding score: ${score} kcal/mol\n${score<=-10?'Excellent binding — high priority hit':score<=-8?'Good binding — worth pursuing':score<=-6?'Moderate binding — optimisation needed':'Weak binding'}`);
+  alert(`${compound} vs ${targetId}:\nBinding score: ${score} kcal/mol\n${score<=-10?'Excellent binding &mdash; high priority hit':score<=-8?'Good binding &mdash; worth pursuing':score<=-6?'Moderate binding &mdash; optimisation needed':'Weak binding'}`);
 }
 
 function exportHeatmapCSV() {
@@ -2193,7 +2256,7 @@ function exportHeatmapCSV() {
       const hit = (MT_RESULTS[tid]||[]).find(p=>p.name===cname);
       const s = hit ? hit.score : null;
       if(s!==null&&s<best) best=s;
-      return s !== null ? s.toFixed(1) : '—';
+      return s !== null ? s.toFixed(1) : '&#8212;';
     });
     rows.push([cname, ...scores, best.toFixed(1)]);
   });
@@ -2202,9 +2265,9 @@ function exportHeatmapCSV() {
   a.download = 'nexusmd_multitarget_heatmap.csv'; a.click();
 }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // RUN HISTORY
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 const HISTORY = [];
 
 function saveToHistory() {
@@ -2212,7 +2275,7 @@ function saveToHistory() {
     id: Date.now(),
     date: new Date().toLocaleString(),
     type: Object.keys(MT_RESULTS).length > 0 ? 'Multi-target' : 'Single-target',
-    target: S.target ? S.target.id+' — '+S.target.name : 'Multiple',
+    target: S.target ? S.target.id+' &mdash; '+S.target.name : 'Multiple',
     compounds: Object.values(S.basket).length,
     results: [...S.results],
     mtResults: {...MT_RESULTS},
@@ -2245,14 +2308,14 @@ function renderHistory() {
         </div>
         <div style="display:flex;gap:7px">
           <button class="btn btn-g btn-sm" onclick="reloadRun(${i})">Reload results</button>
-          <button class="btn btn-g btn-sm" onclick="exportRunCSV(${i})">↓ CSV</button>
+          <button class="btn btn-g btn-sm" onclick="exportRunCSV(${i})">&darr; CSV</button>
         </div>
       </div>
       <div class="cb" style="padding:12px 18px">
         <div style="display:flex;gap:16px;font-size:12px;color:var(--muted)">
           <span>Compounds: <b style="color:var(--text)">${run.compounds}</b></span>
-          <span>Best score: <b style="color:${run.bestScore?scoreColor(run.bestScore):'var(--muted)'}">${run.bestScore?run.bestScore.toFixed(1)+' kcal/mol':'—'}</b></span>
-          <span>Hits (≤−8): <b style="color:var(--green)">${run.results.filter(r=>r.score<=-8).length}</b></span>
+          <span>Best score: <b style="color:${run.bestScore?scoreColor(run.bestScore):'var(--muted)'}">${run.bestScore?run.bestScore.toFixed(1)+' kcal/mol':'&#8212;'}</b></span>
+          <span>Hits (&#8804;&#8722;8): <b style="color:var(--green)">${run.results.filter(r=>r.score<=-8).length}</b></span>
         </div>
         ${!isMT&&run.results.length ? `<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
           ${run.results.slice(0,8).map(r=>`<span style="background:${scoreColor(r.score)};color:#000;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px">${r.name} ${r.score.toFixed(1)}</span>`).join('')}
@@ -2275,7 +2338,7 @@ function exportRunCSV(i) {
   const run = HISTORY[i];
   if(!run || !run.results.length) { alert('No results in this run'); return; }
   const rows = [['Compound','Score (kcal/mol)','RMSD','ADMET','Real']];
-  run.results.forEach(r => rows.push([r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'—', r.admet, r.real?'Yes':'No']));
+  run.results.forEach(r => rows.push([r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'&#8212;', r.admet, r.real?'Yes':'No']));
   const a = document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download=`nexusmd_run_${run.date.replace(/[/:, ]/g,'_')}.csv`; a.click();
@@ -2285,7 +2348,7 @@ function exportAllCSV() {
   if(!HISTORY.length) { alert('No runs to export'); return; }
   let allRows = [['Run','Date','Target','Compound','Score (kcal/mol)','RMSD','ADMET']];
   HISTORY.forEach((run,ri) => {
-    run.results.forEach(r => allRows.push([ri+1, run.date, run.target, r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'—', r.admet]));
+    run.results.forEach(r => allRows.push([ri+1, run.date, run.target, r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'&#8212;', r.admet]));
   });
   const a = document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(allRows.map(r=>r.join(',')).join('\n'));
@@ -2297,9 +2360,9 @@ function clearHistory() {
   HISTORY.length=0; renderHistory();
 }
 
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 // PUBLICATION REPORT (DOCX via Anthropic API)
-// ════════════════════════════════════════════════
+// &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 async function exportReport() {
   if(!HISTORY.length && !S.results.length) { alert('Complete at least one docking run first'); return; }
 
@@ -2312,10 +2375,10 @@ async function exportReport() {
   const report = `NEXUSMD VIRTUAL SCREENING REPORT
 Generated: ${new Date().toLocaleString()}
 Platform: NexusMD v5.0 (nexusmd.io)
-═══════════════════════════════════════════
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 
 1. STUDY OVERVIEW
-─────────────────
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 Target protein:    ${run.target || S.target?.name || 'Not specified'}
 Screening library: ${run.compounds || Object.values(S.basket).length} compounds
                    (African phytochemicals, TCM, FDA-approved drugs, custom SMILES)
@@ -2324,45 +2387,45 @@ Run date:          ${run.date}
 Mode:              ${S.backendMode?'Real (backend-connected)':'Simulation'}
 
 2. METHODS
-──────────
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 Molecular docking was performed using AutoDock Vina 1.2.5. Ligand SMILES were
 converted to 3D conformations using Open Babel. The binding grid was centred on
 the known active site. Drug-likeness was assessed using Lipinski Ro5 criteria,
 Veber rules, and toxicophore screening (hERG, Ames).
 
-3. TOP HITS — BINDING AFFINITY RANKING
-───────────────────────────────────────
+3. TOP HITS &mdash; BINDING AFFINITY RANKING
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 Rank  Compound                    Score (kcal/mol)  ADMET
 ${topHits.map((r,i) => `${String(i+1).padEnd(6)}${r.name.padEnd(28)}${r.score.toFixed(1).padEnd(18)}${r.admet}`).join('\n')}
 
 4. ADMET SUMMARY
-────────────────
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 Compounds screened:       ${topHits.length}
 ADMET pass (all criteria): ${passADMET} (${Math.round(passADMET/topHits.length*100)}%)
 ADMET warn:               ${topHits.filter(r=>r.admet==='Warn').length}
 ADMET fail:               ${topHits.filter(r=>r.admet==='Fail').length}
 
 5. LEAD COMPOUND ANALYSIS
-─────────────────────────
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 ${topHits.length ? `Lead candidate: ${topHits[0].name}
 Binding affinity: ${topHits[0].score.toFixed(1)} kcal/mol
-Interpretation: ${topHits[0].score<=-10?'Excellent binding — comparable to known drug candidates at this target. High priority for in vitro validation.':topHits[0].score<=-8?'Good binding affinity. Consistent with low-micromolar IC50. Recommended for experimental follow-up.':topHits[0].score<=-6?'Moderate binding. Scaffold may require optimisation via medicinal chemistry.':'Weak binding. Useful as starting scaffold only.'}` : 'No results available.'}
+Interpretation: ${topHits[0].score<=-10?'Excellent binding &mdash; comparable to known drug candidates at this target. High priority for in vitro validation.':topHits[0].score<=-8?'Good binding affinity. Consistent with low-micromolar IC50. Recommended for experimental follow-up.':topHits[0].score<=-6?'Moderate binding. Scaffold may require optimisation via medicinal chemistry.':'Weak binding. Useful as starting scaffold only.'}` : 'No results available.'}
 
 6. DISCUSSION
-─────────────
-${topHits.filter(r=>r.score<=-8).length} compound(s) showed good to excellent binding affinity (≤ −8 kcal/mol).
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+${topHits.filter(r=>r.score<=-8).length} compound(s) showed good to excellent binding affinity (&#8804; &#8722;8 kcal/mol).
 ${passADMET} compound(s) pass all ADMET drug-likeness criteria and are suitable
 for in vitro testing. Docking scores are free-energy estimates (Vina force field)
 and require experimental validation via biochemical assays.
 
 7. CITATION
-───────────
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 NexusMD v5.0 (2024). Open-source virtual screening platform.
-AutoDock Vina: Trott & Olson, J. Comput. Chem. 31:455–461 (2010).
+AutoDock Vina: Trott & Olson, J. Comput. Chem. 31:455&ndash;461 (2010).
 RDKit: RDKit.org (2024).
 
-═══════════════════════════════════════════
-Report generated by NexusMD — Free Drug Discovery for Everyone
+&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
+Report generated by NexusMD &mdash; Free Drug Discovery for Everyone
 `;
 
   const a = document.createElement('a');
