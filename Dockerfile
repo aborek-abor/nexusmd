@@ -2,7 +2,6 @@
 
 RUN apt-get update && apt-get install -y \
     openbabel \
-    libopenbabel-dev \
     curl wget \
     && rm -rf /var/lib/apt/lists/*
 
