@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+env/
+.env
+
+# Data (too large for git — Railway filesystem is ephemeral anyway)
+data/results/*
+data/pdb_cache/*
+data/ligands/*
+logs/*
+
+# Keep directory structure
+!data/results/.gitkeep
+!data/pdb_cache/.gitkeep
+!data/ligands/.gitkeep
+!logs/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
