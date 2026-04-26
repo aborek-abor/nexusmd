@@ -1,11 +1,6 @@
 ﻿FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    openbabel \
-    libopenbabel-dev \
-    curl wget \
-    && rm -rf /var/lib/apt/lists/* \
-    && obabel --version
+RUN apt-get update && apt-get install -y --no-install-recommends openbabel curl wget && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /nexusmd
 
@@ -22,5 +17,3 @@ ENV PYTHONPATH=/nexusmd
 ENV OBABEL_BINARY=/usr/bin/obabel
 
 CMD python -c "import os,subprocess; subprocess.run(['uvicorn','app.main:app','--host','0.0.0.0','--port',os.environ.get('PORT','8000'),'--workers','1'])"
-
-# force rebuild v2
