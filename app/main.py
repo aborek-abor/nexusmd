@@ -132,8 +132,8 @@ async def websocket_job(websocket: WebSocket, job_id: str):
 async def serve_frontend():
     index = FRONTEND_DIR / "index.html"
     if index.exists():
-        return HTMLResponse(content=index.read_text(encoding="utf-8"))
-    return HTMLResponse("<h1>NexusMD</h1><p>Frontend not found. Deploy frontend/index.html</p>", status_code=404)
+        return HTMLResponse(content=index.read_text(encoding="utf-8"), media_type="text/html; charset=utf-8")
+    return HTMLResponse("<h1>NexusMD</h1><p>Frontend not found. Deploy frontend/index.html</p>", status_code=404, media_type="text/html; charset=utf-8")
 
 @app.get("/{path:path}", response_class=HTMLResponse)
 async def serve_spa(path: str):
@@ -142,5 +142,5 @@ async def serve_spa(path: str):
         raise HTTPException(status_code=404)
     index = FRONTEND_DIR / "index.html"
     if index.exists():
-        return HTMLResponse(content=index.read_text(encoding="utf-8"))
+        return HTMLResponse(content=index.read_text(encoding="utf-8"), media_type="text/html; charset=utf-8")
     raise HTTPException(status_code=404, detail="Frontend not found")
