@@ -441,9 +441,28 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div class="card" style="margin-bottom:11px">
           <div class="ch">
             <div class="ct">🧺 Your Basket (<span id="bk-count">0</span> compounds)</div>
-            <div style="display:flex;gap:7px">
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
               <button class="btn btn-g btn-sm" onclick="clearBasket()">Clear all</button>
               <button class="btn btn-s btn-sm" id="proc-btn" disabled onclick="navTo('dock',null)">Proceed to Docking →</button>
+            </div>
+          </div>
+          <!-- Bulk select bar -->
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(0,198,207,.04)">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">
+              &#128204; Batch-add entire library to basket:
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-sm" style="background:rgba(0,236,140,.15);color:#00EC8C;border:1px solid rgba(0,236,140,.3)" onclick="addWholeLibrary('af')">&#127807; All African phytochemicals (35)</button>
+              <button class="btn btn-sm" style="background:rgba(0,236,140,.15);color:#00EC8C;border:1px solid rgba(0,236,140,.3)" onclick="addWholeLibrary('cn')">&#127861; All TCM compounds (35)</button>
+              <button class="btn btn-sm" style="background:rgba(0,198,207,.15);color:#00C6CF;border:1px solid rgba(0,198,207,.3)" onclick="addWholeLibrary('fda')">&#127959; FDA Approved (1,897)</button>
+              <button class="btn btn-sm" style="background:rgba(0,198,207,.15);color:#00C6CF;border:1px solid rgba(0,198,207,.3)" onclick="addWholeLibrary('approved')">&#9989; All Approved (2,909)</button>
+              <button class="btn btn-sm" style="background:rgba(245,166,35,.12);color:#F5A623;border:1px solid rgba(245,166,35,.25)" onclick="addWholeLibrary('phase3')">&#128200; Phase 3 (322)</button>
+              <button class="btn btn-sm" style="background:rgba(245,166,35,.12);color:#F5A623;border:1px solid rgba(245,166,35,.25)" onclick="addWholeLibrary('clinical')">&#128209; All Clinical (1,728)</button>
+              <button class="btn btn-sm" style="background:rgba(139,92,246,.12);color:#8B5CF6;border:1px solid rgba(139,92,246,.25)" onclick="addWholeLibrary('all')">&#127381; Full library (4,992)</button>
+            </div>
+            <div style="margin-top:8px;display:flex;align-items:center;gap:10px">
+              <span id="bulk-status" style="font-size:12px;font-weight:700;color:var(--green);display:none"></span>
+              <span style="font-size:11px;color:var(--dim)">For large sets (&gt;200): you will be prompted to choose ALL compounds or Ro5 drug-like only (MW&#8804;500, LogP&#8804;5)</span>
             </div>
           </div>
           <div class="cb" style="padding:10px 14px"><div class="bstrip" id="bstrip"><span class="bemp">No compounds added yet — click cards below to add them</span></div></div>
@@ -451,6 +470,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
         <div class="tbbar">
           <button class="tbbtn active" onclick="switchLib('af',this)">🌿 African Phytochemicals (35)</button>
           <button class="tbbtn" onclick="switchLib('cn',this)">🍵 TCM Compounds (35)</button>
+          <button class="tbbtn" onclick="switchLib('drugs',this)">💊 Drug Library (4,992)</button>
           <button class="tbbtn" onclick="switchLib('custom',this)">✏️ Custom SMILES</button>
         </div>
         <div class="tbpanel active" id="lib-af">
@@ -467,6 +487,45 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
           </div>
           <div class="cgrid" id="grid-cn"></div>
         </div>
+        <div class="tbpanel" id="lib-drugs">
+          <!-- Filters -->
+          <div class="fr" style="margin-bottom:11px;flex-wrap:wrap;gap:8px">
+            <div class="fc2"><input class="inp" id="dl-q" placeholder="Search name, disease, target..." oninput="renderDrugs()"></div>
+            <div><select class="sel" id="dl-stage" style="width:150px" onchange="renderDrugs()">
+              <option value="">All stages</option>
+              <option>FDA Approved</option><option>Approved</option>
+              <option>Phase 3</option><option>Phase 2</option><option>Phase 1</option><option>Preclinical</option>
+            </select></div>
+            <div><select class="sel" id="dl-dis" style="width:150px" onchange="renderDrugs()">
+              <option value="">All diseases</option>
+              <option>Cancer</option><option>Nervous system</option><option>Cardiovascular system</option>
+              <option>Immune system</option><option>Infection</option><option>Metabolism</option>
+              <option>Respiratory system</option><option>Inflammation</option>
+            </select></div>
+            <button class="btn btn-g btn-sm" onclick="document.getElementById('dl-q').value='';document.getElementById('dl-stage').value='';document.getElementById('dl-dis').value='';renderDrugs()">Reset</button>
+          </div>
+          <!-- Bulk add filtered -->
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--muted)" id="dl-shown-lbl">4,992 compounds shown</span>
+            <button class="btn btn-p btn-sm" onclick="addFilteredDrugsToBasket()">+ Add all filtered to basket</button>
+            <button class="btn btn-g btn-sm" onclick="exportDrugCSV()">↓ Export CSV</button>
+          </div>
+          <!-- Table -->
+          <div style="max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
+            <table class="rtbl">
+              <thead style="position:sticky;top:0;background:var(--panel);z-index:5"><tr>
+                <th><input type="checkbox" id="dl-select-all" onchange="toggleAllDrugs(this.checked)" style="accent-color:var(--teal)"> All</th>
+                <th>Name</th><th>Stage</th><th>Disease</th><th>MW</th><th>LogP</th>
+              </tr></thead>
+              <tbody id="dl-tbody"></tbody>
+            </table>
+          </div>
+          <div style="padding:8px 4px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center">
+            <span>Showing first <b id="dl-showing">500</b> of <b id="dl-total">4992</b> &mdash; <a onclick="dlShowMore()" style="color:var(--teal);cursor:pointer">Load 500 more</a></span>
+            <button class="btn btn-s btn-sm" onclick="addSelectedDrugsToBasket()">+ Add selected to basket</button>
+          </div>
+        </div>
+
         <div class="tbpanel" id="lib-custom">
           <!-- PubChem live search -->
           <div class="card" style="margin-bottom:12px">
@@ -2286,6 +2345,85 @@ function loadSearchResult(id,name,source){
     var pi=document.getElementById('pdb-inp');if(pi)pi.value=id;
     setTargetSource('pdb');fetchPDB();
   }
+}
+
+
+// ===== BULK LIBRARY SELECTION =====
+function addWholeLibrary(lib) {
+  var status = document.getElementById('bulk-status');
+  var added = 0;
+
+  if(lib === 'af') {
+    AF_DATA.forEach(function(c){ if(!S.basket[c.name]){ addToBasket({...c, src:'African'}); added++; } });
+  } else if(lib === 'cn') {
+    CN_DATA.forEach(function(c){ if(!S.basket[c.name]){ addToBasket({...c, src:'TCM'}); added++; } });
+  } else {
+    // Drug library filters
+    var filter = function(r) {
+      if(lib === 'fda')      return r.st === 'FDA Approved';
+      if(lib === 'approved') return r.st === 'FDA Approved' || r.st === 'Approved';
+      if(lib === 'phase3')   return r.st === 'Phase 3' || r.st === 'Phase 4';
+      if(lib === 'clinical') return ['Phase 1','Phase 1/2','Phase 2','Phase 2/3','Phase 3','Phase 4'].indexOf(r.st) >= 0;
+      if(lib === 'all')      return true;
+      return false;
+    };
+    DRUG_LIBRARY.filter(filter).forEach(function(r) {
+      if(!S.basket[r.n]) {
+        addToBasket({name:r.n, smiles:r.s, src:'Drug Library', cls:'Drug', activity:'Therapeutic', mw:r.mw, logp:r.lp, hbd:r.hbd, hba:r.hba});
+        added++;
+      }
+    });
+  }
+
+  renderBasket();
+  if(lib === 'af') renderLib('af');
+  if(lib === 'cn') renderLib('cn');
+  renderDrugs();
+
+  if(status) {
+    status.style.display = 'inline';
+    status.textContent = '✓ Added ' + added + ' compounds';
+    setTimeout(function(){ status.style.display='none'; }, 3000);
+  }
+}
+
+function toggleAllDrugs(checked) {
+  var rows = document.querySelectorAll('#dl-tbody .dl-check');
+  rows.forEach(function(cb){ cb.checked = checked; });
+}
+
+function addSelectedDrugsToBasket() {
+  var checked = document.querySelectorAll('#dl-tbody .dl-check:checked');
+  var added = 0;
+  checked.forEach(function(cb) {
+    var idx = parseInt(cb.getAttribute('data-idx'));
+    var r = DL_FILTERED[idx];
+    if(r && !S.basket[r.n]) {
+      addToBasket({name:r.n, smiles:r.s, src:'Drug Library', cls:'Drug', activity:'Therapeutic', mw:r.mw, logp:r.lp, hbd:r.hbd, hba:r.hba});
+      added++;
+    }
+  });
+  renderBasket();
+  renderDrugs();
+  if(added) alert('Added ' + added + ' selected compounds to basket');
+}
+
+function addFilteredDrugsToBasket() {
+  var count = DL_FILTERED.length;
+  if(count > 200) {
+    if(!confirm('Add all ' + count + ' filtered compounds to basket? Large sets may slow docking — consider using exhaustiveness=4 for speed.')) return;
+  }
+  var added = 0;
+  DL_FILTERED.forEach(function(r) {
+    if(!S.basket[r.n]) {
+      addToBasket({name:r.n, smiles:r.s, src:'Drug Library', cls:'Drug', activity:'Therapeutic', mw:r.mw, logp:r.lp, hbd:r.hbd, hba:r.hba});
+      added++;
+    }
+  });
+  renderBasket();
+  renderDrugs();
+  var st = document.getElementById('bulk-status');
+  if(st){ st.style.display='inline'; st.textContent='✓ Added '+added+' compounds'; setTimeout(function(){st.style.display='none';},3000); }
 }
 
 // ===== INIT =====
