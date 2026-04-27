@@ -20,4 +20,4 @@ RUN mkdir -p data/results data/pdb_cache data/ligands logs
 ENV PYTHONPATH=/nexusmd
 ENV OBABEL_BINARY=/usr/bin/obabel
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1
