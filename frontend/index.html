@@ -212,6 +212,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
   .hero{padding:55px 18px 36px}
   .pg{padding:18px 14px}
 }
+@keyframes slideInRight{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:var(--bg2)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
@@ -1146,6 +1147,18 @@ function launchApp(){
   document.getElementById('landing').style.display='none';
   document.getElementById('app').style.display='flex';
   renderLib('af'); renderLib('cn'); renderDrugs();
+// Restore history from localStorage
+try {
+  var saved = localStorage.getItem('nexusmd_history');
+  if(saved) {
+    var parsed = JSON.parse(saved);
+    if(Array.isArray(parsed) && parsed.length) {
+      parsed.forEach(function(r){ HISTORY.push(r); });
+      renderHistory();
+      console.log('Restored', HISTORY.length, 'runs from history');
+    }
+  }
+} catch(e) {}
   checkBackend();
 }
 function launchDemo(){
@@ -1296,6 +1309,13 @@ async function runDocking(){
   document.getElementById('dock-fill').style.width='0%';
   document.getElementById('dock-pct').textContent='0%';
   const grid={center_x:parseFloat(document.getElementById('gx').value)||0,center_y:parseFloat(document.getElementById('gy').value)||0,center_z:parseFloat(document.getElementById('gz').value)||0,size_x:parseFloat(document.getElementById('bx').value)||22,size_y:parseFloat(document.getElementById('by').value)||22,size_z:parseFloat(document.getElementById('bz').value)||22,exhaustiveness:parseInt(document.getElementById('exh').value)||8,num_modes:parseInt(document.getElementById('nmod').value)||9};
+  // Warn if large job
+  var estTime = estimateDockingTime(items.length, grid.exhaustiveness);
+  if(items.length > 100) {
+    var ok = confirm('Large job: ' + items.length + ' compounds at exhaustiveness ' + grid.exhaustiveness + '\nEstimated time: ' + estTime + '\n\nTip: Use exhaustiveness 4-8 for faster screening.\n\nContinue?');
+    if(!ok) { btn.disabled=false; btn.textContent='▶ Run Docking'; return; }
+  }
+  alog('[INFO] Estimated time: ' + estTime + ' (' + items.length + ' compounds, exhaustiveness ' + grid.exhaustiveness + ')','li');
   alog(`[NexusMD] ${S.backendMode?'⚡ REAL BACKEND — AutoDock Vina 1.2.5':'🔬 Simulation mode (connect backend for real docking)'}`,S.backendMode?'lr':'li');
   alog(`[INFO] Target: ${S.target.id} | Compounds: ${items.length} | Exhaustiveness: ${grid.exhaustiveness}`,'li');
   alog(`[INFO] Grid centre: (${grid.center_x}, ${grid.center_y}, ${grid.center_z}) | Box: ${grid.size_x}×${grid.size_y}×${grid.size_z} Å`,'li');
@@ -1314,7 +1334,8 @@ async function runDocking(){
         if(m.status==='done'){ws.close();finishDocking(m.result,true);}
         if(m.status==='failed'){ws.close();alog('[ERROR] '+m.message,'lw');btn.disabled=false;btn.textContent='▶ Run Docking';}
       };
-      ws.onerror=()=>{alog('[WS] Fallback to polling…','lw');pollDocking(job.job_id);};
+      ws.onerror=()=>{alog('[WS] WebSocket unavailable — switching to polling every 5s…','lw');pollDocking(job.job_id);};
+      ws.onclose=()=>{ if(S.backendMode && !S.results.length) { alog('[WS] Connection closed — polling for result…','lw'); pollDocking(job.job_id); } };
       return;
     }catch(err){alog('[ERROR] '+err.message+' — falling back to simulation','lw');S.backendMode=false;}
   }
@@ -1361,10 +1382,20 @@ function finishDocking(apiResult,real){
   renderResults();
   markDone('dock');
   document.getElementById('ss-results').textContent=S.results.length+' poses';
-  alog('[DONE] '+S.results.length+' poses ready — opening Results tab…','ld');
-  // Auto-save to history
-  setTimeout(()=>saveToHistory(), 100);
-  setTimeout(()=>navTo('results',document.querySelector('.tb[onclick*="results"]')),1100);
+  const nHits = S.results.filter(r=>r.score<=-8).length;
+  alog('[DONE] '+S.results.length+' poses complete. '+nHits+' strong hits (score ≤ -8 kcal/mol)','ld');
+  alog('[INFO] Saving to history and opening Results tab…','li');
+
+  // Show completion banner
+  showCompletionBanner(S.results.length, nHits, S.results[0]?.score, S.results[0]?.name);
+
+  // Save to history
+  setTimeout(function(){ saveToHistory(); }, 200);
+
+  // Navigate to results
+  setTimeout(function(){
+    navTo('results', document.querySelector('.tb[onclick*="results"]'));
+  }, 800);
 }
 
 // ===== RESULTS =====
@@ -2106,30 +2137,40 @@ function exportHeatmapCSV() {
 const HISTORY = [];
 
 function saveToHistory() {
+  if(!S.results.length) return;
   const run = {
     id: Date.now(),
     date: new Date().toLocaleString(),
-    type: Object.keys(MT_RESULTS).length > 0 ? 'Multi-target' : 'Single-target',
-    target: S.target ? S.target.id+' — '+S.target.name : 'Multiple',
+    type: Object.keys(MT_RESULTS||{}).length > 0 ? 'Multi-target' : 'Single-target',
+    target: S.target ? S.target.id+' — '+S.target.name : 'Unknown',
+    targetId: S.target ? S.target.id : '',
     compounds: Object.values(S.basket).length,
-    results: [...S.results],
-    mtResults: {...MT_RESULTS},
-    mtTargets: {...MT_TARGETS},
+    results: JSON.parse(JSON.stringify(S.results)),
     bestScore: S.results.length ? S.results[0].score : null,
+    realData: S.results.some(r=>r.real),
   };
+  // Avoid duplicates
+  if(HISTORY.length && HISTORY[0].id === run.id) return;
   HISTORY.unshift(run);
+  // Persist to localStorage
+  try { localStorage.setItem('nexusmd_history', JSON.stringify(HISTORY.slice(0,50))); } catch(e) {}
   renderHistory();
-  navTo('history', document.querySelector('.tb[onclick*="history"]'));
+  // Flash the history tab
+  const hTab = document.querySelector('.tb[onclick*="history"]');
+  if(hTab) { hTab.style.background='rgba(0,236,140,.2)'; hTab.style.color='var(--green)'; setTimeout(()=>{hTab.style.background='';hTab.style.color='';},3000); }
 }
 
 function renderHistory() {
+  var histEmpty = document.getElementById('hist-empty');
+  var histContent = document.getElementById('hist-content');
+  if(!histEmpty || !histContent) return;
   if(!HISTORY.length) {
-    document.getElementById('hist-empty').style.display='flex';
-    document.getElementById('hist-content').style.display='none';
+    histEmpty.style.display='flex';
+    histContent.style.display='none';
     return;
   }
-  document.getElementById('hist-empty').style.display='none';
-  document.getElementById('hist-content').style.display='block';
+  histEmpty.style.display='none';
+  histContent.style.display='block';
   const container = document.getElementById('hist-cards');
   container.innerHTML = HISTORY.map((run,i) => {
     const isMT = run.type === 'Multi-target';
@@ -2737,6 +2778,71 @@ function downloadComplexSDF() {
 
 var currentDetailName = '';
 var currentDetailScore = '';
+
+
+// ════════════════════════════════════════════════
+// COMPLETION BANNER + JOB ESTIMATOR
+// ════════════════════════════════════════════════
+function showCompletionBanner(total, hits, bestScore, bestName) {
+  // Remove any existing banner
+  var existing = document.getElementById('completion-banner');
+  if(existing) existing.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'completion-banner';
+  banner.style.cssText = 'position:fixed;top:60px;right:20px;z-index:9999;background:#0F1C2E;border:1.5px solid #00EC8C;border-radius:12px;padding:16px 20px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slideInRight .3s ease';
+
+  var scoreColor = bestScore <= -10 ? '#00EC8C' : bestScore <= -8 ? '#00C6CF' : '#F5A623';
+  // Build banner using DOM to avoid quote escaping
+  var topRow = document.createElement('div');
+  topRow.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px';
+  topRow.innerHTML = '<div style="font-size:14px;font-weight:800;color:#00EC8C">&#9989; Docking Complete!</div>';
+  var closeBtn = document.createElement('button');
+  closeBtn.style.cssText = 'background:none;border:none;color:#6B8BAA;cursor:pointer;font-size:18px;line-height:1;padding:0';
+  closeBtn.innerHTML = '&times;';
+  closeBtn.onclick = function(){ banner.remove(); };
+  topRow.appendChild(closeBtn);
+  banner.appendChild(topRow);
+
+  var statsDiv = document.createElement('div');
+  statsDiv.style.cssText = 'font-size:13px;color:#E8F4FF;margin-bottom:6px';
+  statsDiv.innerHTML = '<b>' + total + '</b> compounds docked &middot; <b style="color:#00EC8C">' + hits + '</b> strong hits';
+  banner.appendChild(statsDiv);
+
+  if(bestName) {
+    var bestDiv = document.createElement('div');
+    bestDiv.style.cssText = 'font-size:12px;color:#6B8BAA;margin-bottom:10px';
+    bestDiv.innerHTML = 'Best: <b style="color:' + scoreColor + '">' + bestName + ' ' + (bestScore||0).toFixed(1) + ' kcal/mol</b>';
+    banner.appendChild(bestDiv);
+  }
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex;gap:8px';
+  var viewBtn = document.createElement('button');
+  viewBtn.className = 'btn btn-s btn-sm';
+  viewBtn.textContent = 'View Results';
+  viewBtn.onclick = function(){ navTo('results', document.querySelector('.tb[onclick*="results"]')); banner.remove(); };
+  var histBtn = document.createElement('button');
+  histBtn.className = 'btn btn-g btn-sm';
+  histBtn.textContent = 'History';
+  histBtn.onclick = function(){ navTo('history', document.querySelector('.tb[onclick*="history"]')); banner.remove(); };
+  btnRow.appendChild(viewBtn);
+  btnRow.appendChild(histBtn);
+  banner.appendChild(btnRow);
+
+  document.body.appendChild(banner);
+
+  // Auto-dismiss after 30 seconds
+  setTimeout(function() { var b=document.getElementById('completion-banner'); if(b)b.remove(); }, 30000);
+}
+
+function estimateDockingTime(nCompounds, exhaustiveness) {
+  var secsPerCompound = exhaustiveness <= 4 ? 12 : exhaustiveness <= 8 ? 45 : exhaustiveness <= 16 ? 90 : 180;
+  var totalSecs = nCompounds * secsPerCompound;
+  if(totalSecs < 120) return Math.round(totalSecs) + ' seconds';
+  if(totalSecs < 3600) return Math.round(totalSecs/60) + ' minutes';
+  return (totalSecs/3600).toFixed(1) + ' hours';
+}
 
 // ===== INIT =====
 renderLib('af'); renderLib('cn');
