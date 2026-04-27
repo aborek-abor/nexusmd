@@ -428,9 +428,35 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
           </div>
         </div>
         <div id="target-done" style="display:none">
-          <div class="ib ok"><div class="ibi">🎯</div><div class="ibt"><b>Target loaded: <span id="tgt-name">—</span></b><br><span style="color:var(--muted);font-size:12px">Grid auto-configured · Proceed to Step 2</span></div></div>
-          <div style="display:flex;gap:9px;margin-top:9px">
-            <button class="btn btn-s btn-sm" onclick="navTo('library',null)">Next: Add Compounds →</button>
+          <div class="ib ok"><div class="ibi">&#9989;</div><div class="ibt"><b>Target loaded: <span id="tgt-name">&#8212;</span></b><br><span style="color:var(--muted);font-size:12px">Grid auto-configured &middot; Proceed to Step 2</span></div></div>
+
+          <!-- Protein 3D Viewer -->
+          <div class="card" style="margin-top:14px">
+            <div class="ch">
+              <div class="ct">&#129514; Protein Structure Preview</div>
+              <div style="display:flex;gap:5px;align-items:center">
+                <button class="vcbtn" id="pv-cartoon" onclick="setPStyle('cartoon')">Cartoon</button>
+                <button class="vcbtn" id="pv-stick" onclick="setPStyle('stick')">Stick</button>
+                <button class="vcbtn" id="pv-surface" onclick="setPStyle('surface')">Surface</button>
+                <button class="vcbtn" onclick="if(proteinViewer)proteinViewer.zoomTo()">Reset</button>
+                <button class="vcbtn" onclick="if(proteinViewer)proteinViewer.spin(true)">Spin</button>
+                <button class="vcbtn" onclick="if(proteinViewer)proteinViewer.spin(false)">Stop</button>
+                <button class="btn btn-g btn-sm" onclick="downloadProteinPDB()" style="margin-left:4px">&#8595; PDB</button>
+              </div>
+            </div>
+            <div class="cb" style="padding:8px">
+              <div id="protein-viewer-3d" style="width:100%;height:360px;border-radius:8px;background:#020810"></div>
+              <div id="protein-viewer-info" style="display:flex;gap:12px;margin-top:8px;font-size:12px;color:var(--muted);flex-wrap:wrap">
+                <span id="pv-title"></span>
+                <span id="pv-res"></span>
+                <span id="pv-method"></span>
+                <span id="pv-atoms"></span>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:9px;margin-top:12px">
+            <button class="btn btn-s btn-sm" onclick="navTo('library',null)">Next: Add Compounds &#8594;</button>
           </div>
         </div>
       </div>
@@ -690,27 +716,45 @@ html,body{height:100%;background:var(--bg);color:var(--text);overflow-x:hidden}
 
             <!-- Tab: 3D Viewer -->
             <div class="tbpanel" id="dpt-viewer">
-              <div class="viewer-ctrl">
+              <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Style:</span>
                 <button class="vcbtn active" id="vc-stick" onclick="setStyle('stick')">Stick</button>
                 <button class="vcbtn" id="vc-sphere" onclick="setStyle('sphere')">Sphere</button>
                 <button class="vcbtn" id="vc-surface" onclick="setStyle('surface')">Surface</button>
                 <button class="vcbtn" id="vc-cartoon" onclick="setStyle('cartoon')">Cartoon</button>
                 <span style="flex:1"></span>
-                <button class="vcbtn" onclick="viewer3d&&viewer3d.zoomTo()">Reset view</button>
-                <button class="vcbtn" onclick="viewer3d&&viewer3d.spin(true)">Spin</button>
-                <button class="vcbtn" onclick="viewer3d&&viewer3d.spin(false)">Stop</button>
+                <button class="vcbtn" onclick="if(viewer3d)viewer3d.zoomTo()">Reset</button>
+                <button class="vcbtn" onclick="if(viewer3d)viewer3d.spin(true)">Spin</button>
+                <button class="vcbtn" onclick="if(viewer3d)viewer3d.spin(false)">Stop</button>
               </div>
+
+              <!-- Toggle: ligand only vs complex -->
+              <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
+                <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">Show:</span>
+                <button class="vcbtn active" id="show-complex-btn" onclick="showComplex()">Drug-Protein Complex</button>
+                <button class="vcbtn" id="show-ligand-btn" onclick="showLigandOnly()">Ligand Only</button>
+                <span style="flex:1"></span>
+                <span style="font-size:11px;color:var(--muted)">&#128154; Protein &nbsp; &#128153; Ligand</span>
+              </div>
+
               <div id="viewer-3d"></div>
+
+              <!-- Download buttons -->
+              <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+                <button class="btn btn-g btn-sm" onclick="downloadComplexPDB()">&#8595; Download Complex PDB</button>
+                <button class="btn btn-g btn-sm" onclick="downloadComplexSDF()">&#8595; Download Ligand SDF</button>
+                <button class="btn btn-g btn-sm" onclick="downloadProteinPDB()">&#8595; Download Protein PDB</button>
+              </div>
+
               <div class="ib tip" style="margin-top:8px">
-                <div class="ibi">💡</div>
-                <div class="ibt">
-                  <b style="color:var(--teal)">Cyan = ligand</b> · <b style="color:#888">Grey = protein surface</b><br>
-                  Drag to rotate · Scroll to zoom · Right-drag to translate.<br>
-                  <span style="color:var(--muted);font-size:11px">Connect backend for real docked pose SDF. Simulation shows energy-minimised 3D conformation.</span>
+                <div class="ibi">&#128161;</div>
+                <div class="ib-text">
+                  <b style="color:var(--teal)">Green = ligand</b> &middot; <b style="color:#4488FF">Blue = protein</b><br>
+                  Drag to rotate &middot; Scroll to zoom &middot; Right-drag to translate.<br>
+                  <span style="color:var(--muted);font-size:11px">Connect backend for real docked pose coordinates. Simulation shows energy-minimised conformation.</span>
                 </div>
               </div>
             </div>
-
             <!-- Tab: Analogues (Scaffold Hopping) -->
             <div class="tbpanel" id="dpt-analogues">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -1149,6 +1193,8 @@ function loadTarget(id,name,center,res){
   document.querySelectorAll('#pg-target .cc').forEach(c=>c.classList.remove('sel'));
   markDone('target');
   updatePrereqs();
+  // Load protein structure into viewer
+  loadProteinIntoViewer(id, name, res, 'X-RAY');
 }
 async function fetchPDB(){
   const id=document.getElementById('pdb-inp').value.toUpperCase().trim();
@@ -1162,6 +1208,7 @@ async function fetchPDB(){
     box.className='ib ok';
     txt.innerHTML='<b>'+info.pdb_id+'</b> — "'+info.title+'" · '+(info.resolution_a?info.resolution_a.toFixed(2)+' Å':'—');
     loadTarget(info.pdb_id,info.title||info.pdb_id,{x:0,y:0,z:0},info.resolution_a?info.resolution_a.toFixed(2)+' Å':'—');
+    loadProteinIntoViewer(info.pdb_id, info.title||info.pdb_id, info.resolution_a?info.resolution_a.toFixed(2)+' Å':null, 'X-RAY');
   }catch(e){box.className='ib warn';txt.textContent='⚠ '+e.message;}
 }
 function updatePrereqs(){
@@ -1343,6 +1390,8 @@ function renderResults(){
 }
 function showDetail(i){
   const r=S.results[i];
+  currentDetailName = r.name || '';
+  currentDetailScore = r.score ? r.score.toFixed(1)+' kcal/mol' : '';
   currentMolSMI = r.smiles || SMILES_DB[r.name] || '';
 
   document.getElementById('dp-name').textContent=r.name;
@@ -1643,7 +1692,7 @@ function exportDrugCSV(){
 // ════════════════════════════════════════════════
 // 3D VIEWER (3Dmol.js)
 // ════════════════════════════════════════════════
-let viewer3d = null;
+// viewer3d declared above
 let currentStyle3d = 'stick';
 let currentMolSMI = '';
 
@@ -2425,6 +2474,265 @@ function addFilteredDrugsToBasket() {
   var st = document.getElementById('bulk-status');
   if(st){ st.style.display='inline'; st.textContent='✓ Added '+added+' compounds'; setTimeout(function(){st.style.display='none';},3000); }
 }
+
+
+// ════════════════════════════════════════════════
+// PROTEIN VIEWER (target page)
+// ════════════════════════════════════════════════
+var proteinViewer = null;
+var proteinPDBText = null;
+var currentProteinStyle = 'cartoon';
+
+function showProteinViewer(pdbText, title, resolution, method) {
+  proteinPDBText = pdbText;
+  var container = document.getElementById('protein-viewer-3d');
+  if(!container || typeof $3Dmol === 'undefined') return;
+
+  container.innerHTML = '';
+  proteinViewer = $3Dmol.createViewer(container, {backgroundColor: '#020810'});
+  proteinViewer.addModel(pdbText, 'pdb');
+  applyProteinStyle('cartoon');
+  proteinViewer.zoomTo();
+  proteinViewer.render();
+
+  // Info bar
+  var atoms = (pdbText.match(/^ATOM/gm)||[]).length;
+  var chains = [...new Set((pdbText.match(/^ATOM.{17}(\w)/gm)||[]).map(function(l){return l[21];}))];
+  var el = document.getElementById('pv-title');
+  if(el) el.textContent = title || '';
+  el = document.getElementById('pv-res');
+  if(el && resolution) el.textContent = resolution;
+  el = document.getElementById('pv-method');
+  if(el && method) el.textContent = method;
+  el = document.getElementById('pv-atoms');
+  if(el) el.textContent = atoms.toLocaleString() + ' atoms · ' + chains.length + ' chain' + (chains.length>1?'s':'');
+}
+
+function applyProteinStyle(style) {
+  if(!proteinViewer) return;
+  currentProteinStyle = style;
+  ['cartoon','stick','surface'].forEach(function(s) {
+    var b = document.getElementById('pv-'+s);
+    if(b) b.classList.toggle('active', s===style);
+  });
+  proteinViewer.setStyle({},{});
+  if(style === 'cartoon') {
+    proteinViewer.setStyle({}, {cartoon:{colorscheme:'ssJmol'}});
+  } else if(style === 'stick') {
+    proteinViewer.setStyle({}, {stick:{colorscheme:'Jmol',radius:0.12}});
+  } else if(style === 'surface') {
+    proteinViewer.setStyle({}, {cartoon:{colorscheme:'ssJmol',opacity:0.6}});
+    proteinViewer.addSurface($3Dmol.SurfaceType.VDW, {opacity:0.65, colorscheme:'Jmol'});
+  }
+  proteinViewer.render();
+}
+function setPStyle(s) { applyProteinStyle(s); }
+
+async function loadProteinIntoViewer(targetId, title, resolution, method) {
+  var container = document.getElementById('protein-viewer-3d');
+  if(!container) return;
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Loading ' + targetId + ' from RCSB PDB...</div>';
+
+  var pdbText = null;
+
+  // Try backend first
+  if(S.backendMode) {
+    try {
+      var r = await fetch(apiBase() + '/api/protein/' + targetId + '/pdb');
+      if(r.ok) pdbText = await r.text();
+    } catch(e) {}
+  }
+
+  // Direct RCSB download (CORS-friendly for PDB files)
+  if(!pdbText) {
+    try {
+      var r = await fetch('https://files.rcsb.org/download/' + targetId + '.pdb');
+      if(r.ok) pdbText = await r.text();
+    } catch(e) {}
+  }
+
+  if(!pdbText) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:12px;text-align:center;padding:20px">Could not load structure.<br>Check connection or try the RCSB PDB tab.</div>';
+    return;
+  }
+
+  S.currentProteinPDB = pdbText;
+  showProteinViewer(pdbText, title, resolution, method);
+}
+
+function downloadProteinPDB() {
+  var pdb = S.currentProteinPDB || proteinPDBText;
+  if(!pdb) { alert('Load a target protein first'); return; }
+  var id = S.target ? S.target.id : 'protein';
+  var a = document.createElement('a');
+  a.href = 'data:chemical/x-pdb;charset=utf-8,' + encodeURIComponent(pdb);
+  a.download = id + '_protein.pdb';
+  a.click();
+}
+
+// ════════════════════════════════════════════════
+// DRUG-PROTEIN COMPLEX VIEWER (results detail)
+// ════════════════════════════════════════════════
+var viewer3d = null;
+var currentLigandSMI = '';
+var currentLigandSDF = null;
+var showingComplex = true;
+
+function showComplex() {
+  showingComplex = true;
+  var b1 = document.getElementById('show-complex-btn');
+  var b2 = document.getElementById('show-ligand-btn');
+  if(b1) b1.classList.add('active');
+  if(b2) b2.classList.remove('active');
+  renderComplexViewer();
+}
+
+function showLigandOnly() {
+  showingComplex = false;
+  var b1 = document.getElementById('show-complex-btn');
+  var b2 = document.getElementById('show-ligand-btn');
+  if(b1) b1.classList.remove('active');
+  if(b2) b2.classList.add('active');
+  renderComplexViewer();
+}
+
+async function initViewer3d(smiles) {
+  currentLigandSMI = smiles || '';
+  var container = document.getElementById('viewer-3d');
+  if(!container || typeof $3Dmol === 'undefined') return;
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Loading complex...</div>';
+
+  // Try to get real docked SDF from backend
+  if(S.backendMode && S.activeJobId) {
+    try {
+      var r = await fetch(apiBase() + '/api/results/' + S.activeJobId + '/sdf');
+      if(r.ok) {
+        currentLigandSDF = await r.text();
+      }
+    } catch(e) {}
+  }
+
+  // If no SDF, get 3D conformation from PubChem
+  if(!currentLigandSDF && smiles) {
+    try {
+      var r = await fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(smiles) + '/SDF?record_type=3d');
+      if(r.ok) currentLigandSDF = await r.text();
+    } catch(e) {}
+  }
+
+  renderComplexViewer();
+}
+
+function renderComplexViewer() {
+  var container = document.getElementById('viewer-3d');
+  if(!container || typeof $3Dmol === 'undefined') return;
+  container.innerHTML = '';
+
+  viewer3d = $3Dmol.createViewer(container, {backgroundColor: '#020810'});
+
+  var hasProtein = showingComplex && S.currentProteinPDB;
+  var hasLigand  = currentLigandSDF || currentLigandSMI;
+
+  // Add protein
+  if(hasProtein) {
+    viewer3d.addModel(S.currentProteinPDB, 'pdb');
+    viewer3d.setStyle({model:0}, {cartoon:{color:'#4488FF', opacity:0.5}});
+    viewer3d.addSurface($3Dmol.SurfaceType.VDW, {opacity:0.15, color:'#4488FF'}, {model:0});
+  }
+
+  // Add ligand
+  if(currentLigandSDF && currentLigandSDF.includes('M  END')) {
+    viewer3d.addModel(currentLigandSDF, 'sdf');
+    var ligIdx = hasProtein ? 1 : 0;
+    viewer3d.setStyle({model:ligIdx}, {stick:{colorscheme:'Jmol', radius:0.25}});
+    viewer3d.setStyle({model:ligIdx, elem:'C'}, {stick:{color:'#00EC8C', radius:0.25}});
+    viewer3d.zoomTo({model:ligIdx});
+  } else if(currentLigandSMI) {
+    // Fallback schematic
+    var atoms = (currentLigandSMI.match(/[A-Z]/g)||[]);
+    atoms.slice(0,20).forEach(function(a,i) {
+      var ang = (i/Math.max(atoms.length,1))*Math.PI*2;
+      var r   = 1.8 + (i%3)*0.4;
+      viewer3d.addSphere({center:{x:Math.cos(ang)*r, y:Math.sin(ang)*r, z:(i%3-1)*0.6},
+        radius:0.35,
+        color:a==='N'?'#4DB8FF':a==='O'?'#FF6B6B':a==='S'?'#FFD93D':a==='Cl'?'#00EC8C':'#00EC8C'});
+    });
+    container.insertAdjacentHTML('beforeend',
+      '<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(107,139,170,.6)">Schematic only &mdash; connect backend for real docked pose</div>');
+  }
+
+  if(!hasProtein && !hasLigand) {
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:12px;text-align:center;padding:20px">No structure data available.<br>Run docking first, then click Details on a result.</div>';
+    return;
+  }
+
+  viewer3d.render();
+}
+
+function setStyle(s) {
+  if(!viewer3d) return;
+  ['stick','sphere','surface','cartoon'].forEach(function(st) {
+    var b = document.getElementById('vc-'+st);
+    if(b) b.classList.toggle('active', st===s);
+  });
+  // Apply to ligand model
+  var hasProtein = showingComplex && S.currentProteinPDB;
+  var ligIdx = hasProtein ? 1 : 0;
+  if(s==='stick')   viewer3d.setStyle({model:ligIdx},{stick:{colorscheme:'Jmol',radius:0.2}});
+  if(s==='sphere')  viewer3d.setStyle({model:ligIdx},{sphere:{colorscheme:'Jmol',scale:0.3}});
+  if(s==='surface') { viewer3d.setStyle({model:ligIdx},{stick:{colorscheme:'Jmol',radius:0.15}}); viewer3d.addSurface($3Dmol.SurfaceType.VDW,{opacity:0.7,colorscheme:'Jmol'},{model:ligIdx}); }
+  if(s==='cartoon') viewer3d.setStyle({model:ligIdx},{stick:{colorscheme:'Jmol',radius:0.12}});
+  viewer3d.render();
+}
+
+// ════════════════════════════════════════════════
+// DOWNLOAD FUNCTIONS
+// ════════════════════════════════════════════════
+function downloadComplexPDB() {
+  if(!S.currentProteinPDB || !currentLigandSDF) {
+    alert('Run docking first to generate a complex. Connect backend for real coordinates.');
+    return;
+  }
+  // Combine protein PDB + ligand as HETATM records
+  var ligandLines = currentLigandSDF.split('\n')
+    .filter(function(l){ return l.startsWith('ATOM') || l.startsWith('HETATM'); })
+    .map(function(l){ return l.startsWith('ATOM') ? 'HETATM'+l.slice(6) : l; })
+    .join('\n');
+  var complex = S.currentProteinPDB.replace(/^END\s*$/m,'') + '\n' + ligandLines + '\nEND\n';
+  var name = (S.target ? S.target.id : 'target') + '_' + (currentDetailName||'ligand').replace(/\s+/g,'_');
+  var a = document.createElement('a');
+  a.href = 'data:chemical/x-pdb;charset=utf-8,' + encodeURIComponent(complex);
+  a.download = name + '_complex.pdb';
+  a.click();
+}
+
+function downloadComplexSDF() {
+  if(!currentLigandSDF) {
+    if(currentLigandSMI) {
+      // Download SMILES as minimal SDF
+      var sdf = '\n     NexusMD\n\n  0  0  0  0  0  0  0  0  0  0999 V2000\nM  END\n> <SMILES>\n'+currentLigandSMI+'\n\n> <Name>\n'+(currentDetailName||'ligand')+'\n\n$$$$\n';
+      var a = document.createElement('a');
+      a.href = 'data:chemical/x-mdl-sdfile;charset=utf-8,' + encodeURIComponent(sdf);
+      a.download = (currentDetailName||'ligand').replace(/\s+/g,'_') + '_pose.sdf';
+      a.click();
+    } else {
+      alert('No ligand SDF available. Connect backend for real docked pose coordinates.');
+    }
+    return;
+  }
+  // Add metadata to SDF
+  var enriched = currentLigandSDF;
+  if(!enriched.includes('> <Name>')) {
+    enriched = enriched.replace('$$$$', '> <Name>\n'+(currentDetailName||'ligand')+'\n\n> <Score>\n'+(currentDetailScore||'')+'\n\n> <Target>\n'+(S.target?S.target.id:'')+'\n\n$$$$');
+  }
+  var a = document.createElement('a');
+  a.href = 'data:chemical/x-mdl-sdfile;charset=utf-8,' + encodeURIComponent(enriched);
+  a.download = (currentDetailName||'ligand').replace(/\s+/g,'_') + '_docked.sdf';
+  a.click();
+}
+
+var currentDetailName = '';
+var currentDetailScore = '';
 
 // ===== INIT =====
 renderLib('af'); renderLib('cn');
