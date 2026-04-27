@@ -1164,7 +1164,11 @@ function launchDemo(){
 }
 
 // ===== BACKEND =====
-function apiBase(){return'http://localhost:8000';}
+function apiBase(){
+  var h=window.location.hostname;
+  if(h==='localhost'||h==='127.0.0.1') return 'http://localhost:8000';
+  return window.location.origin;
+}
 async function checkBackend(){
   try{
     const r=await fetch(apiBase()+'/api/health',{signal:AbortSignal.timeout(2800)});
