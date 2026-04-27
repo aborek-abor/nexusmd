@@ -2204,24 +2204,76 @@ async function searchPDBByName(){
   if(!q||q.length<2)return;
   var resBox=document.getElementById('text-srch-results');
   resBox.style.display='block';
-  resBox.innerHTML='<div style="padding:10px;color:#6B8BAA;font-size:13px">Searching PDB + AlphaFold...</div>';
+  resBox.innerHTML='<div style="padding:10px;color:#6B8BAA">Searching PDB + AlphaFold...</div>';
   var pdbResults=[],afResults=[];
   try{
     var resp=await fetch(apiBase()+'/api/search/pdb?q='+encodeURIComponent(q));
-    if(resp.ok){var data=await resp.json();pdbResults=data.results||[];}
-  }catch(e1){}
+    if(resp.ok){var d=await resp.json();pdbResults=d.results||[];}
+  }catch(e){}
   try{
     var ur=await fetch('https://rest.uniprot.org/uniprotkb/search?query='+encodeURIComponent(q+' AND reviewed:true')+'&fields=accession,protein_name,organism_name,sequence&format=json&size=6');
-    if(ur.ok){var ud=await ur.json();(ud.results||[]).forEach(function(e){var name=(e.proteinDescription&&e.proteinDescription.recommendedName&&e.proteinDescription.recommendedName.fullName&&e.proteinDescription.recommendedName.fullName.value)||e.primaryAccession;afResults.push({acc:e.primaryAccession,name:name,org:(e.organism&&e.organism.scientificName)||'',len:(e.sequence&&e.sequence.length)||0});});}
-  }catch(e2){}
+    if(ur.ok){var ud=await ur.json();(ud.results||[]).forEach(function(e){
+      var nm=(e.proteinDescription&&e.proteinDescription.recommendedName&&e.proteinDescription.recommendedName.fullName&&e.proteinDescription.recommendedName.fullName.value)||e.primaryAccession;
+      afResults.push({acc:e.primaryAccession,name:nm,org:(e.organism&&e.organism.scientificName)||'',len:(e.sequence&&e.sequence.length)||0});
+    });}
+  }catch(e){}
   if(!pdbResults.length&&!afResults.length){
-    resBox.innerHTML='<div style="padding:14px"><div style="color:#6B8BAA;font-size:13px;margin-bottom:8px">No results for <b style="color:#E8F4FF">'+q+'</b> &mdash; try:</div><div style="display:flex;gap:5px;flex-wrap:wrap">'+['HIV protease','EGFR','malaria DHFR','thrombin','COX-2','BRAF','acetylcholinesterase','tuberculosis'].map(function(s){return '<button class="vcbtn" onclick="document.getElementById('text-srch-inp').value=''+s+'';searchPDBByName()">'+s+'</button>';}).join('')+'</div></div>';
+    resBox.innerHTML='<div style="padding:14px"><p style="color:#6B8BAA;font-size:13px;margin-bottom:8px">No results for <b style="color:#E8F4FF">'+q+'</b> &mdash; try these suggestions:</p><div id="srch-suggestions" style="display:flex;gap:5px;flex-wrap:wrap"></div></div>';
+    var sugg=['HIV protease','EGFR','malaria DHFR','thrombin','COX-2','BRAF','acetylcholinesterase','tuberculosis'];
+    var sd=document.getElementById('srch-suggestions');
+    sugg.forEach(function(s){var b=document.createElement('button');b.className='vcbtn';b.textContent=s;b.onclick=function(){document.getElementById('text-srch-inp').value=s;searchPDBByName();};sd.appendChild(b);});
     return;
   }
   var html='';
-  if(pdbResults.length){html+='<div style="padding:6px 14px;font-size:10px;font-weight:700;color:#00C6CF;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1A2D45">RCSB PDB &mdash; '+pdbResults.length+' structures</div>';html+=pdbResults.map(function(p){var sid=(p.id||'').replace(/['"\\]/g,'');var sn=(p.title||p.id||'').replace(/['"\\]/g,'').slice(0,70);return '<div class="srch-result-card" onclick="loadSearchResult(''+sid+'',''+sn+'','pdb')"><div style="flex:1"><div class="src-title">'+sid+' &mdash; '+(p.title||'').slice(0,65)+'</div><div class="src-meta">'+(p.method||'X-RAY')+(p.resolution?' &middot; '+p.resolution+' &Aring;':'')+'</div></div><span class="pdb-badge" style="margin-left:8px;flex-shrink:0">Load PDB</span></div>';}).join('');}
-  if(afResults.length){html+='<div style="padding:6px 14px;font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid #1A2D45;margin-top:4px">AlphaFold &mdash; '+afResults.length+' predicted</div>';html+=afResults.map(function(a){var sa=(a.acc||'').replace(/['"\\]/g,'');var sn=(a.name||a.acc||'').replace(/['"\\]/g,'').slice(0,70);return '<div class="srch-result-card" onclick="loadSearchResult(''+sa+'',''+sn+'','af')"><div style="flex:1"><div class="src-title">'+sa+' &mdash; '+(a.name||'').slice(0,65)+'</div><div class="src-meta">'+(a.org||'')+(a.len?' &middot; '+a.len+' aa':'')+'&middot; AlphaFold predicted</div></div><span class="af-badge" style="margin-left:8px;flex-shrink:0">Load AF</span></div>';}).join('');}
+  if(pdbResults.length){
+    html+='<div style="padding:6px 14px;font-size:10px;font-weight:700;color:#00C6CF;text-transform:uppercase;border-bottom:1px solid #1A2D45">RCSB PDB ('+pdbResults.length+' results)</div>';
+    pdbResults.forEach(function(p){
+      var id=String(p.id||'');
+      var title=String(p.title||id).slice(0,65);
+      html+='<div class="srch-result-card" data-id="'+id+'" data-src="pdb"><div style="flex:1"><div class="src-title">'+id+' &mdash; '+title+'</div><div class="src-meta">'+(p.method||'X-RAY')+(p.resolution?' &middot; '+p.resolution+' &Aring;':'')+'</div></div><span class="pdb-badge" style="margin-left:8px">Load PDB</span></div>';
+    });
+  }
+  if(afResults.length){
+    html+='<div style="padding:6px 14px;font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;border-bottom:1px solid #1A2D45;margin-top:4px">AlphaFold ('+afResults.length+' results)</div>';
+    afResults.forEach(function(a){
+      var acc=String(a.acc||'');
+      html+='<div class="srch-result-card" data-id="'+acc+'" data-src="af"><div style="flex:1"><div class="src-title">'+acc+' &mdash; '+String(a.name||acc).slice(0,65)+'</div><div class="src-meta">'+(a.org||'')+(a.len?' &middot; '+a.len+' aa':'')+' &middot; AlphaFold predicted</div></div><span class="af-badge" style="margin-left:8px">Load AF</span></div>';
+    });
+  }
   resBox.innerHTML=html;
+  resBox.querySelectorAll('.srch-result-card').forEach(function(card){
+    card.addEventListener('click',function(){loadSearchResult(this.getAttribute('data-id'),this.getAttribute('data-src'));});
+  });
+}
+
+function loadSearchResult(id,source){
+  document.getElementById('text-srch-results').style.display='none';
+  document.getElementById('text-srch-inp').value='';
+  if(source==='af'){
+    document.getElementById('af-inp').value=id;
+    setTargetSource('af');
+    fetchAlphaFold();
+  }else{
+    document.getElementById('pdb-inp').value=id;
+    setTargetSource('pdb');
+    fetchPDB();
+  }
+}
+
+function loadSearchResult(el){
+  var id=el.getAttribute('data-id');
+  var source=el.getAttribute('data-source');
+  document.getElementById('text-srch-results').style.display='none';
+  document.getElementById('text-srch-inp').value='';
+  if(source==='af'){
+    document.getElementById('af-inp').value=id;
+    setTargetSource('af');
+    fetchAlphaFold();
+  }else{
+    document.getElementById('pdb-inp').value=id;
+    setTargetSource('pdb');
+    fetchPDB();
+  }
 }
 
 function loadSearchResult(id,name,source){
