@@ -1143,10 +1143,6 @@ function navTo(page,btn){
 }
 
 // ===== LAUNCH =====
-function launchApp(){
-  document.getElementById('landing').style.display='none';
-  document.getElementById('app').style.display='flex';
-  
 // ── SMILES lookup across all libraries ──
 function getSMILES(name) {
   if(!name) return '';
@@ -1161,19 +1157,21 @@ function getSMILES(name) {
   return '';
 }
 
-renderLib('af'); renderLib('cn'); renderDrugs();
-// Restore history from localStorage
-try {
-  var saved = localStorage.getItem('nexusmd_history');
-  if(saved) {
-    var parsed = JSON.parse(saved);
-    if(Array.isArray(parsed) && parsed.length) {
-      parsed.forEach(function(r){ HISTORY.push(r); });
-      renderHistory();
-      console.log('Restored', HISTORY.length, 'runs from history');
+function launchApp(){
+  document.getElementById('landing').style.display='none';
+  document.getElementById('app').style.display='flex';
+  renderLib('af'); renderLib('cn'); renderDrugs();
+  // Restore history from localStorage
+  try {
+    var saved = localStorage.getItem('nexusmd_history');
+    if(saved) {
+      var parsed = JSON.parse(saved);
+      if(Array.isArray(parsed) && parsed.length) {
+        parsed.forEach(function(r){ HISTORY.push(r); });
+        renderHistory();
+      }
     }
-  }
-} catch(e) {}
+  } catch(e) {}
   checkBackend();
 }
 function launchDemo(){
