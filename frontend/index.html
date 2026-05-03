@@ -1203,7 +1203,7 @@ function apiBase(){
 async function checkBackend(){
   try{
     const r=await fetch(apiBase()+'/api/health',{signal:AbortSignal.timeout(2800)});
-    if(r.ok){const h=await r.json();S.backendMode=true;setPill(true,`Live &#183; Vina ${h.vina?'&#10003;':'&#10007;'}`);document.getElementById('ss-mode').textContent='Real';updatePrereqs();return;}
+    if(r.ok){const h=await r.json();S.backendMode=true;setPill(true,'Live · Vina ' + (h.vina ? '✓' : '✗'));document.getElementById('ss-mode').textContent='Real';updatePrereqs();return;}
   }catch(_){}
   S.backendMode=false; setPill(false,'Simulation mode'); document.getElementById('ss-mode').textContent='Sim'; updatePrereqs();
 }
@@ -1220,7 +1220,7 @@ function loadTarget(id,name,center,res){
   document.getElementById('gx').value=center.x;
   document.getElementById('gy').value=center.y;
   document.getElementById('gz').value=center.z;
-  document.getElementById('tgt-name').textContent=id+' &#8212; '+name;
+  document.getElementById('tgt-name').textContent=id+' — '+name;
   document.getElementById('target-done').style.display='block';
   document.getElementById('ss-target').textContent=id;
   document.getElementById('sessbox').style.display='block';
@@ -1229,6 +1229,9 @@ function loadTarget(id,name,center,res){
   markDone('target');
   updatePrereqs();
   // Load protein structure into viewer
+  loadProteinIntoViewer(id, name, res, 'X-RAY');
+
+  // Load protein structure
   loadProteinIntoViewer(id, name, res, 'X-RAY');
 }
 async function fetchPDB(){
@@ -1241,8 +1244,8 @@ async function fetchPDB(){
     if(S.backendMode){info=await apiGet('/api/protein/'+id+'/info');}
     else{const r=await fetch('https://data.rcsb.org/rest/v1/core/entry/'+id);if(!r.ok)throw new Error('Entry not found');const d=await r.json();info={pdb_id:id,title:d.struct?.title||id,resolution_a:d.refine?.[0]?.ls_d_res_high};}
     box.className='ib ok';
-    txt.innerHTML='<b>'+info.pdb_id+'</b> &#8212; "'+info.title+'" &#183; '+(info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':'&#8212;');
-    loadTarget(info.pdb_id,info.title||info.pdb_id,{x:0,y:0,z:0},info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':'&#8212;');
+    txt.innerHTML='<b>'+info.pdb_id+'</b> — "'+info.title+'" · '+(info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':'—');
+    loadTarget(info.pdb_id,info.title||info.pdb_id,{x:0,y:0,z:0},info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':'—');
     loadProteinIntoViewer(info.pdb_id, info.title||info.pdb_id, info.resolution_a?info.resolution_a.toFixed(2)+' &#197;':null, 'X-RAY');
   }catch(e){box.className='ib warn';txt.textContent='&#9888; '+e.message;}
 }
@@ -1251,7 +1254,7 @@ function updatePrereqs(){
   const set=(id,color,text)=>{const el=document.getElementById(id);if(el)el.style.background=color;const tl=document.getElementById(id+'l');if(tl)tl.textContent=text;};
   set('prq-t',ht?'var(--green)':'var(--dim)',S.target?S.target.id:'none');
   set('prq-b',bn>0?'var(--green)':'var(--dim)',bn+' compounds');
-  set('prq-k',S.backendMode?'var(--green)':'var(--amber)',S.backendMode?'Real backend &#10003;':'Simulation mode');
+  set('prq-k',S.backendMode?'var(--green)':'var(--amber)',S.backendMode?'Real backend ✓':'Simulation mode');
 }
 
 // ===== LIBRARY =====
@@ -1294,7 +1297,7 @@ function addCustom(){
   if(!n||!sm){alert('Enter both a name and SMILES string');return;}
   addToBasket({name:n,smiles:sm,src:'Custom',cls:'Custom',activity:'Unknown',mw:300,logp:2.0});
   document.getElementById('cust-name').value=''; document.getElementById('cust-smi').value='';
-  alert('&#10003; '+n+' added to basket');
+  alert('✓ '+n+' added to basket');
 }
 function renderBasket(){
   const items=Object.values(S.basket), n=items.length;
@@ -1303,7 +1306,7 @@ function renderBasket(){
   document.getElementById('ss-basket').textContent=n;
   const btn=document.getElementById('proc-btn'); if(btn)btn.disabled=n===0;
   const strip=document.getElementById('bstrip');
-  if(!n){strip.innerHTML='<span class="bemp">No compounds added yet &#8212; click cards below to add them</span>';return;}
+  if(!n){strip.innerHTML='<span class="bemp">No compounds added yet — click cards below to add them</span>';return;}
   strip.innerHTML=items.map(c=>`<div class="bchip">${c.name}<button class="cx" onclick="removeFromBasket('${c.name.replace(/'/g,"\\'")}')">&#215;</button></div>`).join('');
 }
 function removeFromBasket(name){delete S.basket[name];renderLib('af');renderLib('cn');renderBasket();}
@@ -1331,10 +1334,10 @@ async function runDocking(){
   var estTime = estimateDockingTime(items.length, grid.exhaustiveness);
   if(items.length > 100) {
     var ok = confirm('Large job: ' + items.length + ' compounds at exhaustiveness ' + grid.exhaustiveness + '\nEstimated time: ' + estTime + '\n\nTip: Use exhaustiveness 4-8 for faster screening.\n\nContinue?');
-    if(!ok) { btn.disabled=false; btn.textContent='&#9654; Run Docking'; return; }
+    if(!ok) { btn.disabled=false; btn.textContent='▶ Run Docking'; return; }
   }
   alog('[INFO] Estimated time: ' + estTime + ' (' + items.length + ' compounds, exhaustiveness ' + grid.exhaustiveness + ')','li');
-  alog(`[NexusMD] ${S.backendMode?'&#9889; REAL BACKEND &#8212; AutoDock Vina 1.2.5':'&#128300; Simulation mode (connect backend for real docking)'}`,S.backendMode?'lr':'li');
+  alog(`[NexusMD] ${S.backendMode?'&#9889; REAL BACKEND — AutoDock Vina 1.2.5':'&#128300; Simulation mode (connect backend for real docking)'}`,S.backendMode?'lr':'li');
   alog(`[INFO] Target: ${S.target.id} | Compounds: ${items.length} | Exhaustiveness: ${grid.exhaustiveness}`,'li');
   alog(`[INFO] Grid centre: (${grid.center_x}, ${grid.center_y}, ${grid.center_z}) | Box: ${grid.size_x}&#215;${grid.size_y}&#215;${grid.size_z} &#197;`,'li');
   if(S.backendMode){
@@ -1343,19 +1346,19 @@ async function runDocking(){
       const smiles=items.map(i=>i.smiles||SMILES_DB[i.name]||'CC(C)Cc1ccc(cc1)C(C)C(=O)O');
       const job=await apiPost('/api/docking/submit',{protein_id:S.target.id,ligand_smiles:smiles,ligand_names:items.map(i=>i.name),engine:'vina',grid,admet_filter:document.getElementById('adpre').checked});
       S.activeJobId=job.job_id;
-      alog('[API] Job '+job.job_id+' &#8212; opening WebSocket&#8230;','li');
+      alog('[API] Job '+job.job_id+' — opening WebSocket&#8230;','li');
       const ws=new WebSocket(apiBase().replace(/^http/,'ws')+'/ws/'+job.job_id);
       ws.onmessage=evt=>{
         const m=JSON.parse(evt.data);
         if(m.line)alog(m.line,m.level==='done'?'ld':m.level==='warn'?'lw':m.line.includes('Vina')?'lr':'li');
         if(m.progress){document.getElementById('dock-fill').style.width=m.progress+'%';document.getElementById('dock-pct').textContent=m.progress+'%';document.getElementById('dock-lbl').textContent=(m.message||'').slice(0,55);}
         if(m.status==='done'){ws.close();finishDocking(m.result,true);}
-        if(m.status==='failed'){ws.close();alog('[ERROR] '+m.message,'lw');btn.disabled=false;btn.textContent='&#9654; Run Docking';}
+        if(m.status==='failed'){ws.close();alog('[ERROR] '+m.message,'lw');btn.disabled=false;btn.textContent='▶ Run Docking';}
       };
-      ws.onerror=()=>{alog('[WS] WebSocket unavailable &#8212; switching to polling every 5s&#8230;','lw');pollDocking(job.job_id);};
-      ws.onclose=()=>{ if(S.backendMode && !S.results.length) { alog('[WS] Connection closed &#8212; polling for result&#8230;','lw'); pollDocking(job.job_id); } };
+      ws.onerror=()=>{alog('[WS] WebSocket unavailable — switching to polling every 5s&#8230;','lw');pollDocking(job.job_id);};
+      ws.onclose=()=>{ if(S.backendMode && !S.results.length) { alog('[WS] Connection closed — polling for result&#8230;','lw'); pollDocking(job.job_id); } };
       return;
-    }catch(err){alog('[ERROR] '+err.message+' &#8212; falling back to simulation','lw');S.backendMode=false;}
+    }catch(err){alog('[ERROR] '+err.message+' — falling back to simulation','lw');S.backendMode=false;}
   }
   simulateDocking();
 }
@@ -1364,13 +1367,13 @@ async function pollDocking(jobId){
     try{const j=await apiGet('/api/docking/status/'+jobId);
       if(j.progress){document.getElementById('dock-fill').style.width=j.progress+'%';document.getElementById('dock-pct').textContent=j.progress+'%';}
       if(j.status==='done'){clearInterval(iv);finishDocking(j.result,true);}
-      if(j.status==='failed'){clearInterval(iv);alog('[FAILED] '+j.message,'lw');document.getElementById('dock-btn').disabled=false;document.getElementById('dock-btn').textContent='&#9654; Run Docking';}
+      if(j.status==='failed'){clearInterval(iv);alog('[FAILED] '+j.message,'lw');document.getElementById('dock-btn').disabled=false;document.getElementById('dock-btn').textContent='▶ Run Docking';}
     }catch(_){}
   },2500);
 }
 function simulateDocking(){
   const items=Object.values(S.basket);
-  const steps=['[SIM] Preparing receptor topology&#8230;','[SIM] Converting SMILES to 3D (Open Babel)&#8230;',...items.map((it,i)=>`[Vina] (${i+1}/${items.length}) Docking: ${it.name}`),'[Vina] Clustering poses by RMSD&#8230;','[Vina] Calculating binding energies&#8230;','[DONE] Docking complete &#8212; see Results tab'];
+  const steps=['[SIM] Preparing receptor topology&#8230;','[SIM] Converting SMILES to 3D (Open Babel)&#8230;',...items.map((it,i)=>`[Vina] (${i+1}/${items.length}) Docking: ${it.name}`),'[Vina] Clustering poses by RMSD&#8230;','[Vina] Calculating binding energies&#8230;','[DONE] Docking complete — see Results tab'];
   let i=0;
   const t=setInterval(()=>{
     if(i>=steps.length){clearInterval(t);document.getElementById('dock-fill').style.width='100%';document.getElementById('dock-pct').textContent='100%';finishDocking(null,false);return;}
@@ -1384,16 +1387,16 @@ function simulateDocking(){
 }
 function finishDocking(apiResult,real){
   const btn=document.getElementById('dock-btn');
-  btn.disabled=false; btn.textContent='&#9654; Run Docking';
+  btn.disabled=false; btn.textContent='▶ Run Docking';
   if(real&&apiResult?.poses){
-    S.results=apiResult.poses.map(p=>({name:p.name,score:p.score,rmsd:p.rmsd_lb??0,admet:p.admet_status||'&#8212;',real:true,src:S.basket[p.name]?.src||'API'}));
+    S.results=apiResult.poses.map(p=>({name:p.name,score:p.score,rmsd:p.rmsd_lb??0,admet:p.admet_status||'—',real:true,src:S.basket[p.name]?.src||'API'}));
   }else{
     S.results=Object.values(S.basket).map(item=>{
       const mw=item.mw||300, lp=item.logp||2;
       const base=-(4.5+Math.min(mw/75,4.5)+Math.min(Math.abs(lp-2.5),2)*0.6+Math.random()*1.8);
       const score=Math.max(-13,Math.min(-4,base));
       const ro5=(mw>500?1:0)+(lp>5?1:0)+(mw>700?1:0);
-      return{name:item.name,score:parseFloat(score.toFixed(1)),rmsd:parseFloat((Math.random()*2).toFixed(2)),admet:ro5>=2?'Fail':ro5>=1?'Warn':'Pass',real:false,src:item.src||'&#8212;',smiles:item.smiles||SMILES_DB[item.name]||getSMILES(item.name)||''};
+      return{name:item.name,score:parseFloat(score.toFixed(1)),rmsd:parseFloat((Math.random()*2).toFixed(2)),admet:ro5>=2?'Fail':ro5>=1?'Warn':'Pass',real:false,src:item.src||'—',smiles:item.smiles||SMILES_DB[item.name]||getSMILES(item.name)||''};
     });
   }
   S.results.sort((a,b)=>a.score-b.score);
@@ -1424,7 +1427,7 @@ function renderResults(){
   document.getElementById('rs-n').textContent=S.results.length;
   document.getElementById('rs-best').textContent=S.results[0].score.toFixed(1);
   document.getElementById('rs-pass').textContent=S.results.filter(r=>r.admet==='Pass').length;
-  document.getElementById('rs-src').textContent=S.results[0]?.real?'Real &#10003;':'Simulated';
+  document.getElementById('rs-src').textContent=S.results[0]?.real?'Real ✓':'Simulated';
   const tbody=document.getElementById('res-tbody');
   tbody.innerHTML=S.results.map((r,i)=>{
     const sc=r.score<=-10?'sg':r.score<=-8?'so':r.score<=-6?'sm':'sp';
@@ -1433,9 +1436,9 @@ function renderResults(){
     const ac=r.admet==='Pass'?'var(--green)':r.admet==='Fail'?'var(--red)':'var(--amber)';
     return`<tr><td style="color:var(--dim);font-family:DM Mono,monospace">${i+1}</td>
       <td style="font-weight:700">${r.name}${rt}</td>
-      <td><span class="bdg ${srcB}">${r.src||'&#8212;'}</span></td>
+      <td><span class="bdg ${srcB}">${r.src||'—'}</span></td>
       <td class="${sc}">${r.score.toFixed(1)}</td>
-      <td style="color:var(--muted);font-family:DM Mono,monospace">${typeof r.rmsd==='number'?r.rmsd.toFixed(2):'&#8212;'}</td>
+      <td style="color:var(--muted);font-family:DM Mono,monospace">${typeof r.rmsd==='number'?r.rmsd.toFixed(2):'—'}</td>
       <td style="color:${ac};font-weight:600">${r.admet}</td>
       <td><button class="btn btn-g btn-sm" onclick="showDetail(${i})">Details</button></td>
     </tr>`;
@@ -1451,21 +1454,21 @@ function showDetail(i){
   document.getElementById('dp-name').textContent=r.name;
   document.getElementById('dp-sc').textContent=r.score.toFixed(1)+' kcal/mol';
   document.getElementById('dp-sc').style.color=r.score<=-10?'var(--green)':r.score<=-8?'var(--teal)':r.score<=-6?'var(--amber)':'var(--red)';
-  document.getElementById('dp-rm').textContent=(typeof r.rmsd==='number'?r.rmsd.toFixed(2):'&#8212;')+' &#197;';
+  document.getElementById('dp-rm').textContent=(typeof r.rmsd==='number'?r.rmsd.toFixed(2):'—')+' &#197;';
   document.getElementById('dp-ad').textContent=r.admet;
   document.getElementById('dp-ad').style.color=r.admet==='Pass'?'var(--green)':r.admet==='Fail'?'var(--red)':'var(--amber)';
 
   // MW / LogP from basket
   const bitem = S.basket[r.name];
-  document.getElementById('dp-mw').textContent = bitem?.mw ? bitem.mw+' Da' : '&#8212;';
-  document.getElementById('dp-lp').textContent = bitem?.logp !== undefined ? bitem.logp : '&#8212;';
+  document.getElementById('dp-mw').textContent = bitem?.mw ? bitem.mw+' Da' : '—';
+  document.getElementById('dp-lp').textContent = bitem?.logp !== undefined ? bitem.logp : '—';
 
   let tx='';
   if(r.score<=-10)tx=`<b>${r.name}</b> shows excellent binding affinity. Scores &#8804; &#8722;10 kcal/mol are typical of confirmed drug candidates and suggest strong, specific interaction with the binding site.`;
   else if(r.score<=-8)tx=`<b>${r.name}</b> shows good binding affinity. This range often corresponds to low-micromolar IC&#8325;&#8320; values and is worth pursuing with in vitro assays.`;
-  else if(r.score<=-6)tx=`<b>${r.name}</b> shows moderate binding. Could serve as a lead scaffold &#8212; consider structural analogues (see Analogues tab) or R-group substitution.`;
+  else if(r.score<=-6)tx=`<b>${r.name}</b> shows moderate binding. Could serve as a lead scaffold — consider structural analogues (see Analogues tab) or R-group substitution.`;
   else tx=`<b>${r.name}</b> shows weak binding at this site. Useful as a starting scaffold. Check the Analogues tab for structurally similar approved drugs with stronger binding potential.`;
-  if(!r.real)tx+=' <em style="color:var(--muted)">(Simulated score &#8212; connect backend for real Vina docking)</em>';
+  if(!r.real)tx+=' <em style="color:var(--muted)">(Simulated score — connect backend for real Vina docking)</em>';
   document.getElementById('dp-interp').innerHTML=tx;
 
   // Target info
@@ -1473,7 +1476,7 @@ function showDetail(i){
   const tt = document.getElementById('dp-target-txt');
   if(S.target && ti && tt){
     ti.style.display='flex';
-    tt.innerHTML=`Target: <b>${S.target.id}</b> &#8212; ${S.target.name} &#183; Resolution: ${S.target.res||'&#8212;'}`;
+    tt.innerHTML=`Target: <b>${S.target.id}</b> — ${S.target.name} · Resolution: ${S.target.res||'—'}`;
   }
 
   // Reset to interpretation tab
@@ -1500,7 +1503,7 @@ function showDetail(i){
 function exportCSV(){
   if(!S.results.length){alert('No results to export');return;}
   const rows=[['Rank','Compound','Source','Score (kcal/mol)','RMSD (&#197;)','ADMET','Real data']];
-  S.results.forEach((r,i)=>rows.push([i+1,r.name,r.src||'&#8212;',r.score.toFixed(1),typeof r.rmsd==='number'?r.rmsd.toFixed(2):'&#8212;',r.admet,r.real?'Yes':'No']));
+  S.results.forEach((r,i)=>rows.push([i+1,r.name,r.src||'—',r.score.toFixed(1),typeof r.rmsd==='number'?r.rmsd.toFixed(2):'—',r.admet,r.real?'Yes':'No']));
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download='nexusmd_results_'+( S.target?.id||'export')+'_'+new Date().toISOString().slice(0,10)+'.csv';
@@ -1548,7 +1551,7 @@ function renderADMET(real){
     const bars=[
       {label:'Mol. weight',val:Math.min(e.mw/500,1),raw:e.mw+' Da',good:e.mw<=500},
       {label:'logP',val:Math.max(0,Math.min((e.logp+2)/9,1)),raw:(e.logp||0).toFixed(2),good:e.logp>=-0.5&&e.logp<=5},
-      {label:'GI absorption',val:e.gi_absorption==='High'?.85:.3,raw:e.gi_absorption||'&#8212;',good:e.gi_absorption==='High'},
+      {label:'GI absorption',val:e.gi_absorption==='High'?.85:.3,raw:e.gi_absorption||'—',good:e.gi_absorption==='High'},
       {label:'BBB permeant',val:e.bbb_permeant?.8:.2,raw:e.bbb_permeant?'Yes':'No',good:null},
       {label:'hERG inhibitor',val:e.herg_inhibitor?.8:.15,raw:e.herg_inhibitor?'Risk':'Low',good:!e.herg_inhibitor},
     ];
@@ -1561,7 +1564,7 @@ function exportADMET(){
   const entries=Object.values(S.admet);
   if(!entries.length){alert('Run ADMET scoring first');return;}
   const rows=[['Compound','MW','LogP','GI Absorption','BBB Permeant','hERG Risk','Ames Toxicity','Ro5 Violations','Status']];
-  entries.forEach(e=>rows.push([e.name,e.mw||'&#8212;',(e.logp||0).toFixed(2),e.gi_absorption||'&#8212;',e.bbb_permeant?'Yes':'No',e.herg_inhibitor?'Yes':'No',e.ames_toxicity?'Positive':'Negative',e.ro5_violations||0,e.status]));
+  entries.forEach(e=>rows.push([e.name,e.mw||'—',(e.logp||0).toFixed(2),e.gi_absorption||'—',e.bbb_permeant?'Yes':'No',e.herg_inhibitor?'Yes':'No',e.ames_toxicity?'Positive':'Negative',e.ro5_violations||0,e.status]));
   const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));a.download='nexusmd_admet.csv';a.click();
 }
 
@@ -1584,13 +1587,13 @@ async function runFASTA(){
       const job=await apiPost('/api/fasta/fold',{sequence:seq,engine:'esm',relax:false});
       const iv=setInterval(async()=>{
         try{const s=await apiGet('/api/fasta/result/'+job.job_id);
-          if(s.mean_plddt){clearInterval(iv);flog('[DONE] Real ESMFold complete &#183; pLDDT: '+s.mean_plddt.toFixed(1),'ld');showFASTAResults(seq,s.mean_plddt,s.ptm_score||0,true);btn.disabled=false;btn.textContent='&#9654; Predict Structure';}
-          if(s.status==='failed'){clearInterval(iv);flog('[ERROR] '+s.message,'lw');btn.disabled=false;btn.textContent='&#9654; Predict Structure';}
+          if(s.mean_plddt){clearInterval(iv);flog('[DONE] Real ESMFold complete · pLDDT: '+s.mean_plddt.toFixed(1),'ld');showFASTAResults(seq,s.mean_plddt,s.ptm_score||0,true);btn.disabled=false;btn.textContent='▶ Predict Structure';}
+          if(s.status==='failed'){clearInterval(iv);flog('[ERROR] '+s.message,'lw');btn.disabled=false;btn.textContent='▶ Predict Structure';}
         }catch(_){}
       },3000);
       setTimeout(()=>clearInterval(iv),180000);
       return;
-    }catch(_){flog('[WARN] Backend error &#8212; trying direct ESMFold API&#8230;','lw');}
+    }catch(_){flog('[WARN] Backend error — trying direct ESMFold API&#8230;','lw');}
   }
   if(seq.length<=400){
     flog('[ESMFold] Sending '+seq.length+' residues to api.esmatlas.com&#8230;','li');
@@ -1603,18 +1606,18 @@ async function runFASTA(){
           S.fastaPDB=pdb;
           const plddts=parsePLDDT(pdb);
           const mean=plddts.length?plddts.reduce((a,b)=>a+b)/plddts.length:75;
-          flog('[DONE] Real ESMFold structure received &#183; mean pLDDT: '+mean.toFixed(1),'ld');
+          flog('[DONE] Real ESMFold structure received · mean pLDDT: '+mean.toFixed(1),'ld');
           showFASTAResults(seq,mean,mean/100*1.08,true);
           document.getElementById('fasta-dl').style.display='inline-block';
-          btn.disabled=false; btn.textContent='&#9654; Predict Structure'; return;
+          btn.disabled=false; btn.textContent='▶ Predict Structure'; return;
         }
       }
     }catch(_){flog('[NOTE] Direct browser call blocked by CORS. Starting simulation&#8230;','lw');flog('[TIP] To get real structures: start the NexusMD backend (see Setup Guide)','ldim');}
   }
-  const steps=['[ESMFold] Tokenising '+seq.length+' residues&#8230;','[ESMFold] Running ESM-2 650M language model&#8230;','[ESMFold] Folding trunk &#8212; attention layers 1/48&#8230;','[ESMFold] Folding trunk &#8212; attention layers 24/48&#8230;','[ESMFold] Predicting backbone torsion angles&#8230;','[ESMFold] Computing per-residue pLDDT confidence&#8230;','[DONE] Prediction complete (simulation).'];
+  const steps=['[ESMFold] Tokenising '+seq.length+' residues&#8230;','[ESMFold] Running ESM-2 650M language model&#8230;','[ESMFold] Folding trunk — attention layers 1/48&#8230;','[ESMFold] Folding trunk — attention layers 24/48&#8230;','[ESMFold] Predicting backbone torsion angles&#8230;','[ESMFold] Computing per-residue pLDDT confidence&#8230;','[DONE] Prediction complete (simulation).'];
   let i=0;
   const t=setInterval(()=>{
-    if(i>=steps.length){clearInterval(t);const m=68+Math.random()*18;showFASTAResults(seq,m,m/100*1.1,false);btn.disabled=false;btn.textContent='&#9654; Predict Structure';return;}
+    if(i>=steps.length){clearInterval(t);const m=68+Math.random()*18;showFASTAResults(seq,m,m/100*1.1,false);btn.disabled=false;btn.textContent='▶ Predict Structure';return;}
     flog(steps[i],steps[i].startsWith('[DONE]')?'ld':'li');
     document.getElementById('fasta-fill').style.width=((i+1)/steps.length*100)+'%';
     i++;
@@ -1633,7 +1636,7 @@ function showFASTAResults(seq,mean,ptm,real){
   document.getElementById('fm-plddt').style.color=pmean>=80?'var(--green)':pmean>=60?'var(--teal)':'var(--amber)';
   document.getElementById('fm-len').textContent=seq.length;
   document.getElementById('fm-ptm').textContent=(typeof ptm==='number'?ptm:parseFloat(ptm)).toFixed(2);
-  document.getElementById('fm-eng').textContent=real?'ESMFold &#10003;':'ESMFold (sim)';
+  document.getElementById('fm-eng').textContent=real?'ESMFold ✓':'ESMFold (sim)';
   let interp='';
   if(pmean>=90)interp='<b>Very high confidence.</b> Most residues are reliably predicted. The backbone and side chains are likely accurate enough for docking and virtual screening directly on this predicted structure.';
   else if(pmean>=70)interp='<b>Confident prediction.</b> Core secondary structure elements should be reliable. Flexible loops and termini may deviate from the real structure.';
@@ -1664,7 +1667,7 @@ function downloadFastaPDB(){
 function markDone(step){
   const si=document.getElementById('si-'+step);
   const sb=document.getElementById('sb-'+step);
-  if(si){si.textContent='&#10003;';si.style.background='rgba(0,236,140,.15)';si.style.borderColor='var(--green)';si.style.color='var(--green)';}
+  if(si){si.textContent='✓';si.style.background='rgba(0,236,140,.15)';si.style.borderColor='var(--green)';si.style.color='var(--green)';}
   if(sb)sb.classList.add('done');
 }
 
@@ -1711,11 +1714,11 @@ function renderDrugRows(rows) {
     return `<tr>
       <td style="font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.n}">${r.n}</td>
       <td><span class="bdg ${sc}" style="font-size:9px">${r.st}</span></td>
-      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted)" title="${r.dis}">${r.dis||'&#8212;'}</td>
-      <td style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">${r.mw||'&#8212;'}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--muted)" title="${r.dis}">${r.dis||'—'}</td>
+      <td style="font-family:DM Mono,monospace;font-size:12px;color:var(--muted)">${r.mw||'—'}</td>
       <td style="font-family:DM Mono,monospace;font-size:12px;color:${r.lp>5||r.lp<-0.5?'var(--amber)':'var(--muted)'}">${r.lp}</td>
-      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dim)" title="${r.tgt}">${r.tgt||'&#8212;'}</td>
-      <td><button class="btn btn-g btn-sm ${inB?'btn-s':''}" style="${inB?'color:#000;':''}min-width:56px" onclick="toggleDrugBasket('${r.n.replace(/'/g,"\\'")}','${r.s.replace(/'/g,"\\'")}',${r.mw},${r.lp},${r.hbd},${r.hba},'${r.src}')">${inB?'&#10003; Added':'+ Add'}</button></td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--dim)" title="${r.tgt}">${r.tgt||'—'}</td>
+      <td><button class="btn btn-g btn-sm ${inB?'btn-s':''}" style="${inB?'color:#000;':''}min-width:56px" onclick="toggleDrugBasket('${r.n.replace(/'/g,"\\'")}','${r.s.replace(/'/g,"\\'")}',${r.mw},${r.lp},${r.hbd},${r.hba},'${r.src}')">${inB?'✓ Added':'+ Add'}</button></td>
     </tr>`;
   }).join('');
   document.getElementById('dl-showing').textContent = Math.min(DL_OFFSET + rows.length, DL_FILTERED.length);
@@ -1739,7 +1742,7 @@ function addFilteredToBasket(){
   const slice = DL_FILTERED.slice(0, 50); // Max 50 at once to keep docking manageable
   slice.forEach(r => { if(!S.basket[r.n]) addToBasket({name:r.n, smiles:r.s, src:'Drug Library', cls:'Drug', activity:'Therapeutic', mw:r.mw, logp:r.lp, hbd:r.hbd, hba:r.hba}); });
   renderDrugs(); renderBasket();
-  alert('Added '+slice.length+' compounds to basket'+(DL_FILTERED.length>50?' (first 50 &#8212; use more specific filters for smaller sets)':''));
+  alert('Added '+slice.length+' compounds to basket'+(DL_FILTERED.length>50?' (first 50 — use more specific filters for smaller sets)':''));
 }
 
 function exportDrugCSV(){
@@ -1772,7 +1775,7 @@ function dpTab(tab, btn) {
 function initViewer3d(smiles) {
   const container = document.getElementById('viewer-3d');
   if(!container) return;
-  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px">&#9203; Generating 3D conformation&#8230;</div>';
+  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:13px">⏳ Generating 3D conformation&#8230;</div>';
 
   // If backend available, try to get real docked pose
   if(S.backendMode && S.activeJobId) {
@@ -1792,7 +1795,7 @@ function initViewer3d(smiles) {
       })
       .catch(() => render3dSimulated(smiles));
   } else {
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px">No structure data &#8212; add SMILES to see 3D view</div>';
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--dim);font-size:13px">No structure data — add SMILES to see 3D view</div>';
   }
 }
 
@@ -1828,7 +1831,7 @@ function render3dSimulated(smiles) {
         viewer3d.addSphere({center:{x:Math.cos(ang)*2.5,y:Math.sin(ang)*2.5,z:(Math.random()-.5)*1.5},
           radius:0.4, color:a==='N'?'#4DB8FF':a==='O'?'#FF6B6B':a==='S'?'#FFD93D':a==='F'||a==='Cl'||a==='Br'?'#00EC8C':'#AAAAAA'});
       });
-      container.insertAdjacentHTML('beforeend','<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(107,139,170,.7)">Schematic view &#8212; connect backend for real docked pose</div>');
+      container.insertAdjacentHTML('beforeend','<div style="position:absolute;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:rgba(107,139,170,.7)">Schematic view — connect backend for real docked pose</div>');
     }
     viewer3d.setStyle({}, {stick:{colorscheme:'Jmol',radius:0.15}});
     viewer3d.zoomTo(); viewer3d.render();
@@ -1904,9 +1907,9 @@ function findAnalogues() {
         <div class="sh-sim">${pct}%</div>
         <div class="sh-name">${r.n}</div>
         <div class="sh-meta"><span class="bdg ${sc}" style="font-size:9px">${r.st}</span></div>
-        <div class="sh-meta" style="margin-top:4px">${r.dis?r.dis.split(';')[0].trim():'&#8212;'}</div>
+        <div class="sh-meta" style="margin-top:4px">${r.dis?r.dis.split(';')[0].trim():'—'}</div>
         <div style="margin-top:6px;font-size:11px;color:${inB?'var(--green)':'var(--teal)'}">
-          ${inB?'&#10003; In basket':'+ Add to basket'}
+          ${inB?'✓ In basket':'+ Add to basket'}
         </div>
       </div>`;
     }).join('');
@@ -1927,7 +1930,7 @@ function pcSearch() {
   if(res) res.style.display='none';
   pcTimer = setTimeout(async () => {
     try {
-      // PubChem autocomplete &#8594; get CIDs &#8594; get properties
+      // PubChem autocomplete → get CIDs → get properties
       const ac = await fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/autocomplete/compound/${encodeURIComponent(q)}/JSON?limit=8`);
       const acData = await ac.json();
       const names = acData?.dictionary_terms?.compound || [];
@@ -1945,13 +1948,13 @@ function pcSearch() {
       res.innerHTML = props.map(p => `
         <div class="pc-item" onclick="pcSelect('${(p.IUPACName||names[props.indexOf(p)]||'').replace(/'/g,"\\'")}','${(p.IsomericSMILES||'').replace(/'/g,"\\'").replace(/\\/g,'\\\\')}',${p.MolecularWeight||0},${p.XLogP||0})">
           <div class="pc-name">${p.IUPACName || 'Unknown'}</div>
-          <div class="pc-meta">CID: ${p.CID} &#183; MW: ${p.MolecularWeight||'&#8212;'} &#183; Formula: ${p.MolecularFormula||'&#8212;'} &#183; LogP: ${p.XLogP??'&#8212;'}</div>
+          <div class="pc-meta">CID: ${p.CID} · MW: ${p.MolecularWeight||'—'} · Formula: ${p.MolecularFormula||'—'} · LogP: ${p.XLogP??'—'}</div>
           <div class="pc-meta" style="color:var(--dim);margin-top:2px;font-size:10px">${(p.IsomericSMILES||'').slice(0,60)}&#8230;</div>
         </div>`).join('');
       res.style.display='block';
     } catch(e) {
       if(loading) loading.style.display='none';
-      if(res) { res.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px">PubChem search failed &#8212; check connection or try a different name.</div>'; res.style.display='block'; }
+      if(res) { res.innerHTML='<div style="padding:10px;color:var(--muted);font-size:12px">PubChem search failed — check connection or try a different name.</div>'; res.style.display='block'; }
     }
   }, 500);
 }
@@ -1965,7 +1968,7 @@ function pcSelect(name, smiles, mw, logp) {
   // Auto-add if valid
   if(name && smiles) {
     addToBasket({name, smiles, src:'PubChem', cls:'Drug', activity:'Therapeutic', mw: parseFloat(mw)||300, logp: parseFloat(logp)||0, hbd:0, hba:0});
-    alert('&#10003; '+name+' added from PubChem');
+    alert('✓ '+name+' added from PubChem');
     document.getElementById('cust-name').value='';
     document.getElementById('cust-smi').value='';
   }
@@ -1975,7 +1978,7 @@ function pcSelect(name, smiles, mw, logp) {
 // MULTI-TARGET SCREENING
 // &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
 const MT_TARGETS = {};
-let MT_RESULTS = {}; // target_id &#8594; [{name, score, rmsd}]
+let MT_RESULTS = {}; // target_id → [{name, score, rmsd}]
 
 function mtToggleTarget(id, name, center) {
   const cards = document.querySelectorAll('#mt-target-grid .cc');
@@ -1997,7 +2000,7 @@ function mtToggleTarget(id, name, center) {
   const strip = document.getElementById('mt-selected-strip');
   if(!n) { strip.innerHTML='<span style="color:var(--dim);font-size:12px;font-style:italic">Click targets above to add (max 6)</span>'; return; }
   strip.innerHTML = Object.values(MT_TARGETS).map(t =>
-    `<div class="mt-target-pill">${t.id} &#8212; ${t.name}<button class="cx" onclick="mtToggleTarget('${t.id}','${t.name.replace(/'/g,"\\'")}',{})">&#215;</button></div>`
+    `<div class="mt-target-pill">${t.id} — ${t.name}<button class="cx" onclick="mtToggleTarget('${t.id}','${t.name.replace(/'/g,"\\'")}',{})">&#215;</button></div>`
   ).join('');
 }
 
@@ -2021,12 +2024,12 @@ async function runMultiTarget() {
   MT_RESULTS = {};
 
   mtLog(`[NexusMD] Multi-target screen: ${compounds.length} compounds &#215; ${targets.length} targets = ${compounds.length*targets.length} docking runs`,'lr');
-  mtLog(`[MODE] ${S.backendMode?'Real backend &#8212; AutoDock Vina':'Simulation mode'}`,'li');
+  mtLog(`[MODE] ${S.backendMode?'Real backend — AutoDock Vina':'Simulation mode'}`,'li');
 
   const total = targets.length;
   for(let ti=0; ti<total; ti++) {
     const tgt = targets[ti];
-    mtLog(`\n[TARGET ${ti+1}/${total}] ${tgt.id} &#8212; ${tgt.name}`,'lr');
+    mtLog(`\n[TARGET ${ti+1}/${total}] ${tgt.id} — ${tgt.name}`,'lr');
 
     if(S.backendMode) {
       try {
@@ -2048,14 +2051,14 @@ async function runMultiTarget() {
             if(s.status==='done'){
               MT_RESULTS[tgt.id] = s.result?.poses || [];
               done=true;
-              mtLog(`  &#10003; ${tgt.id} complete &#8212; ${MT_RESULTS[tgt.id].length} poses`,'ld');
+              mtLog(`  ✓ ${tgt.id} complete — ${MT_RESULTS[tgt.id].length} poses`,'ld');
             }
-            if(s.status==='failed'){done=true; mtLog(`  &#10007; ${tgt.id} failed: ${s.message}`,'lw');}
+            if(s.status==='failed'){done=true; mtLog(`  ✗ ${tgt.id} failed: ${s.message}`,'lw');}
           } catch(_){}
         }
-        if(!done) mtLog(`  &#10007; ${tgt.id} timed out`,'lw');
+        if(!done) mtLog(`  ✗ ${tgt.id} timed out`,'lw');
       } catch(e) {
-        mtLog(`  [ERROR] ${e.message} &#8212; using simulation`,'lw');
+        mtLog(`  [ERROR] ${e.message} — using simulation`,'lw');
         MT_RESULTS[tgt.id] = simDockResults(compounds, tgt);
       }
     } else {
@@ -2063,7 +2066,7 @@ async function runMultiTarget() {
       await new Promise(r => setTimeout(r, 600 + Math.random()*400));
       MT_RESULTS[tgt.id] = simDockResults(compounds, tgt);
       MT_RESULTS[tgt.id].forEach(r => mtLog(`  ${r.name}: ${r.score.toFixed(1)} kcal/mol`,'li'));
-      mtLog(`  &#10003; ${tgt.id} complete`,'ld');
+      mtLog(`  ✓ ${tgt.id} complete`,'ld');
     }
 
     const pct = Math.round((ti+1)/total*100);
@@ -2072,9 +2075,9 @@ async function runMultiTarget() {
     document.getElementById('mt-lbl').textContent=`Target ${ti+1}/${total}: ${tgt.name}`;
   }
 
-  mtLog('\n[DONE] All targets complete &#8212; rendering heatmap&#8230;','ld');
+  mtLog('\n[DONE] All targets complete — rendering heatmap&#8230;','ld');
   renderHeatmap();
-  btn.disabled=false; btn.textContent='&#9654; Run Multi-Target Screen';
+  btn.disabled=false; btn.textContent='▶ Run Multi-Target Screen';
 }
 
 function simDockResults(compounds, target) {
@@ -2120,7 +2123,7 @@ function renderHeatmap() {
       const score = hit ? hit.score : null;
       if(score !== null && score < best) best = score;
       const bg = score !== null ? scoreColor(score) : '#1A2D45';
-      const txt = score !== null ? score.toFixed(1) : '&#8212;';
+      const txt = score !== null ? score.toFixed(1) : '—';
       const textColor = score !== null ? (score <= -8 ? '#000':'#000') : '#3A5068';
       html += `<td style="background:${bg};color:${textColor}" title="${cname} vs ${tid}: ${txt} kcal/mol" onclick="mtShowDetail('${cname}','${tid}',${score})">${txt}</td>`;
     });
@@ -2137,7 +2140,7 @@ function renderHeatmap() {
 }
 
 function mtShowDetail(compound, targetId, score) {
-  alert(`${compound} vs ${targetId}:\nBinding score: ${score} kcal/mol\n${score<=-10?'Excellent binding &#8212; high priority hit':score<=-8?'Good binding &#8212; worth pursuing':score<=-6?'Moderate binding &#8212; optimisation needed':'Weak binding'}`);
+  alert(`${compound} vs ${targetId}:\nBinding score: ${score} kcal/mol\n${score<=-10?'Excellent binding — high priority hit':score<=-8?'Good binding — worth pursuing':score<=-6?'Moderate binding — optimisation needed':'Weak binding'}`);
 }
 
 function exportHeatmapCSV() {
@@ -2150,7 +2153,7 @@ function exportHeatmapCSV() {
       const hit = (MT_RESULTS[tid]||[]).find(p=>p.name===cname);
       const s = hit ? hit.score : null;
       if(s!==null&&s<best) best=s;
-      return s !== null ? s.toFixed(1) : '&#8212;';
+      return s !== null ? s.toFixed(1) : '—';
     });
     rows.push([cname, ...scores, best.toFixed(1)]);
   });
@@ -2170,7 +2173,7 @@ function saveToHistory() {
     id: Date.now(),
     date: new Date().toLocaleString(),
     type: Object.keys(MT_RESULTS||{}).length > 0 ? 'Multi-target' : 'Single-target',
-    target: S.target ? S.target.id+' &#8212; '+S.target.name : 'Unknown',
+    target: S.target ? S.target.id+' — '+S.target.name : 'Unknown',
     targetId: S.target ? S.target.id : '',
     targetObj: S.target ? JSON.parse(JSON.stringify(S.target)) : null,
     compounds: Object.values(S.basket).length,
@@ -2221,14 +2224,14 @@ function renderHistory() {
         '</div>' +
         '<div style="display:flex;gap:7px;flex-shrink:0">' +
           '<button class="btn btn-p btn-sm" onclick="reloadRun('+i+')">&#8635; Load Run</button>' +
-          '<button class="btn btn-g btn-sm" onclick="exportRunCSV('+i+')">&#8595; CSV</button>' +
+          '<button class="btn btn-g btn-sm" onclick="exportRunCSV('+i+')">↓ CSV</button>' +
           '<button class="btn btn-g btn-sm" onclick="deleteRun('+i+')" style="color:var(--red)">&#128465;</button>' +
         '</div>' +
       '</div>' +
       '<div class="cb" style="padding:12px 18px">' +
         '<div style="display:flex;gap:16px;font-size:12px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap">' +
           '<span>Compounds: <b style="color:var(--text)">' + run.compounds + '</b></span>' +
-          '<span>Best score: <b style="color:' + sc + '">' + (run.bestScore ? run.bestScore.toFixed(1)+' kcal/mol' : '&#8212;') + '</b></span>' +
+          '<span>Best score: <b style="color:' + sc + '">' + (run.bestScore ? run.bestScore.toFixed(1)+' kcal/mol' : '—') + '</b></span>' +
           '<span>Strong hits: <b style="color:var(--green)">' + hits + '</b></span>' +
         '</div>' +
         '<div style="display:flex;gap:4px;flex-wrap:wrap">' + topChips + moreTag + '</div>' +
@@ -2269,7 +2272,7 @@ function reloadRun(i) {
     }
   } else if(run.targetId) {
     // Minimal target restore
-    S.target = {id: run.targetId, name: run.target, center:{x:0,y:0,z:0}, res:'&#8212;'};
+    S.target = {id: run.targetId, name: run.target, center:{x:0,y:0,z:0}, res:'—'};
   }
 
   // Restore basket from results (names at minimum)
@@ -2278,7 +2281,7 @@ function reloadRun(i) {
       if(!S.basket[r.name]) {
         S.basket[r.name] = {
           name: r.name, smiles: r.smiles || SMILES_DB[r.name] || '',
-          src: r.src || '&#8212;', cls: 'Drug', mw: 300, logp: 2
+          src: r.src || '—', cls: 'Drug', mw: 300, logp: 2
         };
       }
     });
@@ -2317,7 +2320,7 @@ function reloadRun(i) {
     if(log) {
       var d = document.createElement('div');
       d.className = 'li';
-      d.textContent = '[HISTORY] Loaded run from ' + run.date + ' &#8212; ' + run.results.length + ' compounds on ' + (run.targetId||'unknown target');
+      d.textContent = '[HISTORY] Loaded run from ' + run.date + ' — ' + run.results.length + ' compounds on ' + (run.targetId||'unknown target');
       log.appendChild(d);
     }
   }, 500);
@@ -2327,7 +2330,7 @@ function exportRunCSV(i) {
   const run = HISTORY[i];
   if(!run || !run.results.length) { alert('No results in this run'); return; }
   const rows = [['Compound','Score (kcal/mol)','RMSD','ADMET','Real']];
-  run.results.forEach(r => rows.push([r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'&#8212;', r.admet, r.real?'Yes':'No']));
+  run.results.forEach(r => rows.push([r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'—', r.admet, r.real?'Yes':'No']));
   const a = document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(rows.map(r=>r.join(',')).join('\n'));
   a.download=`nexusmd_run_${run.date.replace(/[/:, ]/g,'_')}.csv`; a.click();
@@ -2337,7 +2340,7 @@ function exportAllCSV() {
   if(!HISTORY.length) { alert('No runs to export'); return; }
   let allRows = [['Run','Date','Target','Compound','Score (kcal/mol)','RMSD','ADMET']];
   HISTORY.forEach((run,ri) => {
-    run.results.forEach(r => allRows.push([ri+1, run.date, run.target, r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'&#8212;', r.admet]));
+    run.results.forEach(r => allRows.push([ri+1, run.date, run.target, r.name, r.score.toFixed(1), r.rmsd?.toFixed(2)||'—', r.admet]));
   });
   const a = document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(allRows.map(r=>r.join(',')).join('\n'));
@@ -2382,7 +2385,7 @@ converted to 3D conformations using Open Babel. The binding grid was centred on
 the known active site. Drug-likeness was assessed using Lipinski Ro5 criteria,
 Veber rules, and toxicophore screening (hERG, Ames).
 
-3. TOP HITS &#8212; BINDING AFFINITY RANKING
+3. TOP HITS — BINDING AFFINITY RANKING
 &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 Rank  Compound                    Score (kcal/mol)  ADMET
 ${topHits.map((r,i) => `${String(i+1).padEnd(6)}${r.name.padEnd(28)}${r.score.toFixed(1).padEnd(18)}${r.admet}`).join('\n')}
@@ -2398,7 +2401,7 @@ ADMET fail:               ${topHits.filter(r=>r.admet==='Fail').length}
 &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
 ${topHits.length ? `Lead candidate: ${topHits[0].name}
 Binding affinity: ${topHits[0].score.toFixed(1)} kcal/mol
-Interpretation: ${topHits[0].score<=-10?'Excellent binding &#8212; comparable to known drug candidates at this target. High priority for in vitro validation.':topHits[0].score<=-8?'Good binding affinity. Consistent with low-micromolar IC50. Recommended for experimental follow-up.':topHits[0].score<=-6?'Moderate binding. Scaffold may require optimisation via medicinal chemistry.':'Weak binding. Useful as starting scaffold only.'}` : 'No results available.'}
+Interpretation: ${topHits[0].score<=-10?'Excellent binding — comparable to known drug candidates at this target. High priority for in vitro validation.':topHits[0].score<=-8?'Good binding affinity. Consistent with low-micromolar IC50. Recommended for experimental follow-up.':topHits[0].score<=-6?'Moderate binding. Scaffold may require optimisation via medicinal chemistry.':'Weak binding. Useful as starting scaffold only.'}` : 'No results available.'}
 
 6. DISCUSSION
 &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
@@ -2414,7 +2417,7 @@ AutoDock Vina: Trott & Olson, J. Comput. Chem. 31:455&#8211;461 (2010).
 RDKit: RDKit.org (2024).
 
 &#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;&#9552;
-Report generated by NexusMD &#8212; Free Drug Discovery for Everyone
+Report generated by NexusMD — Free Drug Discovery for Everyone
 `;
 
   const a = document.createElement('a');
@@ -2453,12 +2456,14 @@ async function fetchAlphaFold(){
     if(box)box.className='ib ok';
     if(txt)txt.innerHTML='<b>'+uid+'</b> &mdash; '+name+(org?' &middot; '+org:'')+'<br><small style="color:#6B8BAA">AlphaFold predicted &middot; '+len+' aa &middot; Grid set to centre (adjust in Dock step)</small>';
     S.target={id:uid,name:name+(org?' ('+org+')':''),center:{x:0,y:0,z:0},res:'AlphaFold predicted',source:'alphafold',uid:uid};
-    var tn=document.getElementById('tgt-name');if(tn)tn.textContent=uid+' &#8212; '+name;
+    var tn=document.getElementById('tgt-name');if(tn)tn.textContent=uid+' — '+name;
     var td=document.getElementById('target-done');if(td)td.style.display='block';
     var ss=document.getElementById('ss-target');if(ss)ss.textContent=uid;
     var sb=document.getElementById('sessbox');if(sb)sb.style.display='block';
     var gs=document.getElementById('gsrc');if(gs)gs.textContent='AlphaFold';
     markDone('target');updatePrereqs();
+  // Load AlphaFold structure into viewer
+  loadProteinIntoViewer(uid, name, null, 'AlphaFold');
   }catch(e){
     if(box)box.className='ib warn';
     if(txt)txt.innerHTML='&#9888; '+e.message+' &mdash; check the accession at <a href="https://www.uniprot.org" target="_blank" style="color:#00C6CF">uniprot.org</a>';
@@ -2589,7 +2594,7 @@ function addWholeLibrary(lib) {
 
   if(status) {
     status.style.display = 'inline';
-    status.textContent = '&#10003; Added ' + added + ' compounds';
+    status.textContent = '✓ Added ' + added + ' compounds';
     setTimeout(function(){ status.style.display='none'; }, 3000);
   }
 }
@@ -2618,7 +2623,7 @@ function addSelectedDrugsToBasket() {
 function addFilteredDrugsToBasket() {
   var count = DL_FILTERED.length;
   if(count > 200) {
-    if(!confirm('Add all ' + count + ' filtered compounds to basket? Large sets may slow docking &#8212; consider using exhaustiveness=4 for speed.')) return;
+    if(!confirm('Add all ' + count + ' filtered compounds to basket? Large sets may slow docking — consider using exhaustiveness=4 for speed.')) return;
   }
   var added = 0;
   DL_FILTERED.forEach(function(r) {
@@ -2630,7 +2635,7 @@ function addFilteredDrugsToBasket() {
   renderBasket();
   renderDrugs();
   var st = document.getElementById('bulk-status');
-  if(st){ st.style.display='inline'; st.textContent='&#10003; Added '+added+' compounds'; setTimeout(function(){st.style.display='none';},3000); }
+  if(st){ st.style.display='inline'; st.textContent='✓ Added '+added+' compounds'; setTimeout(function(){st.style.display='none';},3000); }
 }
 
 
@@ -2663,7 +2668,7 @@ function showProteinViewer(pdbText, title, resolution, method) {
   el = document.getElementById('pv-method');
   if(el && method) el.textContent = method;
   el = document.getElementById('pv-atoms');
-  if(el) el.textContent = atoms.toLocaleString() + ' atoms &#183; ' + chains.length + ' chain' + (chains.length>1?'s':'');
+  if(el) el.textContent = atoms.toLocaleString() + ' atoms · ' + chains.length + ' chain' + (chains.length>1?'s':'');
 }
 
 function applyProteinStyle(style) {
@@ -2952,7 +2957,7 @@ function downloadComplexPDB() {
       .join('\n');
     var complex = S.currentProteinPDB.replace(/^END\s*$/m,'') + '\n' +
       'REMARK   Ligand: ' + (currentDetailName||'unknown') + '\n' +
-      'REMARK   Score: ' + (currentDetailScore||'&#8212;') + '\n' +
+      'REMARK   Score: ' + (currentDetailScore||'—') + '\n' +
       ligandLines + '\nEND\n';
     var a = document.createElement('a');
     a.href = 'data:chemical/x-pdb;charset=utf-8,' + encodeURIComponent(complex);
@@ -2962,8 +2967,8 @@ function downloadComplexPDB() {
     // No ligand SDF - download protein with SMILES annotation in REMARK
     var annotated = 'REMARK   NexusMD Drug-Protein Complex\n' +
       'REMARK   Target: ' + (S.target ? S.target.id + ' ' + S.target.name : '') + '\n' +
-      'REMARK   Ligand: ' + (currentDetailName||'&#8212;') + '\n' +
-      'REMARK   Score: ' + (currentDetailScore||'&#8212;') + '\n' +
+      'REMARK   Ligand: ' + (currentDetailName||'—') + '\n' +
+      'REMARK   Score: ' + (currentDetailScore||'—') + '\n' +
       (currentLigandSMI ? 'REMARK   SMILES: ' + currentLigandSMI + '\n' : '') +
       'REMARK   Note: 3D ligand coordinates require backend connection\n' +
       S.currentProteinPDB;
@@ -3007,7 +3012,7 @@ function downloadComplexSDF() {
     return;
   }
 
-  // Case 2: we have SMILES &#8212; generate a valid SDF with metadata
+  // Case 2: we have SMILES — generate a valid SDF with metadata
   var smi = currentLigandSMI || (S.results.length ? (S.results[0].smiles || SMILES_DB[S.results[0].name] || '') : '');
   var nm  = currentDetailName || (S.results.length ? S.results[0].name : 'ligand');
   var sc  = currentDetailScore || (S.results.length ? S.results[0].score+' kcal/mol' : '');
