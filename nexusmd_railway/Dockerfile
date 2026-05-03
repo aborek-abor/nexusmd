@@ -43,6 +43,7 @@ ENV OBABEL_BINARY=/usr/bin/obabel
 ENV PYTHONPATH=/nexusmd
 # Railway sets $PORT — default 8000 if not set
 ENV PORT=8000
+# Railway injects $PORT at runtime — shell form CMD expands it
 
 EXPOSE $PORT
 
@@ -50,4 +51,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:${PORT}/api/health || exit 1
 
 # Use shell form so $PORT is expanded at runtime
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --workers 1
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1

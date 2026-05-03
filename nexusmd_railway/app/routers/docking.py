@@ -4,6 +4,7 @@ import asyncio
 import time
 from pathlib import Path
 
+from fastapi.responses import PlainTextResponse
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
 from app.services.job_queue import job_manager
@@ -158,3 +159,25 @@ def _simulate_poses(smiles_list: list, names: list) -> list:
     for rank, p in enumerate(poses, 1):
         p["rank"] = rank
     return poses
+
+
+@router.post("/smiles2sdf")
+async def smiles_to_sdf(data: dict):
+    """Convert SMILES to 3D SDF using Open Babel for ligand visualization"""
+    import subprocess, tempfile, os
+    smiles = data.get("smiles", "")
+    name = data.get("name", "ligand")
+    if not smiles:
+        raise HTTPException(400, "No SMILES provided")
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sdf_out = os.path.join(tmpdir, "out.sdf")
+            result = subprocess.run(
+                ["obabel", "-:" + smiles, "--gen3d", "-O", sdf_out, "--title", name],
+                capture_output=True, text=True, timeout=30
+            )
+            if os.path.exists(sdf_out):
+                return PlainTextResponse(open(sdf_out).read())
+    except Exception as e:
+        pass
+    raise HTTPException(500, "Could not convert SMILES to SDF")

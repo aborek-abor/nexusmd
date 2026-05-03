@@ -1491,9 +1491,9 @@ function showDetail(i){
   dp.classList.add('open');
   dp.scrollIntoView({behavior:'smooth',block:'nearest'});
 
-  // Eagerly fetch 3D SDF from PubChem so downloads work immediately
+  // Eagerly fetch 3D SDF from PubChem (skip large molecules > 300 char SMILES)
   var smi = currentMolSMI || currentLigandSMI;
-  if(smi && !currentLigandSDF) {
+  if(smi && !currentLigandSDF && smi.length < 300) {
     fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(smi) + '/SDF?record_type=3d')
       .then(function(r){ return r.ok ? r.text() : null; })
       .then(function(sdf){ if(sdf && sdf.includes('M  END')) { currentLigandSDF = sdf; } })
@@ -2792,16 +2792,28 @@ async function loadProteinIntoViewer(targetId, title, resolution, method) {
     var msg = document.createElement('div');
     msg.style.color = '#6B8BAA';
     msg.style.fontSize = '13px';
-    msg.innerHTML = 'Could not load <b style="color:#E8F4FF">' + targetId + '</b><br>' +
-      '<span style="font-size:11px;color:#3A5068">' +
-      (isAlphaFold ? 'Try entering the UniProt ID in the AlphaFold tab' : 'Check the PDB ID at rcsb.org') +
-      '</span>';
+    var suggestion = isAlphaFold
+      ? '<br><span style="font-size:11px;color:#3A5068">This UniProt entry may not have an AlphaFold predicted structure.<br>Try a reviewed Swiss-Prot entry (e.g. P0DTD1, Q9Y233, P00533).<br>Or search by protein name in the Search by name tab.</span>'
+      : '<br><span style="font-size:11px;color:#3A5068">Check the PDB ID is valid at rcsb.org.<br>Use the Search by name tab to find the correct entry.</span>';
+    msg.innerHTML = 'Structure not available for <b style="color:#E8F4FF">' + targetId + '</b>' + suggestion;
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:center';
     var retryBtn = document.createElement('button');
     retryBtn.className = 'btn btn-p btn-sm';
     retryBtn.textContent = 'Retry';
     retryBtn.onclick = function(){ loadProteinIntoViewer(targetId, title, resolution, method); };
+    var searchBtn = document.createElement('button');
+    searchBtn.className = 'btn btn-g btn-sm';
+    searchBtn.textContent = 'Search by name';
+    searchBtn.onclick = function(){
+      setTargetSource('text');
+      var inp = document.getElementById('text-srch-inp');
+      if(inp){ inp.value = title || targetId; searchPDBByName(); }
+    };
+    row.appendChild(retryBtn);
+    row.appendChild(searchBtn);
     errDiv.appendChild(msg);
-    errDiv.appendChild(retryBtn);
+    errDiv.appendChild(row);
     container.appendChild(errDiv);
     return;
   }
@@ -2848,38 +2860,73 @@ function showLigandOnly() {
 }
 
 async function initViewer3d(smiles) {
-  // If no smiles passed, try to look it up
   if(!smiles && currentDetailName) smiles = getSMILES(currentDetailName);
   currentLigandSMI = smiles || currentLigandSMI || '';
+
   var container = document.getElementById('viewer-3d');
   if(!container || typeof $3Dmol === 'undefined') return;
-  container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Loading complex...</div>';
 
-  // Try to get real docked SDF from backend
-  if(S.backendMode && S.activeJobId) {
+  // Show loading
+  container.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:#6B8BAA;font-size:13px">' +
+    '<div>Preparing complex view...</div>' +
+    '<div style="width:180px;height:4px;background:#1A2D45;border-radius:4px;overflow:hidden">' +
+      '<div id="cv-bar" style="height:100%;width:10%;background:linear-gradient(90deg,#00C6CF,#00EC8C);border-radius:4px;transition:width .3s ease"></div>' +
+    '</div></div>';
+
+  function cvProg(p) { var b=document.getElementById('cv-bar'); if(b) b.style.width=p+'%'; }
+
+  // Step 1: Ensure protein is loaded
+  cvProg(20);
+  if(!S.currentProteinPDB && S.target && S.target.id) {
+    var tid = S.target.id;
+    var isAF = !!(S.target.source === 'alphafold') || /^[A-Z][0-9][A-Z0-9]{3}[0-9]$/.test(tid);
     try {
-      var r = await fetch(apiBase() + '/api/results/' + S.activeJobId + '/sdf');
-      if(r.ok) {
-        currentLigandSDF = await r.text();
+      var pdbUrl = isAF
+        ? (S.backendMode ? apiBase()+'/api/protein/alphafold/'+(S.target.uid||tid)+'/pdb'
+                         : 'https://alphafold.ebi.ac.uk/files/AF-'+(S.target.uid||tid)+'-F1-model_v4.pdb')
+        : (S.backendMode ? apiBase()+'/api/protein/'+tid+'/pdb'
+                         : 'https://files.rcsb.org/download/'+tid+'.pdb');
+      var pr = await fetch(pdbUrl);
+      if(pr.ok) {
+        var txt = await pr.text();
+        if(txt && txt.includes('ATOM')) S.currentProteinPDB = txt;
       }
     } catch(e) {}
   }
+  cvProg(50);
 
-  // Fetch 3D conformation from PubChem
-  if(!currentLigandSDF && smiles) {
-    var viewContainer = document.getElementById('viewer-3d');
-    if(viewContainer) viewContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Fetching 3D coordinates from PubChem...</div>';
+  // Step 2: Get ligand SDF
+  // Try backend real docked pose first
+  if(!currentLigandSDF && S.backendMode && S.activeJobId) {
     try {
-      var r = await fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(smiles) + '/SDF?record_type=3d');
-      if(r.ok) {
-        var sdf = await r.text();
-        if(sdf && sdf.includes('M  END')) currentLigandSDF = sdf;
-      }
+      var sr = await fetch(apiBase()+'/api/results/'+S.activeJobId+'/sdf');
+      if(sr.ok) { var sdf=await sr.text(); if(sdf&&sdf.includes('M  END')) currentLigandSDF=sdf; }
     } catch(e) {}
   }
 
+  // Try backend SMILES->SDF conversion (Open Babel server-side)
+  if(!currentLigandSDF && S.backendMode && currentLigandSMI && currentLigandSMI.length < 400) {
+    try {
+      var cr = await fetch(apiBase()+'/api/docking/smiles2sdf', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({smiles: currentLigandSMI, name: currentDetailName||'ligand'})
+      });
+      if(cr.ok) { var sdf=await cr.text(); if(sdf&&sdf.includes('M  END')) currentLigandSDF=sdf; }
+    } catch(e) {}
+  }
+
+  // Try PubChem for small molecules
+  if(!currentLigandSDF && currentLigandSMI && currentLigandSMI.length < 300) {
+    try {
+      var pcr = await fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/'+encodeURIComponent(currentLigandSMI)+'/SDF?record_type=3d');
+      if(pcr.ok) { var sdf=await pcr.text(); if(sdf&&sdf.includes('M  END')) currentLigandSDF=sdf; }
+    } catch(e) {}
+  }
+
+  cvProg(90);
   renderComplexViewer();
 }
+
 
 function renderComplexViewer() {
   var container = document.getElementById('viewer-3d');

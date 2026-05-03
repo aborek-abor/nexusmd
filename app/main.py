@@ -18,7 +18,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Back
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 
-from app.routers import docking, proteins, admet, pockets, scaffold, mmgbsa, fasta, search
+from app.routers import docking, proteins, admet, pockets, scaffold, mmgbsa, fasta
 from app.services.job_queue import job_manager
 from app.models.schemas import HealthResponse
 
@@ -78,7 +78,6 @@ app.include_router(pockets.router,  prefix="/api/pockets",  tags=["Pockets"])
 app.include_router(scaffold.router, prefix="/api/scaffold", tags=["Scaffold"])
 app.include_router(mmgbsa.router,   prefix="/api/mmgbsa",   tags=["MM-GBSA"])
 app.include_router(fasta.router,    prefix="/api/fasta",    tags=["FASTA"])
-app.include_router(search.router,   prefix="/api/search",   tags=["Search"])
 
 # ── Health ─────────────────────────────────────────
 def _check_binary(name: str) -> bool:
@@ -132,20 +131,15 @@ async def websocket_job(websocket: WebSocket, job_id: str):
 async def serve_frontend():
     index = FRONTEND_DIR / "index.html"
     if index.exists():
-        return HTMLResponse(
-            content=index.read_bytes().decode("utf-8"),
-            headers={"Content-Type": "text/html; charset=utf-8"}
-        )
-    return HTMLResponse("<h1>NexusMD</h1><p>Frontend not found.</p>", status_code=404)
+        return HTMLResponse(content=index.read_text(encoding="utf-8"))
+    return HTMLResponse("<h1>NexusMD</h1><p>Frontend not found. Deploy frontend/index.html</p>", status_code=404)
 
 @app.get("/{path:path}", response_class=HTMLResponse)
 async def serve_spa(path: str):
+    # Don't catch API routes
     if path.startswith("api/"):
         raise HTTPException(status_code=404)
     index = FRONTEND_DIR / "index.html"
     if index.exists():
-        return HTMLResponse(
-            content=index.read_bytes().decode("utf-8"),
-            headers={"Content-Type": "text/html; charset=utf-8"}
-        )
+        return HTMLResponse(content=index.read_text(encoding="utf-8"))
     raise HTTPException(status_code=404, detail="Frontend not found")

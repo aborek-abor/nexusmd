@@ -1,17 +1,14 @@
-# NexusMD — Python dependencies
-# Railway deployment (no Redis required — falls back to in-memory queue)
+# NexusMD — Python dependencies for Railway deployment
 
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 httpx==0.27.0
 pydantic==2.7.1
 python-multipart==0.0.9
-
-# Static file serving (frontend)
 aiofiles==23.2.1
 
-# Job queue (Redis optional — in-memory fallback works fine)
+# Job queue (Redis optional — in-memory fallback built in)
 redis==5.0.4
 
-# RDKit for real scaffold/Tanimoto search
-rdkit==2024.3.1
+# RDKit for scaffold/Tanimoto search (unpinned — gets latest stable)
+rdkit

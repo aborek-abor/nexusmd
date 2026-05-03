@@ -1,4 +1,3 @@
-# Railway project configuration
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
