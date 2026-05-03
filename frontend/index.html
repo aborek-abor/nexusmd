@@ -2144,10 +2144,12 @@ function saveToHistory() {
     type: Object.keys(MT_RESULTS||{}).length > 0 ? 'Multi-target' : 'Single-target',
     target: S.target ? S.target.id+' — '+S.target.name : 'Unknown',
     targetId: S.target ? S.target.id : '',
+    targetObj: S.target ? JSON.parse(JSON.stringify(S.target)) : null,
     compounds: Object.values(S.basket).length,
     results: JSON.parse(JSON.stringify(S.results)),
     bestScore: S.results.length ? S.results[0].score : null,
-    realData: S.results.some(r=>r.real),
+    realData: S.results.some(function(r){return r.real;}),
+    hasProteinPDB: !!S.currentProteinPDB,
   };
   // Avoid duplicates
   if(HISTORY.length && HISTORY[0].id === run.id) return;
@@ -2172,42 +2174,125 @@ function renderHistory() {
   histEmpty.style.display='none';
   histContent.style.display='block';
   const container = document.getElementById('hist-cards');
-  container.innerHTML = HISTORY.map((run,i) => {
-    const isMT = run.type === 'Multi-target';
-    const targets = isMT ? Object.values(run.mtTargets).map(t=>t.id).join(', ') : run.target;
-    return `<div class="card" style="margin-bottom:12px">
-      <div class="ch">
-        <div style="display:flex;align-items:center;gap:10px">
-          <span class="bdg ${isMT?'bg-a':'bg-t'}">${run.type}</span>
-          <div class="ct">${targets}</div>
-          <span style="color:var(--muted);font-size:12px">${run.date}</span>
-        </div>
-        <div style="display:flex;gap:7px">
-          <button class="btn btn-g btn-sm" onclick="reloadRun(${i})">Reload results</button>
-          <button class="btn btn-g btn-sm" onclick="exportRunCSV(${i})">↓ CSV</button>
-        </div>
-      </div>
-      <div class="cb" style="padding:12px 18px">
-        <div style="display:flex;gap:16px;font-size:12px;color:var(--muted)">
-          <span>Compounds: <b style="color:var(--text)">${run.compounds}</b></span>
-          <span>Best score: <b style="color:${run.bestScore?scoreColor(run.bestScore):'var(--muted)'}">${run.bestScore?run.bestScore.toFixed(1)+' kcal/mol':'—'}</b></span>
-          <span>Hits (≤−8): <b style="color:var(--green)">${run.results.filter(r=>r.score<=-8).length}</b></span>
-        </div>
-        ${!isMT&&run.results.length ? `<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-          ${run.results.slice(0,8).map(r=>`<span style="background:${scoreColor(r.score)};color:#000;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px">${r.name} ${r.score.toFixed(1)}</span>`).join('')}
-          ${run.results.length>8?`<span style="color:var(--muted);font-size:11px">+${run.results.length-8} more</span>`:''}
-        </div>`:''}
-      </div>
-    </div>`;
+  container.innerHTML = HISTORY.map(function(run,i) {
+    var isMT = run.type === 'Multi-target';
+    var targets = run.target || run.targetId || 'Unknown';
+    var hits = run.results.filter(function(r){return r.score<=-8;}).length;
+    var sc = run.bestScore ? scoreColor(run.bestScore) : 'var(--muted)';
+    var topChips = run.results.slice(0,6).map(function(r){
+      return '<span style="background:'+scoreColor(r.score)+';color:#000;font-size:11px;font-weight:700;padding:3px 9px;border-radius:100px;display:inline-block;margin:2px">'+r.name+' '+r.score.toFixed(1)+'</span>';
+    }).join('');
+    var moreTag = run.results.length > 6 ? '<span style="color:var(--muted);font-size:11px;margin-left:4px">+' + (run.results.length-6) + ' more</span>' : '';
+    return '<div class="card" style="margin-bottom:12px">' +
+      '<div class="ch">' +
+        '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+          '<span class="bdg '+(isMT?'bg-a':'bg-t')+'">' + run.type + '</span>' +
+          '<div class="ct">' + targets + '</div>' +
+          (run.realData ? '<span class="bdg bg-g">Real data</span>' : '') +
+          '<span style="color:var(--muted);font-size:12px">' + run.date + '</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:7px;flex-shrink:0">' +
+          '<button class="btn btn-p btn-sm" onclick="reloadRun('+i+')">&#8635; Load Run</button>' +
+          '<button class="btn btn-g btn-sm" onclick="exportRunCSV('+i+')">&#8595; CSV</button>' +
+          '<button class="btn btn-g btn-sm" onclick="deleteRun('+i+')" style="color:var(--red)">&#128465;</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="cb" style="padding:12px 18px">' +
+        '<div style="display:flex;gap:16px;font-size:12px;color:var(--muted);margin-bottom:8px;flex-wrap:wrap">' +
+          '<span>Compounds: <b style="color:var(--text)">' + run.compounds + '</b></span>' +
+          '<span>Best score: <b style="color:' + sc + '">' + (run.bestScore ? run.bestScore.toFixed(1)+' kcal/mol' : '—') + '</b></span>' +
+          '<span>Strong hits: <b style="color:var(--green)">' + hits + '</b></span>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap">' + topChips + moreTag + '</div>' +
+        '<div style="margin-top:10px;font-size:11px;color:var(--dim)">' +
+          'After loading: protein structure reloads automatically &middot; click any result Details to view 3D complex &amp; download SDF/PDB' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
+
+function deleteRun(i) {
+  if(!confirm('Delete this run from history?')) return;
+  HISTORY.splice(i, 1);
+  try { localStorage.setItem('nexusmd_history', JSON.stringify(HISTORY.slice(0,50))); } catch(e) {}
+  renderHistory();
+}
 function reloadRun(i) {
   const run = HISTORY[i];
   if(!run) return;
-  S.results = [...run.results];
+
+  // Restore results
+  S.results = JSON.parse(JSON.stringify(run.results));
+
+  // Restore target
+  if(run.targetObj) {
+    S.target = run.targetObj;
+    document.getElementById('ss-target').textContent = run.targetObj.id || run.targetId || '';
+    var sessbox = document.getElementById('sessbox');
+    if(sessbox) sessbox.style.display = 'block';
+    // Restore grid coordinates
+    if(run.targetObj.center) {
+      var gx=document.getElementById('gx'), gy=document.getElementById('gy'), gz=document.getElementById('gz');
+      if(gx) gx.value = run.targetObj.center.x || 0;
+      if(gy) gy.value = run.targetObj.center.y || 0;
+      if(gz) gz.value = run.targetObj.center.z || 0;
+    }
+  } else if(run.targetId) {
+    // Minimal target restore
+    S.target = {id: run.targetId, name: run.target, center:{x:0,y:0,z:0}, res:'—'};
+  }
+
+  // Restore basket from results (names at minimum)
+  if(!Object.keys(S.basket).length) {
+    run.results.forEach(function(r) {
+      if(!S.basket[r.name]) {
+        S.basket[r.name] = {
+          name: r.name, smiles: r.smiles || SMILES_DB[r.name] || '',
+          src: r.src || '—', cls: 'Drug', mw: 300, logp: 2
+        };
+      }
+    });
+    renderBasket();
+  }
+
+  // Reload protein structure in background
+  if(run.targetId && !S.currentProteinPDB) {
+    loadProteinIntoViewer(run.targetId, run.target, null, 'X-RAY');
+  }
+
+  // Generate downloadable SDF from SMILES for each result
+  if(!currentLigandSDF && run.results.length) {
+    var top = run.results[0];
+    currentLigandSMI = top.smiles || SMILES_DB[top.name] || '';
+    currentDetailName = top.name;
+    currentDetailScore = top.score ? top.score.toFixed(1) + ' kcal/mol' : '';
+    // Try to fetch 3D conformation from PubChem
+    if(currentLigandSMI) {
+      fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(currentLigandSMI) + '/SDF?record_type=3d')
+        .then(function(r){ if(r.ok) return r.text(); })
+        .then(function(sdf){ if(sdf && sdf.includes('M  END')) { currentLigandSDF = sdf; console.log('Ligand SDF loaded from PubChem'); } })
+        .catch(function(){});
+    }
+  }
+
+  // Update session info
+  document.getElementById('ss-results').textContent = run.results.length + ' poses';
+  updatePrereqs();
   renderResults();
   navTo('results', document.querySelector('.tb[onclick*="results"]'));
+
+  // Show info message
+  setTimeout(function(){
+    var log = document.getElementById('dock-log');
+    if(log) {
+      var d = document.createElement('div');
+      d.className = 'li';
+      d.textContent = '[HISTORY] Loaded run from ' + run.date + ' — ' + run.results.length + ' compounds on ' + (run.targetId||'unknown target');
+      log.appendChild(d);
+    }
+  }, 500);
 }
 
 function exportRunCSV(i) {
