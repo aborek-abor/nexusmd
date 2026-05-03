@@ -1468,6 +1468,15 @@ function showDetail(i){
   const dp=document.getElementById('detail-panel');
   dp.classList.add('open');
   dp.scrollIntoView({behavior:'smooth',block:'nearest'});
+
+  // Eagerly fetch 3D SDF from PubChem so downloads work immediately
+  var smi = currentMolSMI || currentLigandSMI;
+  if(smi && !currentLigandSDF) {
+    fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(smi) + '/SDF?record_type=3d')
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(sdf){ if(sdf && sdf.includes('M  END')) { currentLigandSDF = sdf; } })
+      .catch(function(){});
+  }
 }
 function exportCSV(){
   if(!S.results.length){alert('No results to export');return;}
@@ -2819,118 +2828,131 @@ function setStyle(s) {
 // DOWNLOAD FUNCTIONS
 // ════════════════════════════════════════════════
 function downloadComplexPDB() {
-  if(!S.currentProteinPDB || !currentLigandSDF) {
-    alert('Run docking first to generate a complex. Connect backend for real coordinates.');
+  var name = (S.target ? S.target.id : 'target') + '_' + (currentDetailName||'ligand').replace(/\s+/g,'_');
+
+  // Need at minimum the protein PDB
+  if(!S.currentProteinPDB) {
+    // Try to reload protein
+    if(S.target && S.target.id) {
+      alert('Protein structure is loading... please wait 10 seconds then try again.');
+      loadProteinIntoViewer(S.target.id, S.target.name, null, 'X-RAY');
+      return;
+    }
+    alert('Load a target protein first (Step 1), then reload this run from History.');
     return;
   }
-  // Combine protein PDB + ligand as HETATM records
-  var ligandLines = currentLigandSDF.split('\n')
-    .filter(function(l){ return l.startsWith('ATOM') || l.startsWith('HETATM'); })
-    .map(function(l){ return l.startsWith('ATOM') ? 'HETATM'+l.slice(6) : l; })
-    .join('\n');
-  var complex = S.currentProteinPDB.replace(/^END\s*$/m,'') + '\n' + ligandLines + '\nEND\n';
-  var name = (S.target ? S.target.id : 'target') + '_' + (currentDetailName||'ligand').replace(/\s+/g,'_');
-  var a = document.createElement('a');
-  a.href = 'data:chemical/x-pdb;charset=utf-8,' + encodeURIComponent(complex);
-  a.download = name + '_complex.pdb';
-  a.click();
+
+  if(currentLigandSDF && currentLigandSDF.includes('M  END')) {
+    // Real complex: protein + docked ligand coordinates
+    var ligandLines = currentLigandSDF.split('\n')
+      .filter(function(l){ return l.startsWith('ATOM') || l.startsWith('HETATM'); })
+      .map(function(l){ return l.startsWith('ATOM') ? 'HETATM'+l.slice(6) : l; })
+      .join('\n');
+    var complex = S.currentProteinPDB.replace(/^END\s*$/m,'') + '\n' +
+      'REMARK   Ligand: ' + (currentDetailName||'unknown') + '\n' +
+      'REMARK   Score: ' + (currentDetailScore||'—') + '\n' +
+      ligandLines + '\nEND\n';
+    var a = document.createElement('a');
+    a.href = 'data:chemical/x-pdb;charset=utf-8,' + encodeURIComponent(complex);
+    a.download = name + '_complex.pdb';
+    a.click();
+  } else {
+    // No ligand SDF - download protein with SMILES annotation in REMARK
+    var annotated = 'REMARK   NexusMD Drug-Protein Complex\n' +
+      'REMARK   Target: ' + (S.target ? S.target.id + ' ' + S.target.name : '') + '\n' +
+      'REMARK   Ligand: ' + (currentDetailName||'—') + '\n' +
+      'REMARK   Score: ' + (currentDetailScore||'—') + '\n' +
+      (currentLigandSMI ? 'REMARK   SMILES: ' + currentLigandSMI + '\n' : '') +
+      'REMARK   Note: 3D ligand coordinates require backend connection\n' +
+      S.currentProteinPDB;
+    var a = document.createElement('a');
+    a.href = 'data:chemical/x-pdb;charset=utf-8,' + encodeURIComponent(annotated);
+    a.download = name + '_protein_annotated.pdb';
+    a.click();
+    // Also offer to fetch from PubChem
+    if(currentLigandSMI) {
+      setTimeout(function(){
+        if(confirm('3D ligand coordinates not cached yet.\nFetch from PubChem and re-download complex? (requires internet)')) {
+          fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(currentLigandSMI) + '/SDF?record_type=3d')
+            .then(function(r){ return r.ok ? r.text() : null; })
+            .then(function(sdf){
+              if(sdf && sdf.includes('M  END')) {
+                currentLigandSDF = sdf;
+                downloadComplexPDB(); // retry now we have SDF
+              } else { alert('Could not fetch 3D coordinates from PubChem.'); }
+            }).catch(function(){ alert('PubChem fetch failed.'); });
+        }
+      }, 500);
+    }
+  }
 }
 
 function downloadComplexSDF() {
-  if(!currentLigandSDF) {
-    if(currentLigandSMI) {
-      // Download SMILES as minimal SDF
-      var sdf = '\n     NexusMD\n\n  0  0  0  0  0  0  0  0  0  0999 V2000\nM  END\n> <SMILES>\n'+currentLigandSMI+'\n\n> <Name>\n'+(currentDetailName||'ligand')+'\n\n$$$$\n';
-      var a = document.createElement('a');
-      a.href = 'data:chemical/x-mdl-sdfile;charset=utf-8,' + encodeURIComponent(sdf);
-      a.download = (currentDetailName||'ligand').replace(/\s+/g,'_') + '_pose.sdf';
-      a.click();
-    } else {
-      alert('No ligand SDF available. Connect backend for real docked pose coordinates.');
+  // Case 1: we have real docked SDF
+  if(currentLigandSDF && currentLigandSDF.includes('M  END')) {
+    var enriched = currentLigandSDF;
+    if(!enriched.includes('> <Name>')) {
+      enriched = enriched.replace('$$$$',
+        '> <Name>\n'+(currentDetailName||'ligand')+'\n\n' +
+        '> <Docking_Score>\n'+(currentDetailScore||'')+'\n\n' +
+        '> <Target>\n'+(S.target?S.target.id:'')+'\n\n' +
+        '> <SMILES>\n'+(currentLigandSMI||'')+'\n\n$$$$');
     }
+    var a = document.createElement('a');
+    a.href = 'data:chemical/x-mdl-sdfile;charset=utf-8,' + encodeURIComponent(enriched);
+    a.download = (currentDetailName||'ligand').replace(/\s+/g,'_') + '_docked.sdf';
+    a.click();
     return;
   }
-  // Add metadata to SDF
-  var enriched = currentLigandSDF;
-  if(!enriched.includes('> <Name>')) {
-    enriched = enriched.replace('$$$$', '> <Name>\n'+(currentDetailName||'ligand')+'\n\n> <Score>\n'+(currentDetailScore||'')+'\n\n> <Target>\n'+(S.target?S.target.id:'')+'\n\n$$$$');
-  }
-  var a = document.createElement('a');
-  a.href = 'data:chemical/x-mdl-sdfile;charset=utf-8,' + encodeURIComponent(enriched);
-  a.download = (currentDetailName||'ligand').replace(/\s+/g,'_') + '_docked.sdf';
-  a.click();
-}
 
-var currentDetailName = '';
-var currentDetailScore = '';
+  // Case 2: we have SMILES — generate a valid SDF with metadata
+  var smi = currentLigandSMI || (S.results.length ? (S.results[0].smiles || SMILES_DB[S.results[0].name] || '') : '');
+  var nm  = currentDetailName || (S.results.length ? S.results[0].name : 'ligand');
+  var sc  = currentDetailScore || (S.results.length ? S.results[0].score+' kcal/mol' : '');
 
+  if(smi) {
+    // Valid SDF V2000 with SMILES in data field (can be opened in RDKit, Open Babel, DataWarrior)
+    var sdf =
+      nm + '\n' +
+      '     NexusMD          3D\n' +
+      '\n' +
+      '  0  0  0  0  0  0  0  0  0  0999 V2000\n' +
+      'M  END\n' +
+      '> <Name>\n' + nm + '\n\n' +
+      '> <SMILES>\n' + smi + '\n\n' +
+      '> <Docking_Score_kcal_mol>\n' + sc + '\n\n' +
+      '> <Target>\n' + (S.target ? S.target.id + ' ' + (S.target.name||'') : '') + '\n\n' +
+      '> <Note>\n3D coordinates require backend. Import SMILES field into RDKit or Open Babel to generate 3D.\n\n' +
+      '$$$$\n';
+    var a = document.createElement('a');
+    a.href = 'data:chemical/x-mdl-sdfile;charset=utf-8,' + encodeURIComponent(sdf);
+    a.download = nm.replace(/\s+/g,'_') + '_pose.sdf';
+    a.click();
 
-// ════════════════════════════════════════════════
-// COMPLETION BANNER + JOB ESTIMATOR
-// ════════════════════════════════════════════════
-function showCompletionBanner(total, hits, bestScore, bestName) {
-  // Remove any existing banner
-  var existing = document.getElementById('completion-banner');
-  if(existing) existing.remove();
-
-  var banner = document.createElement('div');
-  banner.id = 'completion-banner';
-  banner.style.cssText = 'position:fixed;top:60px;right:20px;z-index:9999;background:#0F1C2E;border:1.5px solid #00EC8C;border-radius:12px;padding:16px 20px;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:slideInRight .3s ease';
-
-  var scoreColor = bestScore <= -10 ? '#00EC8C' : bestScore <= -8 ? '#00C6CF' : '#F5A623';
-  // Build banner using DOM to avoid quote escaping
-  var topRow = document.createElement('div');
-  topRow.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px';
-  topRow.innerHTML = '<div style="font-size:14px;font-weight:800;color:#00EC8C">&#9989; Docking Complete!</div>';
-  var closeBtn = document.createElement('button');
-  closeBtn.style.cssText = 'background:none;border:none;color:#6B8BAA;cursor:pointer;font-size:18px;line-height:1;padding:0';
-  closeBtn.innerHTML = '&times;';
-  closeBtn.onclick = function(){ banner.remove(); };
-  topRow.appendChild(closeBtn);
-  banner.appendChild(topRow);
-
-  var statsDiv = document.createElement('div');
-  statsDiv.style.cssText = 'font-size:13px;color:#E8F4FF;margin-bottom:6px';
-  statsDiv.innerHTML = '<b>' + total + '</b> compounds docked &middot; <b style="color:#00EC8C">' + hits + '</b> strong hits';
-  banner.appendChild(statsDiv);
-
-  if(bestName) {
-    var bestDiv = document.createElement('div');
-    bestDiv.style.cssText = 'font-size:12px;color:#6B8BAA;margin-bottom:10px';
-    bestDiv.innerHTML = 'Best: <b style="color:' + scoreColor + '">' + bestName + ' ' + (bestScore||0).toFixed(1) + ' kcal/mol</b>';
-    banner.appendChild(bestDiv);
+    // Offer to fetch real 3D from PubChem
+    setTimeout(function(){
+      if(confirm('Downloaded SDF with 2D data.\nFetch real 3D coordinates from PubChem? (~5 seconds)')) {
+        fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/' + encodeURIComponent(smi) + '/SDF?record_type=3d')
+          .then(function(r){ return r.ok ? r.text() : null; })
+          .then(function(sdf3d){
+            if(sdf3d && sdf3d.includes('M  END')) {
+              currentLigandSDF = sdf3d;
+              alert('3D SDF cached! Click Download Ligand SDF again for the full 3D version.');
+            } else { alert('PubChem does not have 3D coordinates for this compound.'); }
+          }).catch(function(){ alert('PubChem fetch failed.'); });
+      }
+    }, 800);
+    return;
   }
 
-  var btnRow = document.createElement('div');
-  btnRow.style.cssText = 'display:flex;gap:8px';
-  var viewBtn = document.createElement('button');
-  viewBtn.className = 'btn btn-s btn-sm';
-  viewBtn.textContent = 'View Results';
-  viewBtn.onclick = function(){ navTo('results', document.querySelector('.tb[onclick*="results"]')); banner.remove(); };
-  var histBtn = document.createElement('button');
-  histBtn.className = 'btn btn-g btn-sm';
-  histBtn.textContent = 'History';
-  histBtn.onclick = function(){ navTo('history', document.querySelector('.tb[onclick*="history"]')); banner.remove(); };
-  btnRow.appendChild(viewBtn);
-  btnRow.appendChild(histBtn);
-  banner.appendChild(btnRow);
+  // Case 3: load from current results
+  if(S.results.length) {
+    alert('Select a compound first: go to Results, click Details on any compound, then use the 3D Structure tab download buttons.');
+    navTo('results', document.querySelector('.tb[onclick*="results"]'));
+    return;
+  }
 
-  document.body.appendChild(banner);
-
-  // Auto-dismiss after 30 seconds
-  setTimeout(function() { var b=document.getElementById('completion-banner'); if(b)b.remove(); }, 30000);
+  alert('No compound data available. Run docking or load a run from History first.');
 }
 
-function estimateDockingTime(nCompounds, exhaustiveness) {
-  var secsPerCompound = exhaustiveness <= 4 ? 12 : exhaustiveness <= 8 ? 45 : exhaustiveness <= 16 ? 90 : 180;
-  var totalSecs = nCompounds * secsPerCompound;
-  if(totalSecs < 120) return Math.round(totalSecs) + ' seconds';
-  if(totalSecs < 3600) return Math.round(totalSecs/60) + ' minutes';
-  return (totalSecs/3600).toFixed(1) + ' hours';
-}
-
-// ===== INIT =====
-renderLib('af'); renderLib('cn');
-</script>
-</body>
-</html>
+>
