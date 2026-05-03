@@ -2714,8 +2714,11 @@ async function loadProteinIntoViewer(targetId, title, resolution, method) {
   }
 
   var pdbText = null;
-  var isAlphaFold = !!(S.target && S.target.source === 'alphafold');
-  var uniprotId   = S.target && S.target.uid ? S.target.uid : targetId;
+  // Detect AlphaFold: UniProt IDs are 6 chars (letter+digit+3alphanum+digit)
+  // PDB IDs are 4 chars starting with a digit
+  var looksLikeUniprot = /^[A-Z][0-9][A-Z0-9]{3}[0-9]$/.test(targetId) || /^[OPQ][0-9][A-Z0-9]{3}[0-9]$/.test(targetId);
+  var isAlphaFold = !!(S.target && S.target.source === 'alphafold') || looksLikeUniprot;
+  var uniprotId   = (S.target && S.target.uid) ? S.target.uid : targetId;
 
   prog(15, 'Checking source...');
 
@@ -2729,17 +2732,35 @@ async function loadProteinIntoViewer(targetId, title, resolution, method) {
       } catch(e) {}
     }
     if(!pdbText) {
-      for(var ver of ['v4','v3','v2']) {
+      // Try multiple AlphaFold URL patterns
+      var afUrls = [
+        'https://alphafold.ebi.ac.uk/files/AF-' + uniprotId + '-F1-model_v4.pdb',
+        'https://alphafold.ebi.ac.uk/files/AF-' + uniprotId + '-F1-model_v3.pdb',
+        'https://alphafold.ebi.ac.uk/files/AF-' + uniprotId + '-F1-model_v2.pdb',
+      ];
+      for(var afUrl of afUrls) {
         try {
-          var r = await fetch('https://alphafold.ebi.ac.uk/files/AF-' + uniprotId + '-F1-model_' + ver + '.pdb');
-          if(r.ok) { pdbText = await r.text(); prog(80, 'AlphaFold ' + ver + ' loaded'); break; }
+          prog(40, 'Trying AlphaFold EBI...');
+          var r = await fetch(afUrl);
+          if(r.ok) {
+            var txt = await r.text();
+            if(txt && txt.includes('ATOM')) { pdbText = txt; prog(80, 'AlphaFold structure loaded'); break; }
+          }
         } catch(e) {}
       }
     }
+    // If still nothing, try via backend which may have it cached
+    if(!pdbText && S.backendMode) {
+      try {
+        prog(60, 'Trying backend AlphaFold cache...');
+        var r = await fetch(apiBase() + '/api/protein/alphafold/' + uniprotId + '/pdb');
+        if(r.ok) { pdbText = await r.text(); prog(80, 'Got from backend'); }
+      } catch(e) {}
+    }
   }
 
-  // RCSB PDB path
-  if(!pdbText) {
+  // RCSB PDB path (only for non-UniProt IDs)
+  if(!pdbText && !isAlphaFold) {
     prog(30, 'Fetching from RCSB PDB...');
     if(S.backendMode) {
       try {
