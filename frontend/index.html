@@ -1375,7 +1375,7 @@ function finishDocking(apiResult,real){
       const base=-(4.5+Math.min(mw/75,4.5)+Math.min(Math.abs(lp-2.5),2)*0.6+Math.random()*1.8);
       const score=Math.max(-13,Math.min(-4,base));
       const ro5=(mw>500?1:0)+(lp>5?1:0)+(mw>700?1:0);
-      return{name:item.name,score:parseFloat(score.toFixed(1)),rmsd:parseFloat((Math.random()*2).toFixed(2)),admet:ro5>=2?'Fail':ro5>=1?'Warn':'Pass',real:false,src:item.src||'—'};
+      return{name:item.name,score:parseFloat(score.toFixed(1)),rmsd:parseFloat((Math.random()*2).toFixed(2)),admet:ro5>=2?'Fail':ro5>=1?'Warn':'Pass',real:false,src:item.src||'—',smiles:item.smiles||SMILES_DB[item.name]||getSMILES(item.name)||''};
     });
   }
   S.results.sort((a,b)=>a.score-b.score);
@@ -1427,7 +1427,8 @@ function showDetail(i){
   const r=S.results[i];
   currentDetailName = r.name || '';
   currentDetailScore = r.score ? r.score.toFixed(1)+' kcal/mol' : '';
-  currentMolSMI = r.smiles || SMILES_DB[r.name] || '';
+  currentMolSMI = r.smiles || SMILES_DB[r.name] || getSMILES(r.name) || '';
+  currentLigandSMI = currentMolSMI;
 
   document.getElementById('dp-name').textContent=r.name;
   document.getElementById('dp-sc').textContent=r.score.toFixed(1)+' kcal/mol';
@@ -1746,7 +1747,7 @@ function dpTab(tab, btn) {
   if(btn) btn.classList.add('active');
   const tp = document.getElementById('dpt-'+tab);
   if(tp) tp.classList.add('active');
-  if(tab === 'viewer') initViewer3d(currentMolSMI);
+  if(tab === 'viewer') { var smi = currentMolSMI || currentLigandSMI || getSMILES(currentDetailName); initViewer3d(smi); }
   if(tab === 'analogues') findAnalogues();
 }
 
@@ -2736,7 +2737,9 @@ function showLigandOnly() {
 }
 
 async function initViewer3d(smiles) {
-  currentLigandSMI = smiles || '';
+  // If no smiles passed, try to look it up
+  if(!smiles && currentDetailName) smiles = getSMILES(currentDetailName);
+  currentLigandSMI = smiles || currentLigandSMI || '';
   var container = document.getElementById('viewer-3d');
   if(!container || typeof $3Dmol === 'undefined') return;
   container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Loading complex...</div>';
@@ -2801,7 +2804,16 @@ function renderComplexViewer() {
   }
 
   if(!hasProtein && !hasLigand) {
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:12px;text-align:center;padding:20px">No structure data available.<br>Run docking first, then click Details on a result.</div>';
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:12px;text-align:center;padding:20px">' +
+      'Loading structure...<br><br>' +
+      (S.target ? 'Fetching ' + S.target.id + ' from RCSB...' : 'Load a target protein first (Step 1)') +
+      '</div>';
+    // Try to load protein if we have a target
+    if(S.target && S.target.id && !S.currentProteinPDB) {
+      loadProteinIntoViewer(S.target.id, S.target.name, null, 'X-RAY')
+        .then(function(){ setTimeout(renderComplexViewer, 1000); })
+        .catch(function(){});
+    }
     return;
   }
 
