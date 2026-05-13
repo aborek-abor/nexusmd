@@ -30,8 +30,11 @@ async def fold_with_esmfold(sequence: str, job_id: str, log_fn) -> Optional[dict
     """
     seq = clean_sequence(sequence)
     if not seq:
+        await log_fn(job_id, "[ESMFold] ERROR: sequence is empty after cleaning — check input for valid amino acid letters", "warn")
+        logger.error(f"[ESMFold] job={job_id} sequence empty after clean_sequence()")
         return None
 
+    logger.info(f"[ESMFold] job={job_id} submitting {len(seq)}-residue sequence")
     await log_fn(job_id, f"[ESMFold] Submitting {len(seq)}-residue sequence to Meta ESM API…", "info")
 
     start = time.time()
@@ -40,6 +43,7 @@ async def fold_with_esmfold(sequence: str, job_id: str, log_fn) -> Optional[dict
     try:
         async with httpx.AsyncClient(timeout=120) as client:
             await log_fn(job_id, "[ESMFold] Waiting for ESM-2 language model inference…", "info")
+            logger.info(f"[ESMFold] job={job_id} POST {ESMFOLD_URL} seq_len={len(seq)}")
             r = await client.post(
                 ESMFOLD_URL,
                 content=seq,
@@ -48,34 +52,69 @@ async def fold_with_esmfold(sequence: str, job_id: str, log_fn) -> Optional[dict
                     "User-Agent": "NexusMD/5.0",
                 },
             )
+            logger.info(f"[ESMFold] job={job_id} API response status={r.status_code} body_len={len(r.text)}")
             if r.status_code == 200:
                 pdb_string = r.text
-                await log_fn(job_id, "[ESMFold] Structure received from API ✓", "info")
+                await log_fn(job_id, f"[ESMFold] Structure received from API ✓ ({len(pdb_string)} bytes)", "info")
             else:
-                await log_fn(job_id, f"[ESMFold] API returned {r.status_code} — {r.text[:200]}", "warn")
+                err_body = r.text[:500]
+                logger.error(f"[ESMFold] job={job_id} API error status={r.status_code} body={err_body}")
+                await log_fn(job_id, f"[ESMFold] API returned HTTP {r.status_code} — {err_body}", "warn")
                 return None
     except httpx.TimeoutException:
-        await log_fn(job_id, "[ESMFold] API timeout — sequence may be too long. Try ColabFold for sequences >700 aa.", "warn")
+        logger.error(f"[ESMFold] job={job_id} request timed out after 120s for seq_len={len(seq)}")
+        await log_fn(job_id, f"[ESMFold] API timeout after 120s — sequence length {len(seq)} may be too long. Try ColabFold for sequences >700 aa.", "warn")
         return None
     except Exception as e:
-        await log_fn(job_id, f"[ESMFold] Request failed: {e}", "warn")
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"[ESMFold] job={job_id} request exception: {e}\n{tb}")
+        await log_fn(job_id, f"[ESMFold] Request failed: {type(e).__name__}: {e}", "warn")
         return None
 
-    if not pdb_string or not pdb_string.startswith("ATOM"):
-        await log_fn(job_id, "[ESMFold] Invalid PDB response from API", "warn")
+    # Validate PDB response
+    if pdb_string is None:
+        logger.error(f"[ESMFold] job={job_id} pdb_string is None after successful HTTP 200")
+        await log_fn(job_id, "[ESMFold] ERROR: API returned HTTP 200 but response body is None", "warn")
+        return None
+
+    if len(pdb_string.strip()) == 0:
+        logger.error(f"[ESMFold] job={job_id} pdb_string is empty (0 bytes) after HTTP 200")
+        await log_fn(job_id, "[ESMFold] ERROR: API returned HTTP 200 but response body is empty", "warn")
+        return None
+
+    if not pdb_string.lstrip().startswith("ATOM"):
+        first_100 = pdb_string[:100].replace("\n", "\\n")
+        logger.error(f"[ESMFold] job={job_id} PDB does not start with ATOM — first 100 chars: {first_100}")
+        await log_fn(job_id, f"[ESMFold] ERROR: API response is not valid PDB (does not start with ATOM). Got: {first_100}", "warn")
         return None
 
     elapsed = round(time.time() - start, 1)
+    logger.info(f"[ESMFold] job={job_id} valid PDB received, parsing pLDDT…")
 
     # Parse pLDDT from B-factor column of ATOM records
-    mean_plddt = parse_plddt_from_pdb(pdb_string)
-    ptm = estimate_ptm(mean_plddt)
+    try:
+        mean_plddt = parse_plddt_from_pdb(pdb_string)
+        ptm = estimate_ptm(mean_plddt)
+        logger.info(f"[ESMFold] job={job_id} mean_plddt={mean_plddt} ptm={ptm}")
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"[ESMFold] job={job_id} parse_plddt_from_pdb() failed: {e}\n{tb}")
+        await log_fn(job_id, f"[ESMFold] ERROR parsing pLDDT scores: {type(e).__name__}: {e}", "warn")
+        return None
 
     await log_fn(job_id, f"[ESMFold] Mean pLDDT: {mean_plddt:.1f} · pTM: {ptm:.2f} · Elapsed: {elapsed}s", "done")
 
     # Cache the result
-    cache_file = FASTA_CACHE_DIR / f"{job_id}_esmfold.pdb"
-    cache_file.write_text(pdb_string)
+    try:
+        cache_file = FASTA_CACHE_DIR / f"{job_id}_esmfold.pdb"
+        cache_file.write_text(pdb_string)
+        logger.info(f"[ESMFold] job={job_id} PDB cached at {cache_file}")
+    except Exception as e:
+        logger.warning(f"[ESMFold] job={job_id} failed to cache PDB: {e}")
+        await log_fn(job_id, f"[ESMFold] Warning: could not cache PDB file: {e}", "warn")
+        cache_file = None
 
     return {
         "pdb_string": pdb_string,
@@ -84,7 +123,7 @@ async def fold_with_esmfold(sequence: str, job_id: str, log_fn) -> Optional[dict
         "sequence_length": len(seq),
         "elapsed_s": elapsed,
         "engine": "ESMFold",
-        "pdb_path": str(cache_file),
+        "pdb_path": str(cache_file) if cache_file else None,
     }
 
 
@@ -102,11 +141,19 @@ async def fold_sequence(
     Others: return guidance on local installation.
     """
     seq = clean_sequence(sequence)
+    logger.info(f"[fold_sequence] job={job_id} engine={engine} raw_len={len(sequence)} cleaned_len={len(seq)}")
+    await log_fn(job_id, f"[fold_sequence] engine={engine} sequence length after cleaning: {len(seq)} residues", "info")
 
     if engine == "esm":
+        logger.info(f"[fold_sequence] job={job_id} calling fold_with_esmfold()")
         result = await fold_with_esmfold(seq, job_id, log_fn)
-        if result and relax:
-            await log_fn(job_id, "[ESMFold] Note: Amber relaxation requires OpenMM locally.", "info")
+        if result is None:
+            logger.error(f"[fold_sequence] job={job_id} fold_with_esmfold() returned None — prediction failed")
+            await log_fn(job_id, "[fold_sequence] ERROR: fold_with_esmfold() returned None — check ESMFold logs above for the specific failure reason", "warn")
+        else:
+            logger.info(f"[fold_sequence] job={job_id} fold_with_esmfold() succeeded: plddt={result.get('mean_plddt')} seq_len={result.get('sequence_length')}")
+            if relax:
+                await log_fn(job_id, "[ESMFold] Note: Amber relaxation requires OpenMM locally.", "info")
         return result
 
     elif engine == "colabfold":

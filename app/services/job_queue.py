@@ -75,6 +75,11 @@ class JobManager:
         if self._redis:
             await self._redis.aclose()
 
+    @property
+    def redis_connected(self) -> bool:
+        """Synchronous property for quick health-check reads (no ping)."""
+        return self._redis is not None
+
     async def redis_ok(self) -> bool:
         if not self._redis:
             return False
@@ -150,6 +155,11 @@ class JobManager:
                 await self._redis.publish(f"nexusmd:job:{job_id}", json.dumps(msg))
             except Exception as e:
                 logger.debug(f"Redis publish failed: {e}")
+
+    async def stream_job(self, job_id: str) -> AsyncGenerator[dict, None]:
+        """Alias for subscribe() — kept for backwards compatibility."""
+        async for msg in self.subscribe(job_id):
+            yield msg
 
     async def subscribe(self, job_id: str) -> AsyncGenerator[dict, None]:
         """

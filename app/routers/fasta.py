@@ -1,11 +1,15 @@
 """NexusMD — FASTA / ESMFold Router"""
+import logging
 import time
+import traceback
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from app.models.schemas import FASTARequest, FASTAResult, JobStatus
 from app.services.esmfold_service import fold_sequence, parse_plddt_per_residue
 from app.services.job_queue import job_manager
+
+logger = logging.getLogger("nexusmd.fasta")
 
 router = APIRouter()
 FASTA_DIR = Path(__file__).parent.parent.parent / "data" / "fasta_results"
@@ -56,14 +60,33 @@ async def get_plddt(job_id: str):
 
 async def _fold_job(job_id: str, req: FASTARequest):
     start = time.time()
+    seq_len = len(req.sequence.replace("\n", "").replace(" ", ""))
+    logger.info(f"[_fold_job] job={job_id} engine={req.engine} seq_len={seq_len}")
     try:
         await job_manager.update(job_id, "running", 5, "Starting structure prediction…")
+        await job_manager.log(job_id, f"[FASTA] Job {job_id} — engine={req.engine} seq_len={seq_len}", "info")
+
+        logger.info(f"[_fold_job] job={job_id} calling fold_sequence()")
         result = await fold_sequence(
             req.sequence, req.engine, job_id,
             job_manager.log, req.relax, req.num_recycles,
         )
+
+        logger.info(f"[_fold_job] job={job_id} fold_sequence() returned: {result is not None}")
         if result is None:
-            await job_manager.update(job_id, "failed", 100, "Prediction failed — see log for details")
+            # Collect the last few log lines to surface the real reason
+            job = job_manager.get_job(job_id)
+            last_warn = ""
+            if job:
+                warn_lines = [
+                    e.get("line", "") for e in job.logs
+                    if e.get("level") in ("warn", "error") and e.get("line", "")
+                ]
+                if warn_lines:
+                    last_warn = f" Last error: {warn_lines[-1]}"
+            msg = f"Prediction failed for {req.engine} ({seq_len} residues).{last_warn}"
+            logger.error(f"[_fold_job] job={job_id} {msg}")
+            await job_manager.update(job_id, "failed", 100, msg)
             return
 
         elapsed = round(time.time() - start, 1)
@@ -77,9 +100,13 @@ async def _fold_job(job_id: str, req: FASTARequest):
             "engine": result["engine"],
             "elapsed_s": elapsed,
         }
+        logger.info(f"[_fold_job] job={job_id} done — plddt={result['mean_plddt']} elapsed={elapsed}s")
         await job_manager.update(job_id, "done", 100,
             f"Done — pLDDT {result['mean_plddt']:.1f}", result=result_dict)
     except Exception as e:
-        await job_manager.update(job_id, "failed", 100, f"Error: {e}")
-        await job_manager.log(job_id, f"[ERROR] {e}", "warn")
+        tb = traceback.format_exc()
+        logger.error(f"[_fold_job] job={job_id} unhandled exception: {e}\n{tb}")
+        await job_manager.update(job_id, "failed", 100, f"Unhandled error: {type(e).__name__}: {e}")
+        await job_manager.log(job_id, f"[ERROR] {type(e).__name__}: {e}", "warn")
+        await job_manager.log(job_id, f"[TRACEBACK] {tb}", "warn")
         raise
