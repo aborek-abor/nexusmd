@@ -61,8 +61,9 @@ async def fold_with_esmfold(sequence: str, job_id: str, log_fn) -> Optional[dict
         await log_fn(job_id, f"[ESMFold] Request failed: {e}", "warn")
         return None
 
-    if not pdb_string or not pdb_string.startswith("ATOM"):
-        await log_fn(job_id, "[ESMFold] Invalid PDB response from API", "warn")
+    if not pdb_string or "ATOM" not in pdb_string:
+        first_100 = pdb_string[:100].replace("\n", "\\n") if pdb_string else ""
+        await log_fn(job_id, f"[ESMFold] ERROR: API response is not valid PDB (no ATOM records found). Got: {first_100}", "warn")
         return None
 
     elapsed = round(time.time() - start, 1)
