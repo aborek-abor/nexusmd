@@ -44,7 +44,10 @@ async def lifespan(app: FastAPI):
     vina_ok = _check_binary("vina")
     obabel_ok = _check_binary("obabel")
     logger.info(f"  Vina:   {'✓ found' if vina_ok else '✗ not found (simulation mode)'}")
-    logger.info(f"  OBabel: {'✓ found' if obabel_ok else '✗ not found'}")
+    if obabel_ok:
+        logger.info("  OBabel: ✓ found")
+    else:
+        logger.warning("  OBabel: ✗ not found — SMILES→3D and PDBQT conversion will be unavailable; docking will use simulation mode. Install openbabel or set OBABEL_BINARY env var.")
     logger.info(f"  Frontend: {FRONTEND_DIR} ({'exists' if FRONTEND_DIR.exists() else 'MISSING'})")
     await job_manager.start()
     yield
@@ -81,18 +84,53 @@ app.include_router(fasta.router,    prefix="/api/fasta",    tags=["FASTA"])
 
 # ── Health ─────────────────────────────────────────
 def _check_binary(name: str) -> bool:
+    """
+    Check if a binary is available. Tries in order:
+    1. The bare name (relies on PATH)
+    2. The env-var override (e.g. OBABEL_BINARY / VINA_BINARY)
+    3. Common install locations (/usr/bin, /usr/local/bin)
+    Logs the specific failure reason so startup output is actionable.
+    """
+    # 1. Try bare name via PATH
     try:
         result = subprocess.run(
             [name, "--version"], capture_output=True, timeout=5
         )
-        return result.returncode == 0
-    except Exception:
+        if result.returncode == 0:
+            return True
+        logger.debug(f"  {name} via PATH returned non-zero exit code {result.returncode}")
+    except FileNotFoundError:
+        logger.debug(f"  {name} not found in PATH")
+    except Exception as e:
+        logger.debug(f"  {name} PATH check failed: {e}")
+
+    # 2. Try env-var override
+    env_path = os.environ.get(f"{name.upper()}_BINARY", "")
+    if env_path:
         try:
-            path = os.environ.get(f"{name.upper()}_BINARY", f"/usr/local/bin/{name}")
-            result = subprocess.run([path, "--version"], capture_output=True, timeout=5)
-            return result.returncode == 0
+            result = subprocess.run([env_path, "--version"], capture_output=True, timeout=5)
+            if result.returncode == 0:
+                return True
+            logger.debug(f"  {name} at {env_path} (env var) returned exit code {result.returncode}")
+        except FileNotFoundError:
+            logger.debug(f"  {name} not found at env-var path: {env_path}")
+        except Exception as e:
+            logger.debug(f"  {name} env-var path check failed: {e}")
+
+    # 3. Try common install locations
+    for candidate in (f"/usr/bin/{name}", f"/usr/local/bin/{name}"):
+        try:
+            result = subprocess.run([candidate, "--version"], capture_output=True, timeout=5)
+            if result.returncode == 0:
+                logger.info(f"  {name} found at {candidate} (not in PATH — consider adding to PATH)")
+                return True
+        except FileNotFoundError:
+            pass
         except Exception:
-            return False
+            pass
+
+    logger.warning(f"  {name} not found in PATH, env var, or common locations (/usr/bin, /usr/local/bin)")
+    return False
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health():
@@ -117,11 +155,17 @@ async def health():
 @app.websocket("/ws/{job_id}")
 async def websocket_job(websocket: WebSocket, job_id: str):
     await websocket.accept()
+    logger.info(f"WebSocket connected for job {job_id}")
     try:
-        async for msg in job_manager.stream_job(job_id):
+        job = job_manager.get_job(job_id)
+        if not job:
+            await websocket.send_json({"type": "error", "job_id": job_id, "message": f"Job {job_id} not found"})
+            await websocket.close()
+            return
+        async for msg in job_manager.subscribe(job_id):
             await websocket.send_json(msg)
     except WebSocketDisconnect:
-        pass
+        logger.info(f"WebSocket disconnected for job {job_id}")
     except Exception as e:
         logger.error(f"WebSocket error for job {job_id}: {e}")
 
