@@ -41,6 +41,32 @@ async def get_status(job_id: str):
         raise HTTPException(404, f"Job {job_id} not found")
     return JobStatus(**job.to_dict())
 
+@router.get("/poll/{job_id}")
+async def poll_job(job_id: str):
+    """
+    Lightweight polling endpoint for clients that cannot use WebSockets.
+    Returns current job status, progress, message, and the last 20 log lines.
+    """
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(404, f"Job {job_id} not found")
+    log_lines = [
+        {"level": e.get("level", "info"), "line": e.get("line", e.get("message", ""))}
+        for e in job.logs[-20:]
+        if e.get("type") == "log"
+    ]
+    import time as _time
+    return {
+        "job_id": job_id,
+        "status": job.status,
+        "progress": job.progress,
+        "message": job.message,
+        "server_ts": _time.time(),
+        "updated_at": job.updated_at,
+        "logs": log_lines,
+        "result": job.result if job.status == "done" else None,
+    }
+
 
 @router.get("/results/{job_id}", response_model=DockingResult)
 async def get_results(job_id: str):
