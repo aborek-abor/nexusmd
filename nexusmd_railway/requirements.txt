@@ -12,3 +12,6 @@ redis==5.0.4
 
 # RDKit for scaffold/Tanimoto search (unpinned — gets latest stable)
 rdkit
+
+# S3-compatible bucket storage (Railway Bucket / AWS S3)
+boto3==1.34.69

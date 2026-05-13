@@ -51,6 +51,18 @@ class PoseResult(BaseModel):
     admet_status: Optional[str]
 
 
+class LigandDownloadUrl(BaseModel):
+    index: int
+    name: str
+    url: str
+
+
+class DownloadUrls(BaseModel):
+    sdf: str
+    all_zip: str
+    ligands: List[LigandDownloadUrl]
+
+
 class DockingResult(BaseModel):
     job_id: str
     protein: str
@@ -59,6 +71,7 @@ class DockingResult(BaseModel):
     elapsed_s: float
     sdf_url: Optional[str]
     pdbqt_url: Optional[str]
+    download_urls: Optional[DownloadUrls] = None
 
 
 class JobStatus(BaseModel):

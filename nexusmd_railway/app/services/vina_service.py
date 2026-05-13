@@ -75,7 +75,15 @@ async def run_vina_docking(
     await write_combined_sdf(all_poses, job_dir / "poses.sdf")
     await log_fn(job_id, f"[Vina] Docking complete — {len(all_poses)} poses", "done")
 
+    # Persist results to bucket for durable storage across container restarts
+    try:
+        from app.services.storage_service import upload_job_results
+        await upload_job_results(job_id, job_dir)
+    except Exception as e:
+        logger.warning(f"[Storage] Bucket upload failed (results still available locally): {e}")
+
     return all_poses
+
 
 
 async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
