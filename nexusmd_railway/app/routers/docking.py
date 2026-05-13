@@ -1,12 +1,16 @@
 """NexusMD — Docking Router"""
 
 import asyncio
+import io
 import time
+import zipfile
 from pathlib import Path
 
-from fastapi.responses import PlainTextResponse
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
+from fastapi.responses import PlainTextResponse, StreamingResponse
+from app.models.schemas import (
+    DockingRequest, DockingResult, DownloadUrls, JobStatus, LigandDownloadUrl, PoseResult,
+)
 from app.services.job_queue import job_manager
 from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt
 from app.services.admet_service import predict_admet_batch
@@ -48,6 +52,78 @@ async def get_results(job_id: str):
     if not job.result:
         raise HTTPException(500, "Job completed but no results stored")
     return DockingResult(**job.result)
+
+
+@router.get("/results/{job_id}/download/sdf")
+async def download_sdf(job_id: str):
+    """Download the combined poses SDF file for a completed docking job."""
+    job_dir = RESULTS_DIR / job_id
+    sdf_path = job_dir / "poses.sdf"
+    if not sdf_path.exists():
+        raise HTTPException(404, f"SDF file not found for job {job_id}")
+    content = sdf_path.read_bytes()
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f'attachment; filename="{job_id}_poses.sdf"'},
+    )
+
+
+@router.get("/results/{job_id}/download/pdbqt/{ligand_index}")
+async def download_pdbqt(job_id: str, ligand_index: int):
+    """Download the docked PDBQT file for a single ligand."""
+    job_dir = RESULTS_DIR / job_id
+    pdbqt_path = job_dir / f"out_{ligand_index}.pdbqt"
+    if not pdbqt_path.exists():
+        raise HTTPException(
+            404, f"PDBQT file not found for job {job_id}, ligand index {ligand_index}"
+        )
+    content = pdbqt_path.read_bytes()
+    return StreamingResponse(
+        io.BytesIO(content),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{job_id}_ligand_{ligand_index}.pdbqt"'
+            )
+        },
+    )
+
+
+@router.get("/results/{job_id}/download/all")
+async def download_all(job_id: str):
+    """Download all docking results (poses.sdf + all PDBQT files) as a ZIP archive."""
+    job_dir = RESULTS_DIR / job_id
+    if not job_dir.exists():
+        raise HTTPException(404, f"No results found for job {job_id}")
+
+    # Collect files to include in the archive
+    files_to_zip: list[Path] = []
+    poses_sdf = job_dir / "poses.sdf"
+    if poses_sdf.exists():
+        files_to_zip.append(poses_sdf)
+    files_to_zip.extend(sorted(job_dir.glob("out_*.pdbqt")))
+    files_to_zip.extend(sorted(job_dir.glob("lig_*.pdbqt")))
+
+    if not files_to_zip:
+        raise HTTPException(404, f"No result files found for job {job_id}")
+
+    # Build ZIP in memory
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, mode="w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for file_path in files_to_zip:
+            zf.write(file_path, arcname=file_path.name)
+    zip_buffer.seek(0)
+
+    return StreamingResponse(
+        zip_buffer,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="{job_id}_docking_results.zip"'
+            )
+        },
+    )
 
 
 async def _run_docking_job(job_id: str, req: DockingRequest):
@@ -121,14 +197,31 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         await log(job_id, f"[INFO] {len(poses)} total poses generated")
 
         elapsed = round(time.time() - start, 1)
+
+        # Build per-ligand download URLs based on the out_*.pdbqt files produced
+        job_dir = RESULTS_DIR / job_id
+        ligand_urls = [
+            {
+                "index": i,
+                "name": f"ligand_{i}",
+                "url": f"/api/docking/results/{job_id}/download/pdbqt/{i}",
+            }
+            for i, _ in enumerate(sorted(job_dir.glob("out_*.pdbqt")))
+        ] if job_dir.exists() else []
+
         result = {
             "job_id": job_id,
             "protein": protein_id,
             "engine": req.engine,
             "poses": poses,
             "elapsed_s": elapsed,
-            "sdf_url": f"/api/results/{job_id}/sdf",
-            "pdbqt_url": f"/api/results/{job_id}/pdbqt",
+            "sdf_url": f"/api/docking/results/{job_id}/download/sdf",
+            "pdbqt_url": f"/api/docking/results/{job_id}/download/all",
+            "download_urls": {
+                "sdf": f"/api/docking/results/{job_id}/download/sdf",
+                "all_zip": f"/api/docking/results/{job_id}/download/all",
+                "ligands": ligand_urls,
+            },
         }
         await update(job_id, "done", 100, f"Done — {len(poses)} poses in {elapsed}s", result=result)
         await log(job_id, f"[DONE] Docking complete in {elapsed}s — {len(poses)} poses")
