@@ -18,7 +18,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Back
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 
-from app.routers import docking, proteins, admet, pockets, scaffold, mmgbsa, fasta
+from app.routers import docking, proteins, admet, pockets, scaffold, mmgbsa, fasta, md
 from app.services.job_queue import job_manager
 from app.models.schemas import HealthResponse
 
@@ -78,6 +78,7 @@ app.include_router(pockets.router,  prefix="/api/pockets",  tags=["Pockets"])
 app.include_router(scaffold.router, prefix="/api/scaffold", tags=["Scaffold"])
 app.include_router(mmgbsa.router,   prefix="/api/mmgbsa",   tags=["MM-GBSA"])
 app.include_router(fasta.router,    prefix="/api/fasta",    tags=["FASTA"])
+app.include_router(md.router,       prefix="/api/md",       tags=["MD"])
 
 # ── Health ─────────────────────────────────────────
 def _check_binary(name: str) -> bool:
