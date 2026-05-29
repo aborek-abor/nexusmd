@@ -6,22 +6,32 @@ import time
 from pathlib import Path
 
 from fastapi.responses import PlainTextResponse
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
 from app.services.job_queue import job_manager
 from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt
 from app.services.admet_service import predict_admet_batch
 from app.services.ligand_parser import parse_sdf_file, parse_mol2_file
+from app.services.protein_parser import (
+    parse_pdb_file,
+    parse_cif_file,
+    fetch_alphafold_structure,
+    search_alphafold,
+)
 
 logger = logging.getLogger("nexusmd.docking")
 router = APIRouter()
 
 RESULTS_DIR  = Path(__file__).parent.parent.parent / "data" / "results"
 UPLOADS_DIR  = Path(__file__).parent.parent.parent / "data" / "uploads"
+LIGANDS_DIR  = Path(__file__).parent.parent.parent / "data" / "ligands"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+LIGANDS_DIR.mkdir(parents=True, exist_ok=True)
 
-SUPPORTED_EXTENSIONS = {".sdf", ".mol", ".mol2"}
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+SUPPORTED_EXTENSIONS      = {".sdf", ".mol", ".mol2"}
+PROTEIN_EXTENSIONS        = {".pdb", ".cif", ".mmcif"}
+MAX_UPLOAD_BYTES          = 10 * 1024 * 1024   # 10 MB
+MAX_PROTEIN_UPLOAD_BYTES  = 50 * 1024 * 1024   # 50 MB
 
 
 @router.post("/upload-ligands")
@@ -87,6 +97,127 @@ async def upload_ligands(file: UploadFile = File(...)):
 
     ligands = [{"name": m["name"], "smiles": m["smiles"]} for m in molecules]
     return {"file_id": file_id, "ligands": ligands, "count": len(ligands)}
+
+
+# ── Protein upload / AlphaFold endpoints ──────────────────────
+
+@router.post("/upload-protein")
+async def upload_protein(file: UploadFile = File(...)):
+    """Accept a PDB or mmCIF file upload and return parsed protein metadata.
+
+    The uploaded file is stored under ``data/ligands/{timestamp}_{filename}``.
+
+    Response shape::
+
+        {
+            "protein_id": "UPLOAD:timestamp_filename",
+            "name":       str,
+            "chains":     int,
+            "residues":   int,
+        }
+    """
+    original_name = file.filename or "upload"
+    suffix = Path(original_name).suffix.lower()
+    if suffix not in PROTEIN_EXTENSIONS:
+        raise HTTPException(
+            400,
+            f"Unsupported protein file format '{suffix}'. "
+            f"Supported formats: {', '.join(sorted(PROTEIN_EXTENSIONS))}",
+        )
+
+    content = await file.read()
+    if len(content) > MAX_PROTEIN_UPLOAD_BYTES:
+        raise HTTPException(
+            400,
+            f"File too large ({len(content) // (1024*1024)} MB). "
+            "Maximum allowed size is 50 MB.",
+        )
+    if not content.strip():
+        raise HTTPException(400, "Uploaded file is empty.")
+
+    timestamp = int(time.time())
+    safe_name = Path(original_name).name.replace(" ", "_")
+    file_id = f"{timestamp}_{safe_name}"
+    dest = LIGANDS_DIR / file_id
+    dest.write_bytes(content)
+    logger.info(f"Protein file uploaded: {file_id} ({len(content)} bytes)")
+
+    try:
+        if suffix == ".pdb":
+            info = parse_pdb_file(dest)
+        else:  # .cif / .mmcif
+            info = parse_cif_file(dest)
+    except (ValueError, FileNotFoundError) as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        dest.unlink(missing_ok=True)
+        logger.exception(f"Unexpected error parsing protein file {file_id}: {exc}")
+        raise HTTPException(400, f"Failed to parse protein file: {exc}")
+
+    return {
+        "protein_id": f"UPLOAD:{file_id}",
+        "name":       info["name"],
+        "chains":     info["chains"],
+        "residues":   info["residues"],
+    }
+
+
+@router.get("/search-alphafold")
+async def search_alphafold_endpoint(q: str = Query(..., min_length=1, description="UniProt ID or gene/protein name")):
+    """Search UniProt for proteins matching *q* and return up to 5 results.
+
+    Response shape::
+
+        {
+            "results": [
+                {
+                    "uniprot_id":   str,
+                    "gene_name":    str,
+                    "protein_name": str,
+                    "organism":     str,
+                },
+                ...
+            ]
+        }
+    """
+    results = await search_alphafold(q)
+    return {"results": results}
+
+
+@router.post("/fetch-alphafold")
+async def fetch_alphafold_endpoint(body: dict):
+    """Fetch an AlphaFold predicted structure by UniProt ID.
+
+    Request body::
+
+        {"uniprot_id": "P12345"}
+
+    Response shape::
+
+        {
+            "protein_id": "ALPHAFOLD:P12345",
+            "name":       str,
+            "plddt":      float | null,
+        }
+    """
+    uniprot_id = (body.get("uniprot_id") or "").strip().upper()
+    if not uniprot_id:
+        raise HTTPException(400, "Field 'uniprot_id' is required.")
+
+    try:
+        info = await fetch_alphafold_structure(uniprot_id)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc))
+    except Exception as exc:
+        logger.exception(f"Unexpected error fetching AlphaFold structure for {uniprot_id}: {exc}")
+        raise HTTPException(500, f"Failed to fetch AlphaFold structure: {exc}")
+
+    return {
+        "protein_id": f"ALPHAFOLD:{uniprot_id}",
+        "name":       info["name"],
+        "plddt":      info["plddt"],
+    }
 
 
 def _cleanup_old_uploads(max_age_seconds: int = 86400) -> None:
@@ -190,11 +321,24 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         await _update("running", 15, "Preparing receptor…")
         await log(job_id, f"[INFO] Fetching and preparing receptor: {req.protein_id}")
 
-        # Use upload path or fetch from RCSB
+        # Use upload path, AlphaFold cache, or fetch from RCSB
         protein_id = req.protein_id
         if protein_id.startswith("UPLOAD:"):
             filename = protein_id[7:]
-            receptor_path = Path("data/ligands") / filename
+            receptor_path = LIGANDS_DIR / filename
+        elif protein_id.startswith("ALPHAFOLD:"):
+            uniprot_id = protein_id[10:]
+            await log(job_id, f"[INFO] Fetching AlphaFold structure for {uniprot_id}…")
+            from app.services.protein_parser import fetch_alphafold_structure
+            try:
+                af_info = await fetch_alphafold_structure(uniprot_id)
+                # Write PDB text to cache path for Vina preparation
+                af_pdb_path = LIGANDS_DIR / f"AF_{uniprot_id}.pdb"
+                af_pdb_path.write_text(af_info["pdb_text"], encoding="utf-8")
+                receptor_path = await prepare_receptor_pdbqt(str(af_pdb_path), log)
+            except ValueError as exc:
+                await log(job_id, f"[ERROR] {exc}", "warn")
+                receptor_path = None
         else:
             receptor_path = await prepare_receptor_pdbqt(protein_id, log)
 
