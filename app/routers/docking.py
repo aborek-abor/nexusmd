@@ -422,6 +422,9 @@ def _load_ligands_from_file(req: DockingRequest) -> DockingRequest:
     Returns a copy of *req* with ``ligand_smiles`` and ``ligand_names``
     populated from the file.  Raises ``HTTPException(400)`` if the file
     cannot be found or parsed.
+
+    Molecules without SMILES are included with an empty string — they can
+    still be docked using their 3D structure directly.
     """
     file_path = UPLOADS_DIR / req.ligand_file_id
     if not file_path.exists():
@@ -449,6 +452,13 @@ def _load_ligands_from_file(req: DockingRequest) -> DockingRequest:
     except Exception as exc:
         logger.exception(f"Error loading ligands from {req.ligand_file_id}: {exc}")
         raise HTTPException(400, f"Failed to parse ligand file: {exc}")
+
+    # Log molecules that have no SMILES — they will use 3D structure directly
+    for mol in molecules:
+        if not mol.get("smiles"):
+            logger.info(
+                f"Ligand {mol['name']!r} has no SMILES, using 3D structure for docking"
+            )
 
     smiles = [m["smiles"] for m in molecules]
     names  = [m["name"]   for m in molecules]
