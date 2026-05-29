@@ -9,7 +9,10 @@ caller can return a meaningful HTTP 500 rather than a cryptic crash.
 """
 
 import logging
+import os
 import re
+import subprocess
+import tempfile
 from pathlib import Path
 from typing import List
 
@@ -25,6 +28,7 @@ def mol_to_smiles(mol_block: str) -> str:
     1. Parse with sanitization (strict, for clean structures)
     2. Parse without sanitization (lenient, for problematic structures)
     3. Extract SMILES from SDF data fields if present
+    4. Use OBabel to convert MOL block to SMILES (for 3D structures)
 
     Returns an empty string if all strategies fail.
     """
@@ -60,7 +64,12 @@ def mol_to_smiles(mol_block: str) -> str:
         if smi_from_field:
             return smi_from_field
 
-        logger.warning("mol_to_smiles: Could not generate SMILES from mol-block")
+        # Strategy 4: Use OBabel to convert MOL block to SMILES
+        smi_from_obabel = _mol_block_to_smiles_obabel(mol_block)
+        if smi_from_obabel:
+            return smi_from_obabel
+
+        logger.warning("mol_to_smiles: Could not generate SMILES from mol-block (all strategies failed)")
         return ""
     except Exception as exc:
         logger.debug(f"mol_to_smiles failed: {exc}")
@@ -77,6 +86,43 @@ def _extract_smiles_from_sdf(mol_block: str) -> str:
             if candidate:
                 logger.debug(f"Extracted SMILES from <{field_name}>: {candidate}")
                 return candidate
+
+    return ""
+
+
+def _mol_block_to_smiles_obabel(mol_block: str) -> str:
+    """Convert MOL block to SMILES using OBabel (fallback for RDKit failures).
+
+    This is synchronous but uses a temp file + subprocess call.
+    Works with 3D structures that RDKit can't parse (e.g. FDA drug libraries
+    with unusual bond orders, charges, or aromaticity).
+    """
+    try:
+        obabel_bin = os.environ.get("OBABEL_BINARY", "obabel")
+
+        # Write mol block to temp file
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.mol', delete=False) as f:
+            f.write(mol_block)
+            temp_mol = f.name
+
+        try:
+            # Run: obabel input.mol -O - -ocan  (-ocan = canonical SMILES)
+            result = subprocess.run(
+                [obabel_bin, temp_mol, '-O', '-', '-ocan'],
+                capture_output=True,
+                timeout=10,
+                text=True,
+            )
+
+            if result.returncode == 0 and result.stdout.strip():
+                smiles = result.stdout.strip().split()[0]  # First token is SMILES
+                if smiles:
+                    logger.debug(f"[OBabel] Generated SMILES: {smiles}")
+                    return smiles
+        finally:
+            Path(temp_mol).unlink(missing_ok=True)
+    except Exception as e:
+        logger.debug(f"[OBabel] SMILES generation failed: {e}")
 
     return ""
 
