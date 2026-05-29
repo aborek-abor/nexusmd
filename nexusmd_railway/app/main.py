@@ -34,7 +34,7 @@ BASE_DIR   = Path(__file__).parent.parent
 DATA_DIR   = BASE_DIR / "data"
 FRONTEND_DIR = BASE_DIR / "frontend"
 
-for d in [DATA_DIR / "results", DATA_DIR / "pdb_cache", DATA_DIR / "ligands", BASE_DIR / "logs"]:
+for d in [DATA_DIR / "results", DATA_DIR / "pdb_cache", DATA_DIR / "ligands", DATA_DIR / "complexes", BASE_DIR / "logs"]:
     d.mkdir(parents=True, exist_ok=True)
 
 # ── App lifespan ───────────────────────────────────
