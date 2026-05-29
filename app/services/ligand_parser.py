@@ -21,30 +21,100 @@ logger = logging.getLogger("nexusmd.ligand_parser")
 def mol_to_smiles(mol_block: str) -> str:
     """Convert a MOL/SDF mol-block string to a canonical SMILES string.
 
-    Returns an empty string if conversion fails so the caller can ask
-    the user to supply SMILES manually.
+    Tries multiple strategies:
+    1. Parse with sanitization (strict, for clean structures)
+    2. Parse without sanitization (lenient, for problematic structures)
+    3. Extract SMILES from SDF data fields if present
+
+    Returns an empty string if all strategies fail.
     """
     try:
         from rdkit import Chem  # type: ignore
+
+        # Strategy 1: Parse with sanitization (strict)
         mol = Chem.MolFromMolBlock(mol_block, sanitize=True, removeHs=True)
-        if mol is None:
-            return ""
-        smi = Chem.MolToSmiles(mol, canonical=True)
-        return smi or ""
+        if mol is not None:
+            smi = Chem.MolToSmiles(mol, canonical=True)
+            if smi:
+                return smi
+
+        # Strategy 2: Parse without sanitization (lenient)
+        mol = Chem.MolFromMolBlock(mol_block, sanitize=False, removeHs=False)
+        if mol is not None:
+            try:
+                Chem.SanitizeMol(mol)
+            except Exception:
+                pass  # Sanitization failed, but we have a mol object
+
+            try:
+                mol = Chem.RemoveHs(mol)
+            except Exception:
+                pass  # RemoveHs failed, continue with hydrogens present
+
+            smi = Chem.MolToSmiles(mol, canonical=True)
+            if smi:
+                return smi
+
+        # Strategy 3: Look for SMILES in SDF data fields
+        smi_from_field = _extract_smiles_from_sdf(mol_block)
+        if smi_from_field:
+            return smi_from_field
+
+        logger.warning("mol_to_smiles: Could not generate SMILES from mol-block")
+        return ""
     except Exception as exc:
         logger.debug(f"mol_to_smiles failed: {exc}")
         return ""
 
 
+def _extract_smiles_from_sdf(mol_block: str) -> str:
+    """Try to extract SMILES from SDF data fields (> <SMILES>, etc.)."""
+    for field_name in ["SMILES", "SMILES_CANONICAL", "CANONICAL_SMILES", "smi"]:
+        pattern = rf">\s*<{field_name}>\s*\n([^\n]+)"
+        match = re.search(pattern, mol_block, re.IGNORECASE)
+        if match:
+            candidate = match.group(1).strip()
+            if candidate:
+                logger.debug(f"Extracted SMILES from <{field_name}>: {candidate}")
+                return candidate
+
+    return ""
+
+
 def _mol2_block_to_smiles(mol2_block: str) -> str:
-    """Convert a MOL2 block string to a canonical SMILES string."""
+    """Convert a MOL2 block string to a canonical SMILES string.
+
+    Tries multiple strategies similar to mol_to_smiles().
+    """
     try:
         from rdkit import Chem  # type: ignore
+
+        # Strategy 1: Parse with sanitization (strict)
         mol = Chem.MolFromMol2Block(mol2_block, sanitize=True, removeHs=True)
-        if mol is None:
-            return ""
-        smi = Chem.MolToSmiles(mol, canonical=True)
-        return smi or ""
+        if mol is not None:
+            smi = Chem.MolToSmiles(mol, canonical=True)
+            if smi:
+                return smi
+
+        # Strategy 2: Parse without sanitization (lenient)
+        mol = Chem.MolFromMol2Block(mol2_block, sanitize=False, removeHs=False)
+        if mol is not None:
+            try:
+                Chem.SanitizeMol(mol)
+            except Exception:
+                pass
+
+            try:
+                mol = Chem.RemoveHs(mol)
+            except Exception:
+                pass  # RemoveHs failed, continue with hydrogens present
+
+            smi = Chem.MolToSmiles(mol, canonical=True)
+            if smi:
+                return smi
+
+        logger.warning("_mol2_block_to_smiles: Could not generate SMILES from mol2-block")
+        return ""
     except Exception as exc:
         logger.debug(f"_mol2_block_to_smiles failed: {exc}")
         return ""
@@ -81,9 +151,15 @@ def parse_sdf_file(file_path: Path) -> List[dict]:
         raise ValueError("No molecules found in SDF file")
 
     molecules: List[dict] = []
+    failed_count = 0
     for idx, mol_block in enumerate(records):
         name = _extract_sdf_name(mol_block, idx)
         smiles = mol_to_smiles(mol_block)
+
+        if not smiles:
+            failed_count += 1
+            logger.warning(f"SDF record {idx} ({name!r}): Could not generate SMILES")
+
         molecules.append({
             "name": name,
             "smiles": smiles,
@@ -93,6 +169,11 @@ def parse_sdf_file(file_path: Path) -> List[dict]:
 
     if not molecules:
         raise ValueError("No molecules could be parsed from SDF file")
+
+    if failed_count > 0:
+        logger.warning(
+            f"Failed to generate SMILES for {failed_count}/{len(molecules)} molecules"
+        )
 
     logger.info(f"Parsed {len(molecules)} molecule(s) from {file_path.name}")
     return molecules
