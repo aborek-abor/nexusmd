@@ -32,10 +32,11 @@ class GridConfig(BaseModel):
 
 
 class DockingRequest(BaseModel):
-    protein_id: str                         # PDB ID or "UPLOAD:<filename>"
-    ligand_smiles: Optional[List[str]] = [] # SMILES strings
-    ligand_names: Optional[List[str]] = []  # display names
-    engine: str = "vina"                    # vina | gnina
+    protein_id: str                              # PDB ID or "UPLOAD:<filename>"
+    ligand_smiles: Optional[List[str]] = []      # SMILES strings
+    ligand_names: Optional[List[str]] = []       # display names
+    ligand_file_id: Optional[str] = None         # uploaded file reference (timestamp_filename)
+    engine: str = "vina"                         # vina | gnina
     grid: GridConfig = GridConfig()
     admet_filter: bool = True
     pharmacophore_filter: bool = False

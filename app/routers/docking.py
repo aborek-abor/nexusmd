@@ -6,23 +6,110 @@ import time
 from pathlib import Path
 
 from fastapi.responses import PlainTextResponse
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
 from app.services.job_queue import job_manager
 from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt
 from app.services.admet_service import predict_admet_batch
+from app.services.ligand_parser import parse_sdf_file, parse_mol2_file
 
 logger = logging.getLogger("nexusmd.docking")
 router = APIRouter()
 
-RESULTS_DIR = Path(__file__).parent.parent.parent / "data" / "results"
+RESULTS_DIR  = Path(__file__).parent.parent.parent / "data" / "results"
+UPLOADS_DIR  = Path(__file__).parent.parent.parent / "data" / "uploads"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+SUPPORTED_EXTENSIONS = {".sdf", ".mol", ".mol2"}
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+@router.post("/upload-ligands")
+async def upload_ligands(file: UploadFile = File(...)):
+    """Accept an SDF, MOL, or MOL2 file upload and return parsed ligand data.
+
+    The uploaded file is stored under ``data/uploads/{timestamp}_{filename}``
+    and a ``file_id`` is returned so the client can reference it in a
+    subsequent ``/submit`` request via the ``ligand_file_id`` field.
+
+    Response shape::
+
+        {
+            "file_id": "1700000000_ligands.sdf",
+            "ligands": [{"name": "...", "smiles": "..."}, ...],
+            "count": N
+        }
+    """
+    # ── Validate filename / extension ──────────────────────────
+    original_name = file.filename or "upload"
+    suffix = Path(original_name).suffix.lower()
+    if suffix not in SUPPORTED_EXTENSIONS:
+        raise HTTPException(
+            400,
+            f"Unsupported file format '{suffix}'. "
+            f"Supported formats: {', '.join(sorted(SUPPORTED_EXTENSIONS))}",
+        )
+
+    # ── Read and size-check ────────────────────────────────────
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            400,
+            f"File too large ({len(content) // 1024} KB). Maximum allowed size is 10 MB.",
+        )
+    if not content.strip():
+        raise HTTPException(400, "Uploaded file is empty.")
+
+    # ── Persist to disk ────────────────────────────────────────
+    timestamp = int(time.time())
+    safe_name = Path(original_name).name.replace(" ", "_")
+    file_id = f"{timestamp}_{safe_name}"
+    dest = UPLOADS_DIR / file_id
+    dest.write_bytes(content)
+    logger.info(f"Ligand file uploaded: {file_id} ({len(content)} bytes)")
+
+    # ── Parse ──────────────────────────────────────────────────
+    try:
+        if suffix in {".sdf", ".mol"}:
+            molecules = parse_sdf_file(dest)
+        else:  # .mol2
+            molecules = parse_mol2_file(dest)
+    except ValueError as exc:
+        dest.unlink(missing_ok=True)
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        dest.unlink(missing_ok=True)
+        logger.exception(f"Unexpected error parsing {file_id}: {exc}")
+        raise HTTPException(400, f"Failed to parse file: {exc}")
+
+    # ── Kick off background cleanup of old uploads ─────────────
+    _cleanup_old_uploads()
+
+    ligands = [{"name": m["name"], "smiles": m["smiles"]} for m in molecules]
+    return {"file_id": file_id, "ligands": ligands, "count": len(ligands)}
+
+
+def _cleanup_old_uploads(max_age_seconds: int = 86400) -> None:
+    """Delete upload files older than *max_age_seconds* (default 24 h)."""
+    cutoff = time.time() - max_age_seconds
+    for f in UPLOADS_DIR.iterdir():
+        try:
+            if f.is_file() and f.stat().st_mtime < cutoff:
+                f.unlink()
+                logger.debug(f"Cleaned up old upload: {f.name}")
+        except Exception:
+            pass
 
 
 @router.post("/submit", response_model=JobStatus)
 async def submit_docking(req: DockingRequest, bg: BackgroundTasks):
     """Submit a docking job. Returns job_id immediately; poll /status/{job_id} or connect to WS."""
+    # Resolve ligands from uploaded file if ligand_file_id is provided
+    if req.ligand_file_id:
+        req = _load_ligands_from_file(req)
+
     if not req.ligand_smiles:
-        raise HTTPException(400, "No ligands provided. Supply ligand_smiles list.")
+        raise HTTPException(400, "No ligands provided. Supply ligand_smiles list or upload a ligand file.")
 
     job_id = job_manager.create_job(
         f"Docking {len(req.ligand_smiles)} ligands on {req.protein_id} via {req.engine}"
@@ -177,6 +264,55 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         await log(job_id, f"[ERROR] {type(e).__name__}: {str(e)}", "warn")
         await log(job_id, f"[TRACEBACK] {tb}", "warn")
         raise
+
+
+def _load_ligands_from_file(req: DockingRequest) -> DockingRequest:
+    """Load ligand SMILES and names from a previously uploaded file.
+
+    Returns a copy of *req* with ``ligand_smiles`` and ``ligand_names``
+    populated from the file.  Raises ``HTTPException(400)`` if the file
+    cannot be found or parsed.
+    """
+    file_path = UPLOADS_DIR / req.ligand_file_id
+    if not file_path.exists():
+        raise HTTPException(
+            400,
+            f"Uploaded ligand file '{req.ligand_file_id}' not found. "
+            "It may have expired (files are kept for 24 hours).",
+        )
+
+    suffix = file_path.suffix.lower()
+    try:
+        if suffix in {".sdf", ".mol"}:
+            molecules = parse_sdf_file(file_path)
+        elif suffix == ".mol2":
+            molecules = parse_mol2_file(file_path)
+        else:
+            raise HTTPException(
+                400,
+                f"Unsupported ligand file format '{suffix}'.",
+            )
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:
+        logger.exception(f"Error loading ligands from {req.ligand_file_id}: {exc}")
+        raise HTTPException(400, f"Failed to parse ligand file: {exc}")
+
+    smiles = [m["smiles"] for m in molecules]
+    names  = [m["name"]   for m in molecules]
+
+    # Merge: file-derived ligands take precedence; keep any extra SMILES
+    # that were also supplied directly (backward-compat).
+    combined_smiles = smiles + list(req.ligand_smiles or [])
+    combined_names  = names  + list(req.ligand_names  or [])
+
+    # Build an updated request (Pydantic v2 model_copy)
+    return req.model_copy(update={
+        "ligand_smiles": combined_smiles,
+        "ligand_names":  combined_names,
+    })
 
 
 def _simulate_poses(smiles_list: list, names: list) -> list:
