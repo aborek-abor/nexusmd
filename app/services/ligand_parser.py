@@ -31,6 +31,7 @@ def mol_to_smiles(mol_block: str) -> str:
     4. Use OBabel to convert MOL block to SMILES (for 3D structures)
 
     Returns an empty string if all strategies fail.
+    Molecules without SMILES can still be used for docking (3D direct).
     """
     try:
         from rdkit import Chem  # type: ignore
@@ -69,7 +70,8 @@ def mol_to_smiles(mol_block: str) -> str:
         if smi_from_obabel:
             return smi_from_obabel
 
-        logger.warning("mol_to_smiles: Could not generate SMILES from mol-block (all strategies failed)")
+        # All strategies failed — return empty string
+        # Molecule can still be used for docking with 3D structure directly
         return ""
     except Exception as exc:
         logger.debug(f"mol_to_smiles failed: {exc}")
@@ -93,9 +95,7 @@ def _extract_smiles_from_sdf(mol_block: str) -> str:
 def _mol_block_to_smiles_obabel(mol_block: str) -> str:
     """Convert MOL block to SMILES using OBabel (fallback for RDKit failures).
 
-    This is synchronous but uses a temp file + subprocess call.
-    Works with 3D structures that RDKit can't parse (e.g. FDA drug libraries
-    with unusual bond orders, charges, or aromaticity).
+    Works with 3D structures that RDKit can't parse.
     """
     try:
         obabel_bin = os.environ.get("OBABEL_BINARY", "obabel")
@@ -106,23 +106,37 @@ def _mol_block_to_smiles_obabel(mol_block: str) -> str:
             temp_mol = f.name
 
         try:
-            # Run: obabel input.mol -O - -ocan  (-ocan = canonical SMILES)
+            # Try simple SMILES output: obabel input.mol -osmi
             result = subprocess.run(
-                [obabel_bin, temp_mol, '-O', '-', '-ocan'],
+                [obabel_bin, temp_mol, '-osmi'],
                 capture_output=True,
-                timeout=10,
+                timeout=5,
                 text=True,
             )
 
-            if result.returncode == 0 and result.stdout.strip():
-                smiles = result.stdout.strip().split()[0]  # First token is SMILES
-                if smiles:
-                    logger.debug(f"[OBabel] Generated SMILES: {smiles}")
-                    return smiles
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                if output:
+                    # Output format: "SMILES NAME" or just "SMILES"
+                    smiles = output.split()[0]
+                    if smiles and len(smiles) > 1:  # Valid SMILES is at least 2 chars
+                        logger.debug(f"[OBabel] Generated SMILES: {smiles}")
+                        return smiles
+
+            # Log why it failed
+            if result.stderr:
+                logger.debug(f"[OBabel] stderr: {result.stderr.strip()}")
+            if not result.stdout.strip():
+                logger.debug(f"[OBabel] No output from obabel")
+
         finally:
             Path(temp_mol).unlink(missing_ok=True)
+    except FileNotFoundError:
+        logger.debug(f"[OBabel] Binary not found")
+    except subprocess.TimeoutExpired:
+        logger.debug(f"[OBabel] Timeout (5s)")
     except Exception as e:
-        logger.debug(f"[OBabel] SMILES generation failed: {e}")
+        logger.debug(f"[OBabel] Error: {e}")
 
     return ""
 
@@ -204,7 +218,6 @@ def parse_sdf_file(file_path: Path) -> List[dict]:
 
         if not smiles:
             failed_count += 1
-            logger.warning(f"SDF record {idx} ({name!r}): Could not generate SMILES")
 
         molecules.append({
             "name": name,
@@ -218,10 +231,12 @@ def parse_sdf_file(file_path: Path) -> List[dict]:
 
     if failed_count > 0:
         logger.warning(
-            f"Failed to generate SMILES for {failed_count}/{len(molecules)} molecules"
+            f"Parsed {len(molecules)} molecules: {len(molecules) - failed_count} with SMILES, "
+            f"{failed_count} without (can still dock using 3D structure)"
         )
+    else:
+        logger.info(f"Parsed {len(molecules)} molecule(s) from {file_path.name}")
 
-    logger.info(f"Parsed {len(molecules)} molecule(s) from {file_path.name}")
     return molecules
 
 
