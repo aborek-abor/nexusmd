@@ -9,7 +9,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
 from app.services.job_queue import job_manager
-from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt
+from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt, _clean_pdbqt
 from app.services.admet_service import predict_admet_batch
 from app.services.ligand_parser import parse_sdf_file, parse_mol2_file
 from app.services.protein_parser import (
@@ -326,6 +326,12 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         if protein_id.startswith("UPLOAD:"):
             filename = protein_id[7:]
             receptor_path = LIGANDS_DIR / filename
+            # Clean PDBQT: remove PDB headers that Vina doesn't accept
+            if receptor_path and receptor_path.exists():
+                pdbqt_text = receptor_path.read_text()
+                pdbqt_text = _clean_pdbqt(pdbqt_text)
+                receptor_path.write_text(pdbqt_text)
+                await log(job_id, f"[INFO] Receptor cleaned: {receptor_path.stat().st_size} bytes", "info")
         elif protein_id.startswith("ALPHAFOLD:"):
             uniprot_id = protein_id[10:]
             await log(job_id, f"[INFO] Fetching AlphaFold structure for {uniprot_id}…")
