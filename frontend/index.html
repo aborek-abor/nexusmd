@@ -391,25 +391,64 @@
       <div class="card">
         <div class="card-header"><h2>Simulation Configuration</h2></div>
 
-        <!-- Docking job reference -->
-        <div class="field">
-          <label>Docking Job ID <span style="color:var(--muted)">(must be a completed docking job)</span></label>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="md-docking-job-id" type="text" placeholder="e.g. JOB_abc123" style="flex:1;" />
-            <div id="md-job-id-status" style="font-size:12px;color:var(--muted);white-space:nowrap;"></div>
+        <!-- Complex source tabs -->
+        <div class="field" style="margin-bottom:16px;">
+          <label>Complex Source</label>
+          <div class="protein-source-tabs" style="margin-top:6px;">
+            <button class="protein-source-tab active" id="md-src-tab-docking" onclick="switchMDSource('docking', this)">⚗️ From Docking</button>
+            <button class="protein-source-tab" id="md-src-tab-upload" onclick="switchMDSource('upload', this)">📂 Upload Complex</button>
           </div>
-        </div>
 
-        <!-- Pose selection -->
-        <div class="field">
-          <label>Pose Rank</label>
-          <select id="md-pose-rank">
-            <option value="1">Rank 1 (best score)</option>
-            <option value="2">Rank 2</option>
-            <option value="3">Rank 3</option>
-            <option value="4">Rank 4</option>
-            <option value="5">Rank 5</option>
-          </select>
+          <!-- Pane 1: From Docking -->
+          <div id="md-pane-docking" class="protein-source-pane active">
+            <div class="field">
+              <label>Docking Job ID <span style="color:var(--muted)">(must be a completed docking job)</span></label>
+              <div style="display:flex;gap:8px;align-items:center;">
+                <input id="md-docking-job-id" type="text" placeholder="e.g. JOB_abc123" style="flex:1;" />
+                <div id="md-job-id-status" style="font-size:12px;color:var(--muted);white-space:nowrap;"></div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Pose Rank</label>
+              <select id="md-pose-rank">
+                <option value="1">Rank 1 (best score)</option>
+                <option value="2">Rank 2</option>
+                <option value="3">Rank 3</option>
+                <option value="4">Rank 4</option>
+                <option value="5">Rank 5</option>
+              </select>
+            </div>
+            <div class="alert alert-info" style="margin-top:4px;">
+              ℹ️ The protein–ligand complex will be extracted from the selected docking pose and used as the MD starting structure.
+            </div>
+          </div>
+
+          <!-- Pane 2: Upload Complex -->
+          <div id="md-pane-upload" class="protein-source-pane">
+            <div class="alert alert-info" style="margin-bottom:12px;">
+              ℹ️ Upload a pre-prepared protein–ligand complex file. Supported formats: <strong>.pdb</strong>, <strong>.pdbqt</strong>, <strong>.cif</strong>, <strong>.mmcif</strong>.
+            </div>
+            <div class="upload-zone">
+              <label class="upload-label" id="md-complex-upload-label" for="md-complex-file">
+                📂 Choose Complex File
+              </label>
+              <input type="file" id="md-complex-file" accept=".pdb,.pdbqt,.cif,.mmcif"
+                     onchange="onComplexFileSelected(this)" />
+              <span id="md-complex-filename" style="font-size:12px;color:var(--muted);">No file chosen</span>
+              <button class="btn-ghost btn-sm" id="md-complex-upload-btn"
+                      onclick="uploadComplex()" style="display:none;">
+                ⬆ Upload Complex
+              </button>
+              <span id="md-complex-upload-spinner" class="spinner" style="display:none;"></span>
+            </div>
+            <div id="md-complex-upload-alert" style="margin-top:8px;"></div>
+            <div id="md-complex-info" style="display:none;" class="protein-info-badge">
+              <span>✅</span>
+              <span id="md-complex-info-text"></span>
+              <button class="btn-ghost btn-sm" style="margin-left:4px;padding:2px 8px;font-size:11px;" onclick="clearComplexUpload()">✕</button>
+            </div>
+            <input type="hidden" id="md-complex-id" value="" />
+          </div>
         </div>
 
         <h3 style="margin-bottom:10px;margin-top:4px;color:var(--muted)">Simulation Parameters</h3>
@@ -1466,6 +1505,8 @@ function launchMDFromDocking() {
   // Switch to MD page
   const mdBtn = document.getElementById('nav-md-btn');
   showPage('md', mdBtn);
+  // Ensure the "From Docking" tab is active
+  switchMDSource('docking', document.getElementById('md-src-tab-docking'));
   // Pre-fill docking job ID and set pose to rank 1
   document.getElementById('md-docking-job-id').value = jobId;
   document.getElementById('md-pose-rank').value = '1';
@@ -1487,9 +1528,14 @@ function resetMDForm() {
   document.getElementById('md-padding').value = '10';
   document.getElementById('md-job-id-status').textContent = '';
   setAlert('md-config-alert', 'info', '');
+  // Reset complex upload pane
+  clearComplexUpload();
+  // Switch back to docking tab
+  switchMDSource('docking', document.getElementById('md-src-tab-docking'));
 }
 
 function appendMDLog(line, level) {
+
   const con = document.getElementById('md-log-console');
   if (con.querySelector('span.log-info')?.textContent === 'Waiting for simulation to start…') {
     con.innerHTML = '';
@@ -1527,11 +1573,9 @@ function updateMDUI(data) {
 }
 
 async function submitMD() {
-  const dockingJobId = document.getElementById('md-docking-job-id').value.trim();
-  if (!dockingJobId) {
-    setAlert('md-config-alert', 'warn', 'Please enter a docking job ID.');
-    return;
-  }
+  // Determine active source tab
+  const activePaneDocking = document.getElementById('md-pane-docking').classList.contains('active');
+  const activePaneUpload  = document.getElementById('md-pane-upload').classList.contains('active');
 
   const duration    = parseFloat(document.getElementById('md-duration').value)    || 100;
   const temperature = parseFloat(document.getElementById('md-temperature').value) || 310;
@@ -1540,8 +1584,7 @@ async function submitMD() {
   const timestep    = parseFloat(document.getElementById('md-timestep').value)    || 2.0;
   const padding     = parseFloat(document.getElementById('md-padding').value)     || 10.0;
 
-  const payload = {
-    docking_job_id:   dockingJobId,
+  let payload = {
     duration_ns:      duration,
     temperature_K:    temperature,
     force_field:      forceField,
@@ -1549,6 +1592,25 @@ async function submitMD() {
     timestep_fs:      timestep,
     padding_angstrom: padding,
   };
+
+  if (activePaneUpload) {
+    // Upload Complex source
+    const complexId = (document.getElementById('md-complex-id')?.value || '').trim();
+    if (!complexId) {
+      setAlert('md-config-alert', 'warn', 'Please upload a complex file first.');
+      return;
+    }
+    payload.complex_id = complexId;
+  } else {
+    // From Docking source (default)
+    const dockingJobId = document.getElementById('md-docking-job-id').value.trim();
+    if (!dockingJobId) {
+      setAlert('md-config-alert', 'warn', 'Please enter a docking job ID.');
+      return;
+    }
+    payload.docking_job_id = dockingJobId;
+    payload.pose_rank = parseInt(document.getElementById('md-pose-rank').value) || 1;
+  }
 
   // Reset UI
   setAlert('md-config-alert', 'info', '');
@@ -1594,6 +1656,7 @@ async function submitMD() {
 }
 
 function startMDPoll(jobId) {
+
   stopMDPoll();
   state.md.pollTimer = setInterval(() => pollMDStatus(jobId), POLL_INTERVAL_MS);
   pollMDStatus(jobId);
@@ -1795,7 +1858,107 @@ function downloadMDAnalysis(jobId) {
     .catch(err => console.error('Failed to download analysis:', err));
 }
 
+// ── MD Complex Upload ──────────────────────────────────────────
+
+// Track which MD source tab is active
+let _mdSource = 'docking';  // 'docking' | 'upload'
+
+function switchMDSource(source, btn) {
+  _mdSource = source;
+
+  // Update tab buttons
+  document.querySelectorAll('#md-src-tab-docking, #md-src-tab-upload').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  // Update panes
+  document.getElementById('md-pane-docking').classList.toggle('active', source === 'docking');
+  document.getElementById('md-pane-upload').classList.toggle('active', source === 'upload');
+}
+
+function onComplexFileSelected(input) {
+  const file = input.files && input.files[0];
+  const label    = document.getElementById('md-complex-upload-label');
+  const nameSpan = document.getElementById('md-complex-filename');
+  const uploadBtn = document.getElementById('md-complex-upload-btn');
+
+  if (file) {
+    nameSpan.textContent = file.name;
+    label.classList.add('has-file');
+    uploadBtn.style.display = 'inline-block';
+    _setComplexUploadAlert('', '');
+  } else {
+    nameSpan.textContent = 'No file chosen';
+    label.classList.remove('has-file');
+    uploadBtn.style.display = 'none';
+  }
+}
+
+async function uploadComplex() {
+  const input = document.getElementById('md-complex-file');
+  const file  = input.files && input.files[0];
+  if (!file) {
+    _setComplexUploadAlert('warn', 'Please choose a file first.');
+    return;
+  }
+
+  const btn     = document.getElementById('md-complex-upload-btn');
+  const spinner = document.getElementById('md-complex-upload-spinner');
+  btn.disabled  = true;
+  spinner.style.display = 'inline-block';
+  _setComplexUploadAlert('info', 'Uploading and parsing complex…');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res  = await fetch('/api/md/upload-complex', {
+      method: 'POST',
+      body:   formData,
+    });
+    const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    // Store complex_id
+    document.getElementById('md-complex-id').value = data.complex_id;
+
+    // Show info badge
+    const proteinAtoms = data.protein_atoms != null ? `${data.protein_atoms} protein atoms` : '';
+    const ligandAtoms  = data.ligand_atoms  != null ? ` · ${data.ligand_atoms} ligand atoms`  : '';
+    document.getElementById('md-complex-info-text').textContent =
+      `${data.name || file.name}${proteinAtoms ? ' · ' + proteinAtoms : ''}${ligandAtoms} (${data.complex_id})`;
+    document.getElementById('md-complex-info').style.display = 'inline-flex';
+
+    _setComplexUploadAlert('success',
+      `Complex loaded: <strong>${data.name || file.name}</strong>${proteinAtoms ? ' — ' + proteinAtoms : ''}${ligandAtoms}.`);
+  } catch (err) {
+    _setComplexUploadAlert('error', 'Upload failed: ' + err.message);
+    document.getElementById('md-complex-id').value = '';
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+function clearComplexUpload() {
+  document.getElementById('md-complex-id').value = '';
+  document.getElementById('md-complex-info').style.display = 'none';
+  document.getElementById('md-complex-info-text').textContent = '';
+  document.getElementById('md-complex-file').value = '';
+  document.getElementById('md-complex-filename').textContent = 'No file chosen';
+  document.getElementById('md-complex-upload-label').classList.remove('has-file');
+  document.getElementById('md-complex-upload-btn').style.display = 'none';
+  _setComplexUploadAlert('', '');
+}
+
+function _setComplexUploadAlert(type, msg) {
+  const el = document.getElementById('md-complex-upload-alert');
+  if (!msg) { el.innerHTML = ''; return; }
+  const icons = { info: 'ℹ️', success: '✅', warn: '⚠️', error: '❌' };
+  el.innerHTML = `<div class="alert alert-${type}">${icons[type] || ''} ${msg}</div>`;
+}
+
 // ── Init ───────────────────────────────────────────────────────
+
 (async function init() {
   try {
     const res = await fetch('/api/health');
