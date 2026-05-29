@@ -4,12 +4,21 @@ Request / response models for the MD simulation API.
 """
 
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class MDRequest(BaseModel):
-    docking_job_id: str = Field(
-        ..., description="Job ID of the completed docking run to use as starting structure"
+    docking_job_id: Optional[str] = Field(
+        default=None,
+        description="Job ID of the completed docking run to use as starting structure"
+    )
+    complex_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "ID of an uploaded protein-ligand complex (from POST /upload-complex). "
+            "Format: 'UPLOAD:<timestamp>_<filename>'. "
+            "Provide either docking_job_id OR complex_id, not both."
+        )
     )
     duration_ns: float = Field(
         ..., gt=0, le=200, description="Simulation length in nanoseconds (max 200 ns)"
@@ -35,6 +44,21 @@ class MDRequest(BaseModel):
         description="Water box padding around the solute in Ångströms (explicit solvation only)"
     )
 
+    @model_validator(mode="after")
+    def _require_one_source(self) -> "MDRequest":
+        has_docking = bool(self.docking_job_id)
+        has_complex = bool(self.complex_id)
+        if not has_docking and not has_complex:
+            raise ValueError(
+                "Provide either 'docking_job_id' (docking-based MD) "
+                "or 'complex_id' (uploaded complex MD)."
+            )
+        if has_docking and has_complex:
+            raise ValueError(
+                "Provide either 'docking_job_id' or 'complex_id', not both."
+            )
+        return self
+
 
 class EnergyStats(BaseModel):
     mean: float
@@ -57,7 +81,8 @@ class MDAnalysis(BaseModel):
 
 class MDResult(BaseModel):
     job_id: str
-    docking_job_id: str
+    docking_job_id: Optional[str] = None   # set for docking-based MD jobs
+    complex_id: Optional[str] = None        # set for uploaded-complex MD jobs
     duration_ns: float
     temperature_K: float
     force_field: str
