@@ -75,6 +75,8 @@
     /* ── Status panel ─────────────────────────────── */
     #docking-status-panel { display: none; }
     #docking-status-panel.visible { display: block; }
+    #md-status-panel { display: none; }
+    #md-status-panel.visible { display: block; }
     .status-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
     .status-msg { font-size: 13px; color: var(--text); }
     .status-pct { font-size: 13px; font-weight: 700; color: var(--accent); min-width: 36px; text-align: right; }
@@ -164,10 +166,12 @@
       <button onclick="showPage('protein',this)">🔬 Protein</button>
       <button onclick="showPage('scaffold',this)">🔗 Scaffold</button>
       <button onclick="showPage('fasta',this)">🧬 ESMFold</button>
+      <button onclick="showPage('md',this)" id="nav-md-btn">🔬 MD Simulation</button>
     </nav>
   </header>
 
   <main>
+
     <!-- ══════════════════════════════════════════════
          PAGE: DOCKING
     ══════════════════════════════════════════════ -->
@@ -365,8 +369,147 @@
             <tbody id="d-results-tbody"></tbody>
           </table>
         </div>
+
+        <!-- Run MD shortcut -->
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+          <button class="btn-success" onclick="launchMDFromDocking()">🔬 Run MD on Best Pose</button>
+          <span style="font-size:12px;color:var(--muted);">Validate the top-ranked docking pose with a molecular dynamics simulation</span>
+        </div>
       </div>
     </div>
+
+    <!-- ══════════════════════════════════════════════
+         PAGE: MD SIMULATION
+    ══════════════════════════════════════════════ -->
+    <div id="page-md" class="page">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <h1>Molecular Dynamics</h1>
+        <span class="badge badge-blue">OpenMM</span>
+      </div>
+
+      <!-- Config card -->
+      <div class="card">
+        <div class="card-header"><h2>Simulation Configuration</h2></div>
+
+        <!-- Docking job reference -->
+        <div class="field">
+          <label>Docking Job ID <span style="color:var(--muted)">(must be a completed docking job)</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input id="md-docking-job-id" type="text" placeholder="e.g. JOB_abc123" style="flex:1;" />
+            <div id="md-job-id-status" style="font-size:12px;color:var(--muted);white-space:nowrap;"></div>
+          </div>
+        </div>
+
+        <!-- Pose selection -->
+        <div class="field">
+          <label>Pose Rank</label>
+          <select id="md-pose-rank">
+            <option value="1">Rank 1 (best score)</option>
+            <option value="2">Rank 2</option>
+            <option value="3">Rank 3</option>
+            <option value="4">Rank 4</option>
+            <option value="5">Rank 5</option>
+          </select>
+        </div>
+
+        <h3 style="margin-bottom:10px;margin-top:4px;color:var(--muted)">Simulation Parameters</h3>
+        <div class="grid-2">
+          <div class="field">
+            <label>Duration (ns) <span style="color:var(--muted)">1–200</span></label>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="md-duration" type="range" min="1" max="200" value="100" step="1"
+                     oninput="document.getElementById('md-duration-val').textContent=this.value"
+                     style="flex:1;padding:0;background:transparent;border:none;" />
+              <span id="md-duration-val" style="min-width:36px;text-align:right;font-weight:700;color:var(--accent);">100</span>
+              <span style="color:var(--muted);font-size:12px;">ns</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Temperature (K)</label>
+            <input id="md-temperature" type="number" min="250" max="400" step="1" value="310" />
+          </div>
+          <div class="field">
+            <label>Force Field</label>
+            <select id="md-forcefield">
+              <option value="AMBER14">AMBER14</option>
+              <option value="CHARMM36">CHARMM36</option>
+              <option value="OPLS-AA">OPLS-AA</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Solvation</label>
+            <select id="md-solvation">
+              <option value="explicit">Explicit (TIP3P water)</option>
+              <option value="implicit">Implicit (OBC2)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Timestep (fs) <span style="color:var(--muted)">0.5–4.0</span></label>
+            <input id="md-timestep" type="number" min="0.5" max="4.0" step="0.5" value="2.0" />
+          </div>
+          <div class="field">
+            <label>Water Box Padding (Å) <span style="color:var(--muted)">5–20</span></label>
+            <input id="md-padding" type="number" min="5" max="20" step="1" value="10" />
+          </div>
+        </div>
+
+        <div id="md-config-alert"></div>
+
+        <div style="margin-top:16px;display:flex;gap:10px;">
+          <button class="btn-primary" id="md-submit-btn" onclick="submitMD()">🚀 Run MD Simulation</button>
+          <button class="btn-ghost" onclick="resetMDForm()">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- Status panel -->
+      <div id="md-status-panel" class="card">
+        <div class="card-header">
+          <h2>Simulation Status</h2>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="md-job-id-badge" class="badge badge-gray"></span>
+            <span id="md-status-badge" class="badge badge-blue">queued</span>
+          </div>
+        </div>
+
+        <div id="md-alert-area"></div>
+
+        <div class="status-row">
+          <span id="md-spinner" class="spinner" style="display:none;"></span>
+          <span id="md-status-msg" class="status-msg">Waiting…</span>
+          <span id="md-status-pct" class="status-pct">0%</span>
+        </div>
+        <div class="progress-wrap">
+          <div id="md-progress-bar" class="progress-bar" style="width:0%"></div>
+        </div>
+
+        <!-- Log console -->
+        <div style="margin-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <label style="margin:0;font-size:12px;">Live Logs</label>
+            <button class="btn-ghost btn-sm" onclick="clearMDLogs()">Clear</button>
+          </div>
+          <div id="md-log-console" class="log-console"><span class="log-info">Waiting for simulation to start…</span></div>
+        </div>
+      </div>
+
+      <!-- Results panel -->
+      <div id="md-results-panel" class="card" style="display:none;">
+        <div class="card-header">
+          <h2>Simulation Results</h2>
+          <div id="md-results-meta" style="font-size:12px;color:var(--muted);"></div>
+        </div>
+
+        <!-- Download bar -->
+        <div id="md-download-bar" class="download-bar" style="margin-bottom:16px;"></div>
+
+        <!-- Analysis summary -->
+        <div id="md-analysis-container"></div>
+
+        <!-- Timeseries viewer -->
+        <div id="md-timeseries-container" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
 
     <!-- ══════════════════════════════════════════════
          PAGE: ADMET
@@ -485,6 +628,7 @@
 const state = {
   docking: { jobId: null, pollTimer: null, pollStart: null, lastLogCount: 0 },
   fasta:   { jobId: null, pollTimer: null },
+  md:      { jobId: null, pollTimer: null, pollStart: null, lastLogCount: 0 },
 };
 
 const POLL_INTERVAL_MS  = 1500;   // poll every 1.5 s
@@ -1308,6 +1452,347 @@ function renderFastaResult(data) {
       </div>
       ${data.pdb_url ? `<div style="margin-top:12px;"><a href="${data.pdb_url}" download><button class="btn-ghost btn-sm">⬇ Download PDB</button></a></div>` : ''}
     </div>`;
+}
+
+// ── MD SIMULATION ──────────────────────────────────────────────
+
+// Launch MD page pre-filled from the current docking job
+function launchMDFromDocking() {
+  const jobId = state.docking.jobId;
+  if (!jobId) {
+    alert('No docking job found. Please run a docking job first.');
+    return;
+  }
+  // Switch to MD page
+  const mdBtn = document.getElementById('nav-md-btn');
+  showPage('md', mdBtn);
+  // Pre-fill docking job ID and set pose to rank 1
+  document.getElementById('md-docking-job-id').value = jobId;
+  document.getElementById('md-pose-rank').value = '1';
+  document.getElementById('md-job-id-status').textContent = '✅ from docking';
+  document.getElementById('md-job-id-status').style.color = 'var(--accent2)';
+  // Scroll to config
+  document.getElementById('md-submit-btn').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetMDForm() {
+  document.getElementById('md-docking-job-id').value = '';
+  document.getElementById('md-pose-rank').value = '1';
+  document.getElementById('md-duration').value = '100';
+  document.getElementById('md-duration-val').textContent = '100';
+  document.getElementById('md-temperature').value = '310';
+  document.getElementById('md-forcefield').value = 'AMBER14';
+  document.getElementById('md-solvation').value = 'explicit';
+  document.getElementById('md-timestep').value = '2.0';
+  document.getElementById('md-padding').value = '10';
+  document.getElementById('md-job-id-status').textContent = '';
+  setAlert('md-config-alert', 'info', '');
+}
+
+function appendMDLog(line, level) {
+  const con = document.getElementById('md-log-console');
+  if (con.querySelector('span.log-info')?.textContent === 'Waiting for simulation to start…') {
+    con.innerHTML = '';
+  }
+  const cls = level === 'warn' || level === 'error' ? 'log-' + level
+            : line.startsWith('[DONE]') ? 'log-done'
+            : 'log-info';
+  const el = document.createElement('div');
+  el.className = cls;
+  el.textContent = line;
+  con.appendChild(el);
+  con.scrollTop = con.scrollHeight;
+}
+
+function clearMDLogs() {
+  document.getElementById('md-log-console').innerHTML = '<span class="log-info">Log cleared.</span>';
+  state.md.lastLogCount = 0;
+}
+
+function updateMDUI(data) {
+  const status   = data.status   || 'unknown';
+  const progress = data.progress ?? 0;
+  const message  = data.message  || status;
+
+  document.getElementById('md-status-msg').textContent  = message;
+  document.getElementById('md-status-pct').textContent  = progress + '%';
+  document.getElementById('md-progress-bar').style.width = progress + '%';
+
+  const badge = document.getElementById('md-status-badge');
+  badge.textContent = status;
+  badge.className   = 'badge ' + statusBadgeClass(status);
+
+  const spinner = document.getElementById('md-spinner');
+  spinner.style.display = (status === 'running' || status === 'queued') ? 'inline-block' : 'none';
+}
+
+async function submitMD() {
+  const dockingJobId = document.getElementById('md-docking-job-id').value.trim();
+  if (!dockingJobId) {
+    setAlert('md-config-alert', 'warn', 'Please enter a docking job ID.');
+    return;
+  }
+
+  const duration    = parseFloat(document.getElementById('md-duration').value)    || 100;
+  const temperature = parseFloat(document.getElementById('md-temperature').value) || 310;
+  const forceField  = document.getElementById('md-forcefield').value;
+  const solvation   = document.getElementById('md-solvation').value;
+  const timestep    = parseFloat(document.getElementById('md-timestep').value)    || 2.0;
+  const padding     = parseFloat(document.getElementById('md-padding').value)     || 10.0;
+
+  const payload = {
+    docking_job_id:   dockingJobId,
+    duration_ns:      duration,
+    temperature_K:    temperature,
+    force_field:      forceField,
+    solvation:        solvation,
+    timestep_fs:      timestep,
+    padding_angstrom: padding,
+  };
+
+  // Reset UI
+  setAlert('md-config-alert', 'info', '');
+  document.getElementById('md-results-panel').style.display = 'none';
+  document.getElementById('md-log-console').innerHTML = '<span class="log-info">Submitting simulation…</span>';
+  state.md.lastLogCount = 0;
+  document.getElementById('md-submit-btn').disabled = true;
+
+  // Show status panel
+  const panel = document.getElementById('md-status-panel');
+  panel.classList.add('visible');
+  updateMDUI({ status: 'queued', progress: 0, message: 'Submitting…' });
+
+  try {
+    const res = await fetch('/api/md/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: res.statusText }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+
+    const job = await res.json();
+    const jobId = job.job_id;
+    console.log('MD job submitted:', jobId, job);
+
+    state.md.jobId = jobId;
+    state.md.pollStart = Date.now();
+    document.getElementById('md-job-id-badge').textContent = 'Job: ' + jobId;
+
+    appendMDLog(`[NexusMD] MD job ${jobId} submitted — polling for status…`, 'info');
+    startMDPoll(jobId);
+
+  } catch (err) {
+    console.error('MD submit error:', err);
+    setAlert('md-config-alert', 'error', 'Failed to submit MD job: ' + err.message);
+    updateMDUI({ status: 'failed', progress: 0, message: 'Submission failed' });
+    document.getElementById('md-submit-btn').disabled = false;
+  }
+}
+
+function startMDPoll(jobId) {
+  stopMDPoll();
+  state.md.pollTimer = setInterval(() => pollMDStatus(jobId), POLL_INTERVAL_MS);
+  pollMDStatus(jobId);
+}
+
+function stopMDPoll() {
+  if (state.md.pollTimer) {
+    clearInterval(state.md.pollTimer);
+    state.md.pollTimer = null;
+  }
+}
+
+async function pollMDStatus(jobId) {
+  // Hard timeout guard
+  if (state.md.pollStart && (Date.now() - state.md.pollStart) > POLL_TIMEOUT_MS) {
+    stopMDPoll();
+    setAlert('md-alert-area', 'error', 'Polling timed out after 5 minutes. The simulation may still be running — check back later.');
+    updateMDUI({ status: 'failed', progress: 0, message: 'Polling timeout' });
+    document.getElementById('md-submit-btn').disabled = false;
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/md/status/${jobId}`);
+    console.log('MD status:', res.status, jobId);
+
+    if (res.status === 404) {
+      stopMDPoll();
+      setAlert('md-alert-area', 'error', `MD job ${jobId} not found on server.`);
+      updateMDUI({ status: 'failed', progress: 0, message: 'Job not found (404)' });
+      document.getElementById('md-submit-btn').disabled = false;
+      return;
+    }
+
+    if (!res.ok) {
+      console.warn('MD poll returned HTTP', res.status, '— will retry');
+      return;
+    }
+
+    const data = await res.json();
+    console.log('MD status data:', data);
+
+    // Append any new log lines
+    if (Array.isArray(data.logs)) {
+      const newLogs = data.logs.slice(state.md.lastLogCount);
+      newLogs.forEach(entry => appendMDLog(entry.line || entry.message || '', entry.level || 'info'));
+      state.md.lastLogCount = data.logs.length;
+    }
+
+    updateMDUI(data);
+
+    if (data.status === 'done') {
+      stopMDPoll();
+      document.getElementById('md-submit-btn').disabled = false;
+      setAlert('md-alert-area', 'success', 'MD simulation complete! Results are ready below.');
+      getMDResults(jobId);
+    } else if (data.status === 'failed') {
+      stopMDPoll();
+      document.getElementById('md-submit-btn').disabled = false;
+      setAlert('md-alert-area', 'error', 'Simulation failed: ' + (data.message || 'Unknown error'));
+    }
+
+  } catch (err) {
+    console.warn('MD poll fetch error (will retry):', err.message);
+  }
+}
+
+async function getMDResults(jobId) {
+  try {
+    const res = await fetch(`/api/md/results/${jobId}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    renderMDResults(data);
+  } catch (err) {
+    console.error('Failed to fetch MD results:', err);
+    setAlert('md-alert-area', 'error', 'Failed to load results: ' + err.message);
+  }
+}
+
+function downloadMDTrajectory(jobId) {
+  window.open(`/api/md/results/${jobId}/download/trajectory`, '_blank');
+}
+
+function renderMDResults(result) {
+  if (!result) return;
+
+  const panel = document.getElementById('md-results-panel');
+  panel.style.display = 'block';
+
+  // Meta
+  document.getElementById('md-results-meta').textContent =
+    `${result.force_field} · ${result.solvation} · ${result.duration_ns} ns · ${result.temperature_K} K · ${result.elapsed_s}s elapsed`;
+
+  // Download bar
+  const dlBar = document.getElementById('md-download-bar');
+  dlBar.innerHTML = '';
+  if (result.trajectory_url) {
+    dlBar.innerHTML += `<button class="btn-ghost btn-sm" onclick="downloadMDTrajectory('${result.job_id}')">⬇ Download Trajectory (DCD)</button>`;
+  }
+  dlBar.innerHTML += `<button class="btn-ghost btn-sm" onclick="downloadMDAnalysis('${result.job_id}')">⬇ Download Analysis (JSON)</button>`;
+
+  // Analysis summary
+  const analysis = result.analysis || {};
+  const container = document.getElementById('md-analysis-container');
+
+  const statRow = (label, stats) => {
+    if (!stats) return `<tr><td>${label}</td><td colspan="4" style="color:var(--muted);">—</td></tr>`;
+    const fmt = v => (v != null ? v.toFixed(3) : '—');
+    return `<tr>
+      <td><strong>${label}</strong></td>
+      <td>${fmt(stats.mean)}</td>
+      <td>${fmt(stats.std)}</td>
+      <td>${fmt(stats.min)}</td>
+      <td>${fmt(stats.max)}</td>
+    </tr>`;
+  };
+
+  container.innerHTML = `
+    <h3 style="margin-bottom:10px;">Analysis Summary</h3>
+    <div style="overflow-x:auto;">
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Metric</th>
+            <th>Mean</th>
+            <th>Std Dev</th>
+            <th>Min</th>
+            <th>Max</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5" style="color:var(--muted);font-size:11px;padding:6px 12px;background:var(--surface2);">RMSD (Å)</td></tr>
+          ${statRow('Ligand RMSD', analysis.rmsd_ligand)}
+          ${statRow('Protein RMSD', analysis.rmsd_protein)}
+          <tr><td colspan="5" style="color:var(--muted);font-size:11px;padding:6px 12px;background:var(--surface2);">Energy (kJ/mol)</td></tr>
+          ${statRow('Potential Energy', analysis.potential_energy)}
+          ${statRow('Kinetic Energy', analysis.kinetic_energy)}
+          ${statRow('Total Energy', analysis.total_energy)}
+        </tbody>
+      </table>
+    </div>`;
+
+  // Timeseries viewer
+  const tsContainer = document.getElementById('md-timeseries-container');
+  const energyTs = analysis.energy_timeseries || [];
+  const rmsdTs   = analysis.rmsd_timeseries   || [];
+
+  if (!energyTs.length && !rmsdTs.length) {
+    tsContainer.innerHTML = '';
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+
+  // Show first 20 rows of each timeseries as a preview table
+  const renderTsTable = (title, rows, headers) => {
+    if (!rows.length) return '';
+    const preview = rows.slice(0, 20);
+    const more = rows.length > 20 ? `<div style="font-size:11px;color:var(--muted);margin-top:4px;">Showing first 20 of ${rows.length} frames</div>` : '';
+    const headerHtml = headers.map(h => `<th>${h}</th>`).join('');
+    const rowsHtml = preview.map(r =>
+      `<tr>${r.map(v => `<td>${typeof v === 'number' ? v.toFixed(3) : v}</td>`).join('')}</tr>`
+    ).join('');
+    return `
+      <div style="margin-bottom:16px;">
+        <h3 style="margin-bottom:8px;">${title}</h3>
+        <div style="overflow-x:auto;">
+          <table class="results-table">
+            <thead><tr>${headerHtml}</tr></thead>
+            <tbody>${rowsHtml}</tbody>
+          </table>
+        </div>
+        ${more}
+      </div>`;
+  };
+
+  tsContainer.innerHTML =
+    renderTsTable('Energy Timeseries', energyTs, ['Time (ps)', 'Potential (kJ/mol)', 'Kinetic (kJ/mol)']) +
+    renderTsTable('RMSD Timeseries', rmsdTs, ['Time (ps)', 'Ligand RMSD (Å)', 'Protein RMSD (Å)']);
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function downloadMDAnalysis(jobId) {
+  // Fetch results and trigger JSON download
+  fetch(`/api/md/results/${jobId}`)
+    .then(r => r.json())
+    .then(data => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${jobId}_analysis.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(err => console.error('Failed to download analysis:', err));
 }
 
 // ── Init ───────────────────────────────────────────────────────
