@@ -123,6 +123,14 @@
     /* ── Download bar ─────────────────────────────── */
     .download-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
+    /* ── File upload ──────────────────────────────── */
+    .upload-zone { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+    .upload-zone input[type="file"] { display: none; }
+    .upload-label { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px dashed var(--border); border-radius: var(--radius); padding: 7px 14px; font-size: 13px; color: var(--muted); cursor: pointer; transition: border-color .15s, color .15s; }
+    .upload-label:hover { border-color: var(--accent); color: var(--accent); }
+    .upload-label.has-file { border-color: var(--accent2); color: var(--accent2); border-style: solid; }
+    #upload-filename { font-size: 12px; color: var(--muted); }
+
     /* ── Responsive ───────────────────────────────── */
     @media (max-width: 700px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -180,6 +188,25 @@
         <div class="field">
           <label>Ligand Names <span style="color:var(--muted)">(optional, one per line)</span></label>
           <textarea id="d-names" rows="2" placeholder="Aspirin&#10;Benzoic acid&#10;Ethanol"></textarea>
+        </div>
+
+        <!-- Ligand file upload -->
+        <div class="field">
+          <label>Upload Ligand File <span style="color:var(--muted)">(.sdf, .mol, .mol2 — populates fields above)</span></label>
+          <div class="upload-zone">
+            <label class="upload-label" id="upload-label" for="d-ligand-file">
+              📂 Choose File
+            </label>
+            <input type="file" id="d-ligand-file" accept=".sdf,.mol,.mol2"
+                   onchange="onLigandFileSelected(this)" />
+            <span id="upload-filename">No file chosen</span>
+            <button class="btn-ghost btn-sm" id="d-upload-btn"
+                    onclick="uploadLigands()" style="display:none;">
+              ⬆ Upload Ligands
+            </button>
+            <span id="upload-spinner" class="spinner" style="display:none;"></span>
+          </div>
+          <div id="upload-alert" style="margin-top:8px;"></div>
         </div>
 
         <!-- Grid -->
@@ -449,17 +476,117 @@ function fillDemoLigands() {
     'Aspirin\nBenzoic acid\nBenzocaine\nIbuprofen';
 }
 
+// ── Ligand file upload ─────────────────────────────────────────
+function onLigandFileSelected(input) {
+  const file = input.files && input.files[0];
+  const label    = document.getElementById('upload-label');
+  const nameSpan = document.getElementById('upload-filename');
+  const uploadBtn = document.getElementById('d-upload-btn');
+
+  if (file) {
+    nameSpan.textContent = file.name;
+    label.classList.add('has-file');
+    uploadBtn.style.display = 'inline-block';
+    // Clear any previous alert
+    setUploadAlert('', '');
+  } else {
+    nameSpan.textContent = 'No file chosen';
+    label.classList.remove('has-file');
+    uploadBtn.style.display = 'none';
+  }
+}
+
+function setUploadAlert(type, msg) {
+  const el = document.getElementById('upload-alert');
+  if (!msg) { el.innerHTML = ''; return; }
+  const icons = { info: 'ℹ️', success: '✅', warn: '⚠️', error: '❌' };
+  el.innerHTML = `<div class="alert alert-${type}">${icons[type] || ''} ${msg}</div>`;
+}
+
+async function uploadLigands() {
+  const input = document.getElementById('d-ligand-file');
+  const file  = input.files && input.files[0];
+  if (!file) {
+    setUploadAlert('warn', 'Please choose a file first.');
+    return;
+  }
+
+  const uploadBtn    = document.getElementById('d-upload-btn');
+  const uploadSpinner = document.getElementById('upload-spinner');
+
+  uploadBtn.disabled = true;
+  uploadSpinner.style.display = 'inline-block';
+  setUploadAlert('info', 'Uploading and parsing…');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res = await fetch('/api/docking/upload-ligands', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+
+    if (!res.ok) {
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+
+    // Populate SMILES and names textareas
+    const smilesList = data.ligands.map(l => l.smiles).filter(Boolean);
+    const namesList  = data.ligands.map(l => l.name);
+
+    document.getElementById('d-smiles').value = smilesList.join('\n');
+    document.getElementById('d-names').value  = namesList.join('\n');
+
+    // Store file_id in a hidden field so /submit can reference it
+    let hiddenField = document.getElementById('d-ligand-file-id');
+    if (!hiddenField) {
+      hiddenField = document.createElement('input');
+      hiddenField.type = 'hidden';
+      hiddenField.id   = 'd-ligand-file-id';
+      document.body.appendChild(hiddenField);
+    }
+    hiddenField.value = data.file_id;
+
+    const warnCount = data.ligands.filter(l => !l.smiles).length;
+    let msg = `${data.count} ligand${data.count !== 1 ? 's' : ''} loaded from <strong>${file.name}</strong>.`;
+    if (warnCount > 0) {
+      msg += ` ⚠️ ${warnCount} molecule${warnCount !== 1 ? 's' : ''} could not be converted to SMILES — enter them manually.`;
+      setUploadAlert('warn', msg);
+    } else {
+      setUploadAlert('success', msg);
+    }
+
+  } catch (err) {
+    console.error('Upload error:', err);
+    setUploadAlert('error', 'Upload failed: ' + err.message);
+  } finally {
+    uploadBtn.disabled = false;
+    uploadSpinner.style.display = 'none';
+  }
+}
+
 // ── DOCKING ────────────────────────────────────────────────────
 async function submitDocking() {
   const protein = document.getElementById('d-protein').value.trim();
   const smilesRaw = document.getElementById('d-smiles').value.trim();
   const namesRaw  = document.getElementById('d-names').value.trim();
 
+  // Include file_id check before SMILES validation
+  const _fileIdCheck = document.getElementById('d-ligand-file-id');
+  const _hasFileId   = _fileIdCheck && _fileIdCheck.value.trim();
+
   if (!protein) { setAlert('d-alert-area', 'warn', 'Please enter a Protein / PDB ID.'); return; }
-  if (!smilesRaw) { setAlert('d-alert-area', 'warn', 'Please enter at least one ligand SMILES.'); return; }
+  if (!smilesRaw && !_hasFileId) { setAlert('d-alert-area', 'warn', 'Please enter at least one ligand SMILES or upload a ligand file.'); return; }
 
   const smiles = parseLines(smilesRaw);
   const names  = parseLines(namesRaw);
+
+  // Include file_id if a ligand file was uploaded this session
+  const fileIdField = document.getElementById('d-ligand-file-id');
+  const ligandFileId = fileIdField ? fileIdField.value.trim() : '';
 
   const payload = {
     protein_id:    protein.toUpperCase(),
@@ -479,6 +606,10 @@ async function submitDocking() {
       energy_range:   parseFloat(document.getElementById('d-erange').value) || 3.0,
     },
   };
+
+  if (ligandFileId) {
+    payload.ligand_file_id = ligandFileId;
+  }
 
   // Reset UI
   setAlert('d-alert-area', 'info', '');
