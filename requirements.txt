@@ -10,7 +10,7 @@ aiofiles==23.2.1
 # Job queue (Redis optional — in-memory fallback built in)
 redis==5.0.4
 
-# RDKit for scaffold/Tanimoto search (unpinned — gets latest stable)
+# RDKit for scaffold/Tanimoto search + SMILES→3D fallback when OBabel unavailable
 rdkit
 
 # BioPython for mmCIF parsing (optional — regex fallback built in)

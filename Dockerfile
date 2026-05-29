@@ -8,11 +8,14 @@ FROM python:3.11-slim
 LABEL maintainer="NexusMD"
 LABEL description="NexusMD Drug Discovery Platform — Railway deployment"
 
-# System packages
+# System packages — openbabel + dev libs for reliable binary + data files
 RUN apt-get update && apt-get install -y --no-install-recommends \
     openbabel \
+    libopenbabel-dev \
     curl \
     wget \
+    && which obabel && obabel --version 2>&1 | head -1 \
+    || echo "WARNING: obabel not found in PATH — RDKit fallback will be used" \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /nexusmd

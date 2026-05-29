@@ -86,11 +86,53 @@ async def run_vina_docking(
 
 
 
+def _smiles_to_3d_sdf_rdkit(smiles: str, output_path: Path, name: str) -> bool:
+    """Convert SMILES to 3D SDF using RDKit (fallback when OBabel unavailable)."""
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import AllChem
+
+        mol = Chem.MolFromSmiles(smiles)
+        if mol is None:
+            logger.error(f"[RDKit] Invalid SMILES for {name}: {smiles}")
+            return False
+
+        mol.SetProp("_Name", name)
+        mol = Chem.AddHs(mol)
+
+        embed_result = AllChem.EmbedMolecule(mol, randomSeed=42)
+        if embed_result == -1:
+            # EmbedMolecule failed — try with ETKDGv3 params
+            params = AllChem.ETKDGv3()
+            params.randomSeed = 42
+            embed_result = AllChem.EmbedMolecule(mol, params)
+
+        if embed_result == -1:
+            logger.error(f"[RDKit] EmbedMolecule failed for {name}")
+            return False
+
+        AllChem.MMFFOptimizeMolecule(mol)
+
+        writer = Chem.SDWriter(str(output_path))
+        writer.write(mol)
+        writer.close()
+
+        ok = output_path.exists() and output_path.stat().st_size > 0
+        if ok:
+            logger.info(f"[RDKit] Generated 3D SDF for {name}")
+        return ok
+    except Exception as e:
+        logger.error(f"[RDKit] SMILES→SDF failed for {name}: {e}")
+        return False
+
+
 async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
-    """Convert SMILES to 3D SDF using Open Babel."""
+    """Convert SMILES to 3D SDF using Open Babel, with RDKit fallback."""
+    # --- Try OBabel first ---
+    obabel_bin = OBABEL_BINARY if OBABEL_BINARY else "obabel"
     try:
         result = await asyncio.create_subprocess_exec(
-            OBABEL_BINARY,
+            obabel_bin,
             f"-:{smiles}",
             "--gen3d", "--ff", "MMFF94",
             "-O", str(output_path),
@@ -100,10 +142,19 @@ async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") ->
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=30)
-        return output_path.exists() and output_path.stat().st_size > 0
+        if output_path.exists() and output_path.stat().st_size > 0:
+            logger.info(f"[OBabel] Generated 3D SDF for {name}")
+            return True
+        stderr_text = stderr.decode("utf-8", errors="replace").strip()
+        logger.warning(f"[OBabel] Output empty for {name} — stderr: {stderr_text}")
+    except FileNotFoundError:
+        logger.warning(f"[OBabel] Binary not found at '{obabel_bin}' — falling back to RDKit")
     except Exception as e:
-        logger.error(f"SMILES→SDF failed for {name}: {e}")
-        return False
+        logger.warning(f"[OBabel] SMILES→SDF failed for {name}: {e} — falling back to RDKit")
+
+    # --- Fallback: RDKit ---
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _smiles_to_3d_sdf_rdkit, smiles, output_path, name)
 
 
 async def sdf_to_pdbqt(sdf_path: Path, pdbqt_path: Path) -> bool:
