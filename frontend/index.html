@@ -131,6 +131,21 @@
     .upload-label.has-file { border-color: var(--accent2); color: var(--accent2); border-style: solid; }
     #upload-filename { font-size: 12px; color: var(--muted); }
 
+    /* ── Protein source selector ──────────────────── */
+    .protein-source-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+    .protein-source-tab { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 14px; font-size: 12px; color: var(--muted); cursor: pointer; transition: all .15s; }
+    .protein-source-tab.active { background: rgba(88,166,255,.12); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+    .protein-source-pane { display: none; }
+    .protein-source-pane.active { display: block; }
+    .af-results-list { margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+    .af-result-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 12px; cursor: pointer; transition: border-color .15s, background .15s; font-size: 13px; }
+    .af-result-item:hover { border-color: var(--accent); background: rgba(88,166,255,.06); }
+    .af-result-item.selected { border-color: var(--accent2); background: rgba(63,185,80,.08); }
+    .af-result-gene { font-weight: 600; color: var(--text); }
+    .af-result-protein { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .af-result-org { color: var(--muted); font-size: 11px; font-style: italic; }
+    .protein-info-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3); border-radius: var(--radius); padding: 6px 12px; font-size: 12px; color: var(--accent2); margin-top: 8px; }
+
     /* ── Responsive ───────────────────────────────── */
     @media (max-width: 700px) {
       .grid-2, .grid-3 { grid-template-columns: 1fr; }
@@ -166,11 +181,69 @@
       <div class="card">
         <div class="card-header"><h2>Job Configuration</h2></div>
 
-        <div class="grid-2">
-          <div class="field">
-            <label>Protein / PDB ID</label>
-            <input id="d-protein" type="text" placeholder="e.g. 1HSG, 6LU7, 3ERT" value="1HSG" />
+        <!-- Protein source selector -->
+        <div class="field" style="margin-bottom:16px;">
+          <label>Protein Target</label>
+
+          <!-- Source tabs -->
+          <div class="protein-source-tabs" style="margin-top:6px;">
+            <button class="protein-source-tab active" onclick="switchProteinSource('pdb', this)">🏛 PDB ID</button>
+            <button class="protein-source-tab" onclick="switchProteinSource('alphafold', this)">🔬 AlphaFold Search</button>
+            <button class="protein-source-tab" onclick="switchProteinSource('upload', this)">📂 Upload File</button>
           </div>
+
+          <!-- Pane 1: PDB ID -->
+          <div id="protein-pane-pdb" class="protein-source-pane active">
+            <input id="d-protein" type="text" placeholder="e.g. 1HSG, 6LU7, 3ERT" value="1HSG"
+                   oninput="onProteinIdInput()" />
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">Enter a 4-character RCSB PDB ID</div>
+          </div>
+
+          <!-- Pane 2: AlphaFold search -->
+          <div id="protein-pane-alphafold" class="protein-source-pane">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <input id="af-search-input" type="text" placeholder="UniProt ID (e.g. P04637) or gene name (e.g. TP53)"
+                     onkeydown="if(event.key==='Enter') searchAlphaFold()" style="flex:1;" />
+              <button class="btn-ghost btn-sm" onclick="searchAlphaFold()" id="af-search-btn">🔍 Search</button>
+              <span id="af-search-spinner" class="spinner" style="display:none;"></span>
+            </div>
+            <div id="af-search-alert" style="margin-top:6px;"></div>
+            <div id="af-results-list" class="af-results-list"></div>
+            <div id="af-selected-info" style="display:none;" class="protein-info-badge">
+              <span>✅</span>
+              <span id="af-selected-text"></span>
+              <button class="btn-ghost btn-sm" style="margin-left:4px;padding:2px 8px;font-size:11px;" onclick="clearAlphaFoldSelection()">✕</button>
+            </div>
+          </div>
+
+          <!-- Pane 3: Upload protein file -->
+          <div id="protein-pane-upload" class="protein-source-pane">
+            <div class="upload-zone">
+              <label class="upload-label" id="protein-upload-label" for="d-protein-file">
+                📂 Choose Protein File
+              </label>
+              <input type="file" id="d-protein-file" accept=".pdb,.cif,.mmcif"
+                     onchange="onProteinFileSelected(this)" />
+              <span id="protein-upload-filename" style="font-size:12px;color:var(--muted);">No file chosen</span>
+              <button class="btn-ghost btn-sm" id="d-protein-upload-btn"
+                      onclick="uploadProtein()" style="display:none;">
+                ⬆ Upload Protein
+              </button>
+              <span id="protein-upload-spinner" class="spinner" style="display:none;"></span>
+            </div>
+            <div id="protein-upload-alert" style="margin-top:8px;"></div>
+            <div id="protein-upload-info" style="display:none;" class="protein-info-badge">
+              <span>✅</span>
+              <span id="protein-upload-info-text"></span>
+              <button class="btn-ghost btn-sm" style="margin-left:4px;padding:2px 8px;font-size:11px;" onclick="clearProteinUpload()">✕</button>
+            </div>
+          </div>
+
+          <!-- Hidden field that always holds the resolved protein_id -->
+          <input type="hidden" id="d-protein-resolved" value="1HSG" />
+        </div>
+
+        <div class="grid-2" style="margin-top:4px;">
           <div class="field">
             <label>Docking Engine</label>
             <select id="d-engine">
@@ -568,9 +641,229 @@ async function uploadLigands() {
   }
 }
 
+// ── Protein source selection ───────────────────────────────────
+
+// Track which source is active
+let _proteinSource = 'pdb';  // 'pdb' | 'alphafold' | 'upload'
+
+function switchProteinSource(source, btn) {
+  _proteinSource = source;
+
+  // Update tab buttons
+  document.querySelectorAll('.protein-source-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  // Update panes
+  document.querySelectorAll('.protein-source-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('protein-pane-' + source).classList.add('active');
+
+  // Sync resolved protein_id
+  _syncResolvedProtein();
+}
+
+function _syncResolvedProtein() {
+  const resolved = document.getElementById('d-protein-resolved');
+  if (_proteinSource === 'pdb') {
+    const val = (document.getElementById('d-protein')?.value || '').trim().toUpperCase();
+    resolved.value = val;
+  }
+  // alphafold and upload sources set resolved.value themselves when confirmed
+}
+
+function onProteinIdInput() {
+  if (_proteinSource === 'pdb') {
+    const val = (document.getElementById('d-protein')?.value || '').trim().toUpperCase();
+    document.getElementById('d-protein-resolved').value = val;
+  }
+}
+
+// ── AlphaFold search ───────────────────────────────────────────
+
+async function searchAlphaFold() {
+  const query = document.getElementById('af-search-input').value.trim();
+  if (!query) {
+    _setAfAlert('warn', 'Enter a UniProt ID or gene name to search.');
+    return;
+  }
+
+  const btn     = document.getElementById('af-search-btn');
+  const spinner = document.getElementById('af-search-spinner');
+  btn.disabled  = true;
+  spinner.style.display = 'inline-block';
+  _setAfAlert('info', 'Searching UniProt…');
+  document.getElementById('af-results-list').innerHTML = '';
+
+  try {
+    const res  = await fetch(`/api/docking/search-alphafold?q=${encodeURIComponent(query)}`);
+    const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    const results = data.results || [];
+    if (!results.length) {
+      _setAfAlert('warn', `No proteins found for "${query}". Try a UniProt ID (e.g. P04637) or gene name (e.g. TP53).`);
+      return;
+    }
+
+    _setAfAlert('', '');
+    _renderAfResults(results);
+  } catch (err) {
+    _setAfAlert('error', 'Search failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+function _renderAfResults(results) {
+  const list = document.getElementById('af-results-list');
+  list.innerHTML = '';
+  results.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'af-result-item';
+    item.dataset.uniprotId = r.uniprot_id;
+    item.innerHTML = `
+      <div class="af-result-gene">${r.gene_name || r.uniprot_id} <span style="color:var(--muted);font-weight:400;font-size:12px;">(${r.uniprot_id})</span></div>
+      <div class="af-result-protein">${r.protein_name || '—'}</div>
+      <div class="af-result-org">${r.organism || ''}</div>`;
+    item.addEventListener('click', () => selectAlphaFoldResult(r.uniprot_id, item));
+    list.appendChild(item);
+  });
+}
+
+async function selectAlphaFoldResult(uniprotId, itemEl) {
+  // Mark selected visually
+  document.querySelectorAll('.af-result-item').forEach(el => el.classList.remove('selected'));
+  if (itemEl) itemEl.classList.add('selected');
+
+  _setAfAlert('info', `Fetching AlphaFold structure for ${uniprotId}…`);
+
+  try {
+    const res  = await fetch('/api/docking/fetch-alphafold', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ uniprot_id: uniprotId }),
+    });
+    const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    // Set resolved protein_id
+    document.getElementById('d-protein-resolved').value = data.protein_id;
+
+    // Show confirmation badge
+    const plddt = data.plddt != null ? ` · pLDDT ${data.plddt.toFixed(1)}` : '';
+    document.getElementById('af-selected-text').textContent =
+      `${data.name || uniprotId} (${data.protein_id})${plddt}`;
+    document.getElementById('af-selected-info').style.display = 'inline-flex';
+
+    _setAfAlert('success', `Structure loaded — ${data.protein_id}`);
+  } catch (err) {
+    _setAfAlert('error', 'Failed to fetch structure: ' + err.message);
+    document.getElementById('d-protein-resolved').value = '';
+  }
+}
+
+function clearAlphaFoldSelection() {
+  document.getElementById('d-protein-resolved').value = '';
+  document.getElementById('af-selected-info').style.display = 'none';
+  document.getElementById('af-selected-text').textContent = '';
+  document.querySelectorAll('.af-result-item').forEach(el => el.classList.remove('selected'));
+  _setAfAlert('', '');
+}
+
+function _setAfAlert(type, msg) {
+  const el = document.getElementById('af-search-alert');
+  if (!msg) { el.innerHTML = ''; return; }
+  const icons = { info: 'ℹ️', success: '✅', warn: '⚠️', error: '❌' };
+  el.innerHTML = `<div class="alert alert-${type}">${icons[type] || ''} ${msg}</div>`;
+}
+
+// ── Protein file upload ────────────────────────────────────────
+
+function onProteinFileSelected(input) {
+  const file  = input.files && input.files[0];
+  const label = document.getElementById('protein-upload-label');
+  const nameSpan = document.getElementById('protein-upload-filename');
+  const uploadBtn = document.getElementById('d-protein-upload-btn');
+
+  if (file) {
+    nameSpan.textContent = file.name;
+    label.classList.add('has-file');
+    uploadBtn.style.display = 'inline-block';
+    _setProteinUploadAlert('', '');
+  } else {
+    nameSpan.textContent = 'No file chosen';
+    label.classList.remove('has-file');
+    uploadBtn.style.display = 'none';
+  }
+}
+
+async function uploadProtein() {
+  const input = document.getElementById('d-protein-file');
+  const file  = input.files && input.files[0];
+  if (!file) {
+    _setProteinUploadAlert('warn', 'Please choose a file first.');
+    return;
+  }
+
+  const btn     = document.getElementById('d-protein-upload-btn');
+  const spinner = document.getElementById('protein-upload-spinner');
+  btn.disabled  = true;
+  spinner.style.display = 'inline-block';
+  _setProteinUploadAlert('info', 'Uploading and parsing…');
+
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const res  = await fetch('/api/docking/upload-protein', {
+      method: 'POST',
+      body:   formData,
+    });
+    const data = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+
+    // Set resolved protein_id
+    document.getElementById('d-protein-resolved').value = data.protein_id;
+
+    // Show info badge
+    document.getElementById('protein-upload-info-text').textContent =
+      `${data.name} · ${data.chains} chain${data.chains !== 1 ? 's' : ''} · ${data.residues} residues (${data.protein_id})`;
+    document.getElementById('protein-upload-info').style.display = 'inline-flex';
+
+    _setProteinUploadAlert('success',
+      `Protein loaded: <strong>${data.name}</strong> — ${data.chains} chain(s), ${data.residues} residues.`);
+  } catch (err) {
+    _setProteinUploadAlert('error', 'Upload failed: ' + err.message);
+    document.getElementById('d-protein-resolved').value = '';
+  } finally {
+    btn.disabled = false;
+    spinner.style.display = 'none';
+  }
+}
+
+function clearProteinUpload() {
+  document.getElementById('d-protein-resolved').value = '';
+  document.getElementById('protein-upload-info').style.display = 'none';
+  document.getElementById('protein-upload-info-text').textContent = '';
+  document.getElementById('d-protein-file').value = '';
+  document.getElementById('protein-upload-filename').textContent = 'No file chosen';
+  document.getElementById('protein-upload-label').classList.remove('has-file');
+  document.getElementById('d-protein-upload-btn').style.display = 'none';
+  _setProteinUploadAlert('', '');
+}
+
+function _setProteinUploadAlert(type, msg) {
+  const el = document.getElementById('protein-upload-alert');
+  if (!msg) { el.innerHTML = ''; return; }
+  const icons = { info: 'ℹ️', success: '✅', warn: '⚠️', error: '❌' };
+  el.innerHTML = `<div class="alert alert-${type}">${icons[type] || ''} ${msg}</div>`;
+}
+
 // ── DOCKING ────────────────────────────────────────────────────
 async function submitDocking() {
-  const protein = document.getElementById('d-protein').value.trim();
+  // Resolve protein_id from the hidden field (set by whichever source tab is active)
+  const protein = (document.getElementById('d-protein-resolved')?.value || '').trim()
+               || document.getElementById('d-protein')?.value?.trim() || '';
   const smilesRaw = document.getElementById('d-smiles').value.trim();
   const namesRaw  = document.getElementById('d-names').value.trim();
 
@@ -578,7 +871,7 @@ async function submitDocking() {
   const _fileIdCheck = document.getElementById('d-ligand-file-id');
   const _hasFileId   = _fileIdCheck && _fileIdCheck.value.trim();
 
-  if (!protein) { setAlert('d-alert-area', 'warn', 'Please enter a Protein / PDB ID.'); return; }
+  if (!protein) { setAlert('d-alert-area', 'warn', 'Please select or enter a protein target.'); return; }
   if (!smilesRaw && !_hasFileId) { setAlert('d-alert-area', 'warn', 'Please enter at least one ligand SMILES or upload a ligand file.'); return; }
 
   const smiles = parseLines(smilesRaw);
@@ -589,7 +882,7 @@ async function submitDocking() {
   const ligandFileId = fileIdField ? fileIdField.value.trim() : '';
 
   const payload = {
-    protein_id:    protein.toUpperCase(),
+    protein_id:    protein,
     ligand_smiles: smiles,
     ligand_names:  names.length ? names : smiles,
     engine:        document.getElementById('d-engine').value,
