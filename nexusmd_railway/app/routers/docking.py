@@ -12,7 +12,7 @@ from app.models.schemas import (
     DockingRequest, DockingResult, DownloadUrls, JobStatus, LigandDownloadUrl, PoseResult,
 )
 from app.services.job_queue import job_manager
-from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt
+from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt, _clean_pdbqt
 from app.services.admet_service import predict_admet_batch
 
 router = APIRouter()
@@ -174,6 +174,12 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         if protein_id.startswith("UPLOAD:"):
             filename = protein_id[7:]
             receptor_path = Path("data/ligands") / filename
+            # Clean PDBQT: remove PDB headers that Vina doesn't accept
+            if receptor_path and receptor_path.exists():
+                pdbqt_text = receptor_path.read_text()
+                pdbqt_text = _clean_pdbqt(pdbqt_text)
+                receptor_path.write_text(pdbqt_text)
+                await log(job_id, f"[INFO] Receptor cleaned: {receptor_path.stat().st_size} bytes", "info")
         else:
             receptor_path = await prepare_receptor_pdbqt(protein_id, log)
 

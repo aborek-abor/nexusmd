@@ -323,6 +323,17 @@ async def write_combined_sdf(poses: List[dict], output_path: Path):
     output_path.write_text("".join(lines))
 
 
+def _clean_pdbqt(pdbqt_text: str) -> str:
+    """Remove PDB header records from PDBQT (keep only ATOM/HETATM/CONECT/END/TER)."""
+    lines = []
+    for line in pdbqt_text.splitlines():
+        record = line[:6].strip().upper() if len(line) >= 6 else ""
+        # Keep only coordinate and connectivity records
+        if record in ("ATOM", "HETATM", "CONECT", "END", "TER"):
+            lines.append(line)
+    return "\n".join(lines) + "\n"
+
+
 async def prepare_receptor_pdbqt(pdb_id: str, log_fn) -> Optional[Path]:
     """
     Download PDB and convert to PDBQT using Open Babel.
@@ -364,6 +375,10 @@ async def prepare_receptor_pdbqt(pdb_id: str, log_fn) -> Optional[Path]:
         )
         await asyncio.wait_for(result.communicate(), timeout=60)
         if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
+            # Clean PDBQT: remove PDB headers that Vina doesn't accept
+            pdbqt_text = pdbqt_path.read_text()
+            pdbqt_text = _clean_pdbqt(pdbqt_text)
+            pdbqt_path.write_text(pdbqt_text)
             return pdbqt_path
     except Exception as e:
         logger.error(f"Receptor PDBQT conversion failed: {e}")
