@@ -8,6 +8,7 @@ import asyncio
 import logging
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -151,6 +152,10 @@ async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") ->
 
 async def sdf_to_pdbqt(sdf_path: Path, pdbqt_path: Path) -> bool:
     """Convert SDF to PDBQT using Open Babel (adds Gasteiger charges)."""
+    if not sdf_path.exists() or sdf_path.stat().st_size == 0:
+        logger.error(f"SDF→PDBQT: Input SDF missing or empty: {sdf_path}")
+        return False
+
     try:
         result = await asyncio.create_subprocess_exec(
             OBABEL_BINARY,
@@ -160,8 +165,19 @@ async def sdf_to_pdbqt(sdf_path: Path, pdbqt_path: Path) -> bool:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        await asyncio.wait_for(result.communicate(), timeout=30)
-        return pdbqt_path.exists() and pdbqt_path.stat().st_size > 0
+        stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=30)
+
+        if result.returncode != 0:
+            stderr_text = stderr.decode("utf-8", errors="replace").strip()
+            logger.error(f"SDF→PDBQT failed: {stderr_text}")
+            return False
+
+        ok = pdbqt_path.exists() and pdbqt_path.stat().st_size > 0
+        if ok:
+            logger.info(f"SDF→PDBQT: {sdf_path.name} → {pdbqt_path.name} ({pdbqt_path.stat().st_size} bytes)")
+        else:
+            logger.error(f"SDF→PDBQT: Output file empty or missing: {pdbqt_path}")
+        return ok
     except Exception as e:
         logger.error(f"SDF→PDBQT failed: {e}")
         return False
@@ -177,6 +193,19 @@ async def run_vina_single(
     log_fn,
 ) -> List[dict]:
     """Run Vina for a single ligand and parse output."""
+    # Validate input files exist and have content
+    if not receptor.exists() or receptor.stat().st_size == 0:
+        await log_fn(job_id, f"[ERROR] Receptor PDBQT missing or empty: {receptor}", "warn")
+        return []
+    if not ligand.exists() or ligand.stat().st_size == 0:
+        await log_fn(job_id, f"[ERROR] Ligand PDBQT missing or empty: {ligand}", "warn")
+        return []
+
+    # Check if Vina binary exists
+    if not shutil.which(VINA_BINARY):
+        await log_fn(job_id, f"[ERROR] Vina binary not found at '{VINA_BINARY}'. Using simulation mode (0 poses).", "warn")
+        return []
+
     cmd = [
         VINA_BINARY,
         "--receptor", str(receptor),
@@ -197,19 +226,33 @@ async def run_vina_single(
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        output_lines = []
+        stdout_lines = []
         async for line in proc.stdout:
             decoded = line.decode("utf-8", errors="replace").rstrip()
-            output_lines.append(decoded)
+            stdout_lines.append(decoded)
             # Stream relevant lines to WebSocket
             if any(kw in decoded for kw in ["mode", "-----", "Refining", "Writing"]):
                 await log_fn(job_id, f"[Vina] {decoded}", "info")
 
-        await asyncio.wait_for(proc.wait(), timeout=300)
-        return parse_vina_output(output_lines, name)
+        returncode = await asyncio.wait_for(proc.wait(), timeout=300)
+        _, stderr = await proc.communicate()
+
+        if returncode != 0:
+            stderr_text = stderr.decode("utf-8", errors="replace").strip()
+            await log_fn(job_id, f"[ERROR] Vina exited with code {returncode}: {stderr_text}", "warn")
+            return []
+
+        poses = parse_vina_output(stdout_lines, name)
+        if not poses:
+            await log_fn(job_id, f"[WARN] Vina produced no poses for {name}. Check grid coordinates and ligand PDBQT.", "warn")
+            # Log first 10 lines of Vina output for debugging
+            for line in stdout_lines[:10]:
+                await log_fn(job_id, f"[Vina] {line}", "info")
+
+        return poses
 
     except asyncio.TimeoutError:
         await log_fn(job_id, f"[WARN] Vina timed out for {name}", "warn")
