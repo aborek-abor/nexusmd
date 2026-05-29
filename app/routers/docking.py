@@ -30,8 +30,8 @@ LIGANDS_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPPORTED_EXTENSIONS      = {".sdf", ".mol", ".mol2"}
 PROTEIN_EXTENSIONS        = {".pdb", ".cif", ".mmcif"}
-MAX_UPLOAD_BYTES          = 10 * 1024 * 1024   # 10 MB
-MAX_PROTEIN_UPLOAD_BYTES  = 50 * 1024 * 1024   # 50 MB
+MAX_UPLOAD_BYTES          = 100 * 1024 * 1024   # 100 MB
+MAX_PROTEIN_UPLOAD_BYTES  = 500 * 1024 * 1024   # 500 MB
 
 
 @router.post("/upload-ligands")
@@ -65,7 +65,7 @@ async def upload_ligands(file: UploadFile = File(...)):
     if len(content) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             400,
-            f"File too large ({len(content) // 1024} KB). Maximum allowed size is 10 MB.",
+            f"File too large ({len(content) // 1024} KB). Maximum allowed size is 100 MB.",
         )
     if not content.strip():
         raise HTTPException(400, "Uploaded file is empty.")
@@ -130,7 +130,7 @@ async def upload_protein(file: UploadFile = File(...)):
         raise HTTPException(
             400,
             f"File too large ({len(content) // (1024*1024)} MB). "
-            "Maximum allowed size is 50 MB.",
+            "Maximum allowed size is 500 MB.",
         )
     if not content.strip():
         raise HTTPException(400, "Uploaded file is empty.")
