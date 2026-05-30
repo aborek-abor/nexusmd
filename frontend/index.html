@@ -671,7 +671,7 @@ const state = {
 };
 
 const POLL_INTERVAL_MS  = 1500;   // poll every 1.5 s
-const POLL_TIMEOUT_MS   = 300000; // 5-minute hard timeout
+const POLL_TIMEOUT_MS   = 72 * 60 * 60 * 1000; // 72-hour hard timeout
 
 // ── Navigation ─────────────────────────────────────────────────
 function showPage(name, btn) {
@@ -1148,7 +1148,7 @@ async function pollDockingStatus(jobId) {
   // Hard timeout guard
   if (state.docking.pollStart && (Date.now() - state.docking.pollStart) > POLL_TIMEOUT_MS) {
     stopDockingPoll();
-    setAlert('d-alert-area', 'error', 'Polling timed out after 5 minutes. The job may still be running — check back later.');
+    setAlert('d-alert-area', 'error', 'Polling timed out after 72 hours. The job may still be running — check back later.');
     updateDockingUI({ status: 'failed', progress: 0, message: 'Polling timeout' });
     document.getElementById('d-submit-btn').disabled = false;
     return;
@@ -1673,7 +1673,7 @@ async function pollMDStatus(jobId) {
   // Hard timeout guard
   if (state.md.pollStart && (Date.now() - state.md.pollStart) > POLL_TIMEOUT_MS) {
     stopMDPoll();
-    setAlert('md-alert-area', 'error', 'Polling timed out after 5 minutes. The simulation may still be running — check back later.');
+    setAlert('md-alert-area', 'error', 'Polling timed out after 72 hours. The simulation may still be running — check back later.');
     updateMDUI({ status: 'failed', progress: 0, message: 'Polling timeout' });
     document.getElementById('md-submit-btn').disabled = false;
     return;
