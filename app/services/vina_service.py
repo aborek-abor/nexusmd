@@ -41,6 +41,8 @@ async def run_vina_docking(
 
     all_poses = []
     n = len(ligand_smiles)
+    # Map ligand name → path of its 3D SDF file for use in combined output
+    name_to_sdf: dict = {}
 
     for i, (smi, name) in enumerate(zip(ligand_smiles, ligand_names)):
         await log_fn(job_id, f"[Vina] ({i+1}/{n}) Preparing ligand: {name}", "info")
@@ -60,6 +62,9 @@ async def run_vina_docking(
             await log_fn(job_id, f"[WARN] PDBQT conversion failed for {name} — skipping", "warn")
             continue
 
+        # Track the SDF path so write_combined_sdf can embed real coordinates
+        name_to_sdf[name] = lig_sdf
+
         await log_fn(job_id, f"[Vina] Running docking: {name}", "info")
         poses = await run_vina_single(
             protein_pdbqt, lig_pdbqt, out_pdbqt, grid, name, job_id, log_fn
@@ -72,8 +77,8 @@ async def run_vina_docking(
     for rank, pose in enumerate(all_poses, 1):
         pose["rank"] = rank
 
-    # Write combined SDF
-    await write_combined_sdf(all_poses, job_dir / "poses.sdf")
+    # Write combined SDF with real molecular structures
+    await write_combined_sdf(all_poses, job_dir / "poses.sdf", job_dir, name_to_sdf)
     await log_fn(job_id, f"[Vina] Docking complete — {len(all_poses)} poses", "done")
 
     return all_poses
@@ -301,18 +306,57 @@ def parse_vina_output(lines: List[str], name: str) -> List[dict]:
     return poses
 
 
-async def write_combined_sdf(poses: List[dict], output_path: Path):
-    """Write a simple SDF record for each pose (placeholder atoms)."""
-    lines = []
+async def write_combined_sdf(
+    poses: List[dict],
+    output_path: Path,
+    job_dir: Optional[Path] = None,
+    name_to_sdf: Optional[dict] = None,
+):
+    """Write a combined SDF file for all docked poses.
+
+    For each pose the actual 3D structure is read from the corresponding
+    ``lig_{i}.sdf`` file produced during docking (looked up via
+    *name_to_sdf*).  Docking score and RMSD values are appended as SDF
+    data fields.  Falls back to a minimal placeholder record when the
+    source SDF is unavailable.
+    """
+    records = []
     for p in poses:
-        lines.append(f"\n  NexusMD   3D\n\n")
-        lines.append("  0  0  0  0  0  0  0  0  0  0999 V2000\n")
-        lines.append("M  END\n")
-        lines.append(f"> <COMPOUND_NAME>\n{p['name']}\n\n")
-        lines.append(f"> <DOCKING_SCORE>\n{p['score']}\n\n")
-        lines.append(f"> <RMSD_LB>\n{p.get('rmsd_lb', 0)}\n\n")
-        lines.append("$$$$\n")
-    output_path.write_text("".join(lines))
+        name = p["name"]
+        sdf_path: Optional[Path] = (name_to_sdf or {}).get(name)
+
+        mol_block: Optional[str] = None
+        if sdf_path and sdf_path.exists() and sdf_path.stat().st_size > 0:
+            try:
+                raw = sdf_path.read_text(errors="replace")
+                # An SDF file may contain one or more records separated by
+                # the "$$$$" terminator.  Take only the first record (the
+                # 3D conformer we generated).
+                sdf_terminator = "$" * 4
+                first_record = raw.split(sdf_terminator)[0].rstrip()
+                if first_record:
+                    mol_block = first_record
+            except Exception as exc:
+                logger.warning(f"[SDF] Could not read {sdf_path}: {exc}")
+
+        if mol_block is None:
+            # Fallback: empty V2000 mol block
+            mol_block = f"{name}\n  NexusMD   3D\n\n  0  0  0  0  0  0  0  0  0  0999 V2000\nM  END"
+
+        sdf_terminator = "$" * 4
+        # Append docking-result data fields after the mol block
+        record_lines = [
+            mol_block,
+            f"> <COMPOUND_NAME>\n{name}",
+            f"> <DOCKING_SCORE>\n{p['score']}",
+            f"> <RANK>\n{p.get('rank', '')}",
+            f"> <RMSD_LB>\n{p.get('rmsd_lb', 0)}",
+            f"> <RMSD_UB>\n{p.get('rmsd_ub', 0)}",
+            sdf_terminator,
+        ]
+        records.append("\n".join(record_lines))
+
+    output_path.write_text("\n".join(records) + "\n")
 
 
 def _clean_pdbqt(pdbqt_text: str) -> str:
