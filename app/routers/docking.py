@@ -5,7 +5,7 @@ import logging
 import time
 from pathlib import Path
 
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, FileResponse
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
 from app.services.job_queue import job_manager
@@ -297,6 +297,56 @@ async def get_results(job_id: str):
     if not job.result:
         raise HTTPException(500, "Job completed but no results stored")
     return DockingResult(**job.result)
+
+
+@router.get("/results/{job_id}/sdf")
+async def download_sdf(job_id: str):
+    """Download the combined SDF file for a completed docking job."""
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(404, f"Job {job_id} not found")
+    if job.status != "done":
+        raise HTTPException(400, f"Job {job_id} not done yet (status: {job.status})")
+
+    sdf_path = RESULTS_DIR / job_id / "poses.sdf"
+    if not sdf_path.exists():
+        raise HTTPException(404, f"SDF file not found for job {job_id}")
+
+    return FileResponse(
+        path=str(sdf_path),
+        media_type="chemical/x-mdl-sdfile",
+        headers={"Content-Disposition": f'attachment; filename="{job_id}_poses.sdf"'},
+    )
+
+
+@router.get("/results/{job_id}/pdbqt")
+async def download_pdbqt(job_id: str):
+    """Download the combined PDBQT file for a completed docking job."""
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(404, f"Job {job_id} not found")
+    if job.status != "done":
+        raise HTTPException(400, f"Job {job_id} not done yet (status: {job.status})")
+
+    job_dir = RESULTS_DIR / job_id
+    if not job_dir.exists():
+        raise HTTPException(404, f"Results directory not found for job {job_id}")
+
+    # Collect all per-ligand output PDBQT files in index order
+    pdbqt_files = sorted(job_dir.glob("out_*.pdbqt"), key=lambda p: int(p.stem.split("_")[1]))
+    if not pdbqt_files:
+        raise HTTPException(404, f"PDBQT file not found for job {job_id}")
+
+    # Write a combined PDBQT to a stable path so FileResponse can serve it
+    combined_path = job_dir / "poses.pdbqt"
+    if not combined_path.exists():
+        combined_path.write_text("".join(p.read_text() for p in pdbqt_files))
+
+    return FileResponse(
+        path=str(combined_path),
+        media_type="text/plain",
+        headers={"Content-Disposition": f'attachment; filename="{job_id}_poses.pdbqt"'},
+    )
 
 
 async def _run_docking_job(job_id: str, req: DockingRequest):
