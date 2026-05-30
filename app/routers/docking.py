@@ -463,8 +463,8 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
             "engine": req.engine,
             "poses": poses,
             "elapsed_s": elapsed,
-            "sdf_url": f"/api/results/{job_id}/sdf",
-            "pdbqt_url": f"/api/results/{job_id}/pdbqt",
+            "sdf_url": f"/api/docking/results/{job_id}/sdf",
+            "pdbqt_url": f"/api/docking/results/{job_id}/pdbqt",
         }
         await _update("done", 100, f"Done — {len(poses)} poses in {elapsed}s", result=result)
         await log(job_id, f"[DONE] Docking complete in {elapsed}s — {len(poses)} poses")
