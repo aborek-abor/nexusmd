@@ -440,6 +440,19 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
                 admet = admet_map.get(pose["name"], {})
                 pose["admet_status"] = admet.get("status", "—")
 
+            # Combine individual out_{i}.pdbqt files into a single poses.pdbqt
+            job_dir = RESULTS_DIR / job_id
+            combined_pdbqt = job_dir / "poses.pdbqt"
+            pdbqt_files = sorted(
+                job_dir.glob("out_*.pdbqt"),
+                key=lambda p: int(p.stem.split("_")[1]),
+            )
+            if pdbqt_files:
+                combined_pdbqt.write_text(
+                    "".join(p.read_text(errors="replace") for p in pdbqt_files)
+                )
+                await log(job_id, f"[INFO] Combined {len(pdbqt_files)} PDBQT file(s) → poses.pdbqt")
+
         await _update("running", 90, "Finalising results…")
         await log(job_id, f"[INFO] {len(poses)} total poses generated")
 
