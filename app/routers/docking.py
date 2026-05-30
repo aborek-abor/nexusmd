@@ -2,10 +2,12 @@
 
 import asyncio
 import logging
+import tempfile
 import time
+import zipfile
 from pathlib import Path
 
-from fastapi.responses import PlainTextResponse, FileResponse
+from fastapi.responses import PlainTextResponse, FileResponse, Response
 from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
 from app.services.job_queue import job_manager
@@ -22,9 +24,10 @@ from app.services.protein_parser import (
 logger = logging.getLogger("nexusmd.docking")
 router = APIRouter()
 
-RESULTS_DIR  = Path(__file__).parent.parent.parent / "data" / "results"
-UPLOADS_DIR  = Path(__file__).parent.parent.parent / "data" / "uploads"
-LIGANDS_DIR  = Path(__file__).parent.parent.parent / "data" / "ligands"
+RESULTS_DIR   = Path(__file__).parent.parent.parent / "data" / "results"
+UPLOADS_DIR   = Path(__file__).parent.parent.parent / "data" / "uploads"
+LIGANDS_DIR   = Path(__file__).parent.parent.parent / "data" / "ligands"
+PDB_CACHE_DIR = Path(__file__).parent.parent.parent / "data" / "pdb_cache"
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
 LIGANDS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -346,6 +349,147 @@ async def download_pdbqt(job_id: str):
         path=str(combined_path),
         media_type="text/plain",
         headers={"Content-Disposition": f'attachment; filename="{job_id}_poses.pdbqt"'},
+    )
+
+
+@router.get("/results/{job_id}/download-zip")
+async def download_zip(job_id: str):
+    """Download a ZIP archive of all docking results for a completed job.
+
+    The archive contains:
+
+    * ``receptor.pdbqt``          — prepared protein receptor
+    * ``poses.sdf``               — all ligand poses in SDF format
+    * ``poses.pdbqt``             — all docked poses in PDBQT format
+    * ``ligand_poses/lig_{i}.sdf``   — individual ligand 3D structures
+    * ``ligand_poses/out_{i}.pdbqt`` — individual docking outputs
+    * ``README.txt``              — instructions for Discovery Studio / PyMOL
+    """
+    job = job_manager.get_job(job_id)
+    if not job:
+        raise HTTPException(404, f"Job {job_id} not found")
+    if job.status != "done":
+        raise HTTPException(400, f"Job {job_id} not done yet (status: {job.status})")
+
+    job_dir = RESULTS_DIR / job_id
+    if not job_dir.exists():
+        raise HTTPException(404, f"Results directory not found for job {job_id}")
+
+    # ── Locate receptor PDBQT ──────────────────────────────────
+    protein_id: str = (job.result or {}).get("protein", "")
+    receptor_path: Path | None = None
+
+    if protein_id.startswith("UPLOAD:"):
+        filename = protein_id[7:]
+        candidate = LIGANDS_DIR / filename
+        if candidate.exists():
+            receptor_path = candidate
+    elif protein_id.startswith("ALPHAFOLD:"):
+        uniprot_id = protein_id[10:]
+        candidate = PDB_CACHE_DIR / f"AF_{uniprot_id}.pdbqt"
+        if candidate.exists():
+            receptor_path = candidate
+    else:
+        # Standard RCSB PDB ID
+        candidate = PDB_CACHE_DIR / f"{protein_id}.pdbqt"
+        if candidate.exists():
+            receptor_path = candidate
+
+    # ── Ensure combined poses.pdbqt exists ────────────────────
+    combined_pdbqt = job_dir / "poses.pdbqt"
+    if not combined_pdbqt.exists():
+        pdbqt_files = sorted(
+            job_dir.glob("out_*.pdbqt"),
+            key=lambda p: int(p.stem.split("_")[1]),
+        )
+        if pdbqt_files:
+            combined_pdbqt.write_text(
+                "".join(p.read_text(errors="replace") for p in pdbqt_files)
+            )
+
+    # ── Build ZIP in a temporary directory ────────────────────
+    readme_text = f"""\
+NexusMD Docking Results — Job {job_id}
+======================================
+
+Files included
+--------------
+receptor.pdbqt      Prepared protein receptor (AutoDock PDBQT format)
+poses.sdf           All ligand poses combined (SDF format)
+poses.pdbqt         All docked poses combined (PDBQT format)
+ligand_poses/       Individual files per ligand
+  lig_N.sdf         3D structure of ligand N
+  out_N.pdbqt       Docked poses for ligand N
+
+Opening in BIOVIA Discovery Studio
+-----------------------------------
+1. File > Open > select receptor.pdbqt  (loads the protein)
+2. File > Open > select poses.sdf       (loads all ligand poses at once)
+   — or open individual out_N.pdbqt files from the ligand_poses/ folder.
+3. Use the Hierarchy panel to toggle visibility of each pose.
+
+Opening in PyMOL
+----------------
+  load receptor.pdbqt
+  load poses.sdf
+
+Opening in UCSF Chimera / ChimeraX
+------------------------------------
+  File > Open > receptor.pdbqt
+  File > Open > poses.sdf
+
+Note: SDF files carry docking score, rank, and RMSD as data fields
+(DOCKING_SCORE, RANK, RMSD_LB, RMSD_UB) readable by most viewers.
+"""
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        zip_path = Path(tmpdir) / f"{job_id}_docking_results.zip"
+
+        with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+            # README
+            zf.writestr("README.txt", readme_text)
+
+            # Receptor
+            if receptor_path and receptor_path.exists():
+                zf.write(receptor_path, "receptor.pdbqt")
+            else:
+                logger.warning(
+                    f"[download-zip] Receptor PDBQT not found for job {job_id} "
+                    f"(protein_id={protein_id!r})"
+                )
+
+            # Combined SDF
+            sdf_path = job_dir / "poses.sdf"
+            if sdf_path.exists():
+                zf.write(sdf_path, "poses.sdf")
+
+            # Combined PDBQT
+            if combined_pdbqt.exists():
+                zf.write(combined_pdbqt, "poses.pdbqt")
+
+            # Individual ligand files
+            for sdf_file in sorted(
+                job_dir.glob("lig_*.sdf"),
+                key=lambda p: int(p.stem.split("_")[1]),
+            ):
+                zf.write(sdf_file, f"ligand_poses/{sdf_file.name}")
+
+            for pdbqt_file in sorted(
+                job_dir.glob("out_*.pdbqt"),
+                key=lambda p: int(p.stem.split("_")[1]),
+            ):
+                zf.write(pdbqt_file, f"ligand_poses/{pdbqt_file.name}")
+
+        # Read the ZIP into memory so we can return it after the temp dir is cleaned up
+        zip_bytes = zip_path.read_bytes()
+
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{job_id}_docking_results.zip"',
+            "Content-Length": str(len(zip_bytes)),
+        },
     )
 
 
