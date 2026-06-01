@@ -2,16 +2,20 @@
 
 import asyncio
 import logging
+import os
 import tempfile
 import time
 import zipfile
+from datetime import datetime
 from pathlib import Path
 
 from fastapi.responses import PlainTextResponse, FileResponse, Response
-from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, BackgroundTasks, UploadFile, File, Query, Depends
+from sqlalchemy.orm import Session
 from app.models.schemas import DockingRequest, DockingResult, JobStatus, PoseResult
+from app.models.database import DockingJob, get_db
 from app.services.job_queue import job_manager
-from app.services.vina_service import run_vina_docking, prepare_receptor_pdbqt, _clean_pdbqt
+from app.services.vina_service import run_vina_docking, run_vina_docking_parallel, prepare_receptor_pdbqt, _clean_pdbqt
 from app.services.admet_service import predict_admet_batch
 from app.services.ligand_parser import parse_sdf_file, parse_mol2_file
 from app.services.protein_parser import (
@@ -236,7 +240,7 @@ def _cleanup_old_uploads(max_age_seconds: int = 86400) -> None:
 
 
 @router.post("/submit", response_model=JobStatus)
-async def submit_docking(req: DockingRequest, bg: BackgroundTasks):
+async def submit_docking(req: DockingRequest, bg: BackgroundTasks, db: Session = Depends(get_db)):
     """Submit a docking job. Returns job_id immediately; poll /status/{job_id} or connect to WS."""
     # Resolve ligands from uploaded file if ligand_file_id is provided
     if req.ligand_file_id:
@@ -248,6 +252,20 @@ async def submit_docking(req: DockingRequest, bg: BackgroundTasks):
     job_id = job_manager.create_job(
         f"Docking {len(req.ligand_smiles)} ligands on {req.protein_id} via {req.engine}"
     )
+
+    # Persist job record to database
+    try:
+        db_job = DockingJob(
+            job_id=job_id,
+            status="pending",
+            protein_id=req.protein_id,
+            ligand_count=len(req.ligand_smiles),
+        )
+        db.add(db_job)
+        db.commit()
+    except Exception as e:
+        logger.warning(f"[DB] Failed to persist job {job_id}: {e}")
+
     bg.add_task(_run_docking_job, job_id, req)
     job = job_manager.get_job(job_id)
     return JobStatus(**job.to_dict())
@@ -300,6 +318,44 @@ async def get_results(job_id: str):
     if not job.result:
         raise HTTPException(500, "Job completed but no results stored")
     return DockingResult(**job.result)
+
+
+@router.get("/history")
+async def get_job_history(limit: int = 50, db: Session = Depends(get_db)):
+    """Return the most recent docking jobs from the persistent database.
+
+    Unlike /status which only covers in-memory jobs for the current process
+    lifetime, this endpoint returns jobs that survived container restarts.
+    """
+    try:
+        jobs = (
+            db.query(DockingJob)
+            .order_by(DockingJob.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+        return {
+            "jobs": [
+                {
+                    "job_id": j.job_id,
+                    "status": j.status,
+                    "protein_id": j.protein_id,
+                    "ligand_count": j.ligand_count,
+                    "completed_ligands": j.completed_ligands,
+                    "poses_generated": j.poses_generated,
+                    "created_at": j.created_at.isoformat() if j.created_at else None,
+                    "completed_at": j.completed_at.isoformat() if j.completed_at else None,
+                    "results_sdf_url": j.results_sdf_url,
+                    "results_zip_url": j.results_zip_url,
+                    "error": j.error_message,
+                }
+                for j in jobs
+            ],
+            "total": len(jobs),
+        }
+    except Exception as e:
+        logger.warning(f"[DB] Failed to fetch job history: {e}")
+        return {"jobs": [], "total": 0, "error": "Database unavailable"}
 
 
 @router.get("/results/{job_id}/sdf")
@@ -494,7 +550,7 @@ Note: SDF files carry docking score, rank, and RMSD as data fields
 
 
 async def _run_docking_job(job_id: str, req: DockingRequest):
-    """Background task: full docking pipeline."""
+    """Background task: full docking pipeline with DB persistence and bucket storage."""
     start = time.time()
     log = job_manager.log
     update = job_manager.update
@@ -504,7 +560,21 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         logger.info(f"[docking] job={job_id} status={status} progress={progress}% — {message}")
         await update(job_id, status, progress, message, **kwargs)
 
+    def _db_update(**kwargs):
+        """Update the DB record for this job (best-effort — never raises)."""
+        try:
+            db = next(get_db())
+            db_job = db.query(DockingJob).filter(DockingJob.job_id == job_id).first()
+            if db_job:
+                for k, v in kwargs.items():
+                    setattr(db_job, k, v)
+                db.commit()
+            db.close()
+        except Exception as exc:
+            logger.debug(f"[DB] Non-fatal update error for job {job_id}: {exc}")
+
     try:
+        _db_update(status="running", started_at=datetime.utcnow())
         await _update("running", 5, "Starting docking pipeline…")
         await log(job_id, f"[NexusMD] Job {job_id} — {req.engine.upper()}")
         await log(job_id, f"[INFO] Protein: {req.protein_id}")
@@ -569,12 +639,13 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
                 admet_map = {}
 
             if not filtered_smiles:
+                _db_update(status="failed", completed_at=datetime.utcnow(), error_message="All compounds failed ADMET filter")
                 await _update("failed", 100, "All compounds failed ADMET filter")
                 return
 
-            # Step 3: Run docking
-            await _update("running", 40, f"Docking {len(filtered_smiles)} ligands…")
-            poses = await run_vina_docking(
+            # Step 3: Run parallel docking
+            await _update("running", 40, f"Docking {len(filtered_smiles)} ligands (parallel)…")
+            poses = await run_vina_docking_parallel(
                 job_id, receptor_path, filtered_smiles, filtered_names,
                 req.grid.model_dump(), log
             )
@@ -600,6 +671,21 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         await _update("running", 90, "Finalising results…")
         await log(job_id, f"[INFO] {len(poses)} total poses generated")
 
+        # Step 4: Upload results to object storage
+        sdf_s3_url = None
+        zip_presigned_url = None
+        job_dir = RESULTS_DIR / job_id
+        try:
+            from app.services.storage_service import upload_job_results, get_download_url
+            uploaded = await upload_job_results(job_id, job_dir)
+            if uploaded:
+                bucket = os.environ.get("BUCKET", os.environ.get("BUCKET_NAME", ""))
+                sdf_s3_url = f"s3://{bucket}/{job_id}/poses.sdf" if bucket else None
+                zip_presigned_url = get_download_url(job_id, "poses.sdf")
+                await log(job_id, f"[Storage] Results uploaded to bucket: {sdf_s3_url}", "info")
+        except Exception as e:
+            await log(job_id, f"[Storage] Bucket upload skipped: {e}", "info")
+
         elapsed = round(time.time() - start, 1)
         result = {
             "job_id": job_id,
@@ -610,6 +696,18 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
             "sdf_url": f"/api/docking/results/{job_id}/sdf",
             "pdbqt_url": f"/api/docking/results/{job_id}/pdbqt",
         }
+
+        # Persist completed state to database
+        _db_update(
+            status="completed",
+            completed_at=datetime.utcnow(),
+            completed_ligands=len(set(p["name"] for p in poses)),
+            poses_generated=len(poses),
+            results_sdf_url=sdf_s3_url,
+            results_zip_url=zip_presigned_url,
+            results_bucket_path=f"s3://{os.environ.get('BUCKET', os.environ.get('BUCKET_NAME', ''))}/{job_id}/" if poses else None,
+        )
+
         await _update("done", 100, f"Done — {len(poses)} poses in {elapsed}s", result=result)
         await log(job_id, f"[DONE] Docking complete in {elapsed}s — {len(poses)} poses")
 
@@ -617,6 +715,7 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
         import traceback
         tb = traceback.format_exc()
         logger.error(f"[docking] job={job_id} unhandled exception: {e}\n{tb}")
+        _db_update(status="failed", completed_at=datetime.utcnow(), error_message=f"{type(e).__name__}: {str(e)}")
         await update(job_id, "failed", 100, f"Error: {type(e).__name__}: {str(e)}")
         await log(job_id, f"[ERROR] {type(e).__name__}: {str(e)}", "warn")
         await log(job_id, f"[TRACEBACK] {tb}", "warn")
