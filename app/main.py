@@ -21,6 +21,7 @@ from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from app.routers import docking, proteins, admet, pockets, scaffold, mmgbsa, fasta
 from app.services.job_queue import job_manager
 from app.models.schemas import HealthResponse
+from app.models.database import init_db
 
 # ── Logging ───────────────────────────────────────
 logging.basicConfig(
@@ -41,6 +42,9 @@ for d in [DATA_DIR / "results", DATA_DIR / "pdb_cache", DATA_DIR / "ligands", BA
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("NexusMD starting up on Railway…")
+    # Initialise database tables (no-op if already exist)
+    init_db()
+    logger.info("  Database: tables initialised")
     vina_ok = _check_binary("vina")
     obabel_ok = _check_binary("obabel")
     logger.info(f"  Vina:   {'✓ found' if vina_ok else '✗ not found (simulation mode)'}")

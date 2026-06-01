@@ -15,3 +15,10 @@ rdkit
 
 # BioPython for mmCIF parsing (optional — regex fallback built in)
 biopython
+
+# Database persistence (PostgreSQL + SQLite fallback)
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+
+# S3-compatible bucket storage (Railway Bucket / AWS S3)
+boto3==1.28.85
