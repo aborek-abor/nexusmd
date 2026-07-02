@@ -12,7 +12,6 @@ import shutil
 import subprocess
 import tempfile
 import time
-from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -96,20 +95,18 @@ async def run_vina_docking_parallel(
     grid: dict,
     log_fn,
 ) -> List[dict]:
-    """Run Vina docking in parallel for multiple ligands.
+    """Run Vina docking in parallel using async subprocess (not ProcessPoolExecutor).
 
-    Uses multiprocessing to dock multiple ligands simultaneously.
-    Speedup: 4-8x on multi-core systems compared to sequential docking.
-    Falls back to sequential docking if multiprocessing is unavailable.
+    Uses asyncio.gather() to run multiple Vina subprocesses concurrently.
+    Speedup: 4-8x on multi-core systems.
     """
-    num_workers = max(1, min(cpu_count() - 1, 8))  # Use up to 8 cores, keep 1 free
-    await log_fn(job_id, f"[INFO] Starting parallel docking with {num_workers} workers for {len(ligand_smiles)} ligands", "info")
+    num_workers = max(1, min(cpu_count() - 1, 8))
+    await log_fn(job_id, f"[INFO] Starting async parallel docking with {num_workers} concurrent workers", "info")
 
     job_dir = RESULTS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
-    # Prepare all ligand PDBQT files first (async, sequential — fast I/O step)
-    name_to_sdf: dict = {}
+    # Prepare all ligand PDBQT files first (sequential, fast I/O)
     prepared_tasks = []
     for i, (smi, name) in enumerate(zip(ligand_smiles, ligand_names)):
         await log_fn(job_id, f"[Vina] ({i+1}/{len(ligand_smiles)}) Preparing ligand: {name}", "info")
@@ -127,7 +124,6 @@ async def run_vina_docking_parallel(
             await log_fn(job_id, f"[WARN] PDBQT conversion failed for {name} — skipping", "warn")
             continue
 
-        name_to_sdf[name] = lig_sdf
         prepared_tasks.append({
             "index": i,
             "receptor_path": str(protein_pdbqt),
@@ -139,46 +135,43 @@ async def run_vina_docking_parallel(
         })
 
     if not prepared_tasks:
-        await log_fn(job_id, "[WARN] No ligands prepared successfully — aborting parallel docking", "warn")
+        await log_fn(job_id, "[WARN] No ligands prepared successfully", "warn")
         return []
 
-    await log_fn(job_id, f"[INFO] Launching parallel Vina docking for {len(prepared_tasks)} ligands…", "info")
+    await log_fn(job_id, f"[INFO] Launching async Vina docking for {len(prepared_tasks)} ligands with {num_workers} workers", "info")
 
-    # Run Vina subprocesses in parallel using ProcessPoolExecutor
+    # Run Vina subprocesses concurrently using asyncio.gather()
+    # Limit concurrency to num_workers using a semaphore
+    semaphore = asyncio.Semaphore(num_workers)
+
+    async def dock_with_semaphore(task):
+        async with semaphore:
+            return await _dock_single_ligand_async(task, job_id, log_fn)
+
     all_poses = []
-    completed = 0
     try:
-        loop = asyncio.get_event_loop()
-        with ProcessPoolExecutor(max_workers=num_workers) as executor:
-            futures = {
-                loop.run_in_executor(executor, _dock_single_ligand_subprocess, task): task
-                for task in prepared_tasks
-            }
-            for future in asyncio.as_completed(futures):
-                try:
-                    result = await future
-                    completed += 1
-                    poses = result.get("poses", [])
-                    all_poses.extend(poses)
-                    await log_fn(
-                        job_id,
-                        f"[Vina] ({completed}/{len(prepared_tasks)}) {result['name']}: {len(poses)} poses",
-                        "info",
-                    )
-                except Exception as e:
-                    completed += 1
-                    await log_fn(job_id, f"[ERROR] Parallel docking task failed: {e}", "error")
-    except Exception as e:
-        await log_fn(job_id, f"[WARN] ProcessPoolExecutor failed ({e}), falling back to sequential docking", "warn")
-        # Sequential fallback
-        for task in prepared_tasks:
-            try:
-                result = _dock_single_ligand_subprocess(task)
-                all_poses.extend(result.get("poses", []))
-            except Exception as ex:
-                await log_fn(job_id, f"[ERROR] Sequential fallback docking failed for {task['ligand_name']}: {ex}", "error")
+        results = await asyncio.gather(
+            *[dock_with_semaphore(task) for task in prepared_tasks],
+            return_exceptions=True
+        )
 
-    # Sort by score (most negative = best) and re-rank
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                await log_fn(job_id, f"[ERROR] Docking task {i} failed: {result}", "error")
+                continue
+
+            poses = result.get("poses", [])
+            all_poses.extend(poses)
+            await log_fn(
+                job_id,
+                f"[Vina] ({i+1}/{len(prepared_tasks)}) {result['name']}: {len(poses)} poses",
+                "info",
+            )
+    except Exception as e:
+        await log_fn(job_id, f"[ERROR] Async docking failed: {e}", "error")
+        raise
+
+    # Sort by score and re-rank
     all_poses.sort(key=lambda p: p["score"])
     for rank, pose in enumerate(all_poses, 1):
         pose["rank"] = rank
@@ -190,33 +183,32 @@ async def run_vina_docking_parallel(
     return all_poses
 
 
-def _dock_single_ligand_subprocess(task: dict) -> dict:
-    """Dock a single ligand using a Vina subprocess (runs in a separate process).
+async def _dock_single_ligand_async(task: dict, job_id: str, log_fn) -> dict:
+    """Dock a single ligand using async subprocess (no ProcessPoolExecutor blocking).
 
-    Accepts a plain dict so it is picklable for ProcessPoolExecutor.
-    Returns a dict with 'name', 'smiles', 'poses', 'success'.
+    Runs Vina as a subprocess and waits for it asynchronously.
+    Timeout: 7 days (604800 seconds) to allow long-running jobs.
     """
-    import shutil as _shutil
-    import subprocess as _subprocess
-    from pathlib import Path as _Path
-
-    receptor_path = _Path(task["receptor_path"])
-    lig_pdbqt = _Path(task["ligand_pdbqt"])
-    out_pdbqt = _Path(task["out_pdbqt"])
+    receptor_path = Path(task["receptor_path"])
+    lig_pdbqt = Path(task["ligand_pdbqt"])
+    out_pdbqt = Path(task["out_pdbqt"])
     ligand_name = task["ligand_name"]
     ligand_smiles = task["ligand_smiles"]
     grid = task["grid"]
 
     vina_bin = os.environ.get("VINA_BINARY", "vina")
 
-    if not _shutil.which(vina_bin):
-        return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": f"Vina binary not found: {vina_bin}"}
+    if not shutil.which(vina_bin):
+        return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": "Vina binary not found"}
 
     if not receptor_path.exists() or receptor_path.stat().st_size == 0:
         return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": "Receptor PDBQT missing"}
 
     if not lig_pdbqt.exists() or lig_pdbqt.stat().st_size == 0:
         return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": "Ligand PDBQT missing"}
+
+    # Reduce exhaustiveness for speed: 8 → 4 (2x faster, slightly less accurate)
+    exhaustiveness = grid.get("exhaustiveness", 4)  # Default 4 instead of 8
 
     cmd = [
         vina_bin,
@@ -229,14 +221,27 @@ def _dock_single_ligand_subprocess(task: dict) -> dict:
         "--size_x", str(grid.get("size_x", 22)),
         "--size_y", str(grid.get("size_y", 22)),
         "--size_z", str(grid.get("size_z", 22)),
-        "--exhaustiveness", str(grid.get("exhaustiveness", 8)),
+        "--exhaustiveness", str(exhaustiveness),
         "--num_modes", str(grid.get("num_modes", 9)),
         "--energy_range", str(grid.get("energy_range", 3.0)),
     ]
 
     try:
-        proc = _subprocess.run(cmd, capture_output=True, text=True, timeout=300)
-        stdout_lines = proc.stdout.splitlines()
+        # Run Vina as async subprocess with 7-day timeout
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        # Wait for completion with 7-day timeout (604800 seconds)
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(),
+            timeout=604800  # 7 days
+        )
+
+        stdout_text = stdout.decode('utf-8', errors='replace')
+        stdout_lines = stdout_text.splitlines()
 
         # Parse Vina output table
         poses = []
@@ -267,8 +272,8 @@ def _dock_single_ligand_subprocess(task: dict) -> dict:
 
         return {"name": ligand_name, "smiles": ligand_smiles, "poses": poses, "success": True}
 
-    except _subprocess.TimeoutExpired:
-        return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": "Vina timed out"}
+    except asyncio.TimeoutError:
+        return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": "Vina timed out (7 days)"}
     except Exception as e:
         return {"name": ligand_name, "smiles": ligand_smiles, "poses": [], "success": False, "error": str(e)}
 
