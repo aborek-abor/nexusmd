@@ -22,3 +22,8 @@ psycopg2-binary==2.9.9
 
 # S3-compatible bucket storage (Railway Bucket / AWS S3)
 boto3==1.28.85
+
+# Molecular Dynamics — OpenMM ecosystem
+openmm==8.1.1
+pdbfixer==1.9
+mdtraj==1.9.7
