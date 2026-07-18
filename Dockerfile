@@ -8,8 +8,9 @@ FROM python:3.11-slim
 LABEL maintainer="NexusMD"
 LABEL description="NexusMD Drug Discovery Platform — Railway deployment"
 
-# System packages — openbabel + dev libs for reliable binary + data files
+# System packages — openbabel + dev libs + C toolchain for building native wheels (mdtraj)
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
     openbabel \
     libopenbabel-dev \
     curl \
