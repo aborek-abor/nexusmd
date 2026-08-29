@@ -2362,7 +2362,7 @@ window.estimateDockingTime = function(n, exh){
   n = Number(n) || 0;
   exh = Number(exh) || 8;
   var t;
-  if (window.S && S.backendMode) t = Math.round(n * 9 * (exh / 8));   // real Vina, single core
+  if (typeof S !== 'undefined' && S.backendMode) t = Math.round(n * 9 * (exh / 8));   // real Vina, single core
   else t = Math.round(Math.min(20, Math.max(4, n * 0.025)));          // batched simulation
 
   if (t < 60)   return '~' + Math.max(t, 1) + ' s';
@@ -2414,18 +2414,152 @@ window.simulateDocking = function(){
   }, TICK);
 };
 
-/* ---------- 3. never leave the Run button stuck ---------- */
-var _origRun = window.runDocking;
+/* ---------- 3. full replacement runDocking ----------
+   The original opened a WebSocket and trusted it completely: polling only
+   started on ws.onerror / ws.onclose. A socket that connects and then stays
+   silent (backend still preparing the receptor, worker not started, proxy
+   idling the frame) left the bar on 0% with nothing watching it. This version
+   polls /api/docking/status in parallel from the start, so the WS is an
+   optimisation rather than a single point of failure.                */
+
+var RUN = { done:false, ws:null, poll:null, jobId:null };
+
+function runIdle(){
+  var b = $('dock-btn'); if (b){ b.disabled = false; b.textContent = '▶ Run Docking'; }
+}
+function runStop(){
+  RUN.done = true;
+  if (RUN.poll) { clearInterval(RUN.poll); RUN.poll = null; }
+  if (RUN.ws)   { try { RUN.ws.close(); } catch(e){} RUN.ws = null; }
+}
+function setProg(p, msg){
+  var f = $('dock-fill'), c = $('dock-pct'), l = $('dock-lbl');
+  if (typeof p === 'number'){ if (f) f.style.width = p + '%'; if (c) c.textContent = p + '%'; }
+  if (msg && l) l.textContent = String(msg).slice(0, 70);
+}
+
 window.runDocking = async function(){
-  try {
-    return await _origRun.apply(this, arguments);
-  } catch (err) {
-    var btn = $('dock-btn');
-    if (btn) { btn.disabled = false; btn.textContent = '▶ Run Docking'; }
-    alog('[ERROR] ' + (err && err.message ? err.message : err), 'lw');
-    alog('[INFO] Run aborted — nothing was lost, your basket is intact.', 'li');
-    console.error(err);
+  if (!S.target){ alert('Please select a target protein first (Step 1)'); navTo('target', null); return; }
+  var items = Object.values(S.basket);
+  if (!items.length){ alert('Please add at least one compound first (Step 2)'); navTo('library', null); return; }
+
+  var btn = $('dock-btn');
+  var grid = {
+    center_x: parseFloat(val('gx')) || 0, center_y: parseFloat(val('gy')) || 0, center_z: parseFloat(val('gz')) || 0,
+    size_x: parseFloat(val('bx')) || 22, size_y: parseFloat(val('by')) || 22, size_z: parseFloat(val('bz')) || 22,
+    exhaustiveness: parseInt(val('exh')) || 8, num_modes: parseInt(val('nmod')) || 9
+  };
+  var est = estimateDockingTime(items.length, grid.exhaustiveness);
+
+  if (S.backendMode && items.length > 200){
+    if (!confirm('Real Vina run: ' + items.length.toLocaleString() + ' compounds at exhaustiveness ' +
+                 grid.exhaustiveness + '.\n\nEstimated ' + est + ' of server CPU time on a single container.\n\n' +
+                 'Worth testing the pipeline with 10-20 compounds first — a run this size can outlive the ' +
+                 'container. Continue anyway?')) return;
+  } else if (items.length > 100){
+    if (!confirm('Large job: ' + items.length.toLocaleString() + ' compounds at exhaustiveness ' +
+                 grid.exhaustiveness + '\nEstimated time: ' + est + '\n\nContinue?')) return;
   }
+
+  runStop();
+  RUN = { done:false, ws:null, poll:null, jobId:null };
+  if (btn){ btn.disabled = true; btn.textContent = 'Running…'; }
+  if ($('dock-log')) $('dock-log').innerHTML = '';
+  setProg(0, 'Submitting…');
+
+  alog('[INFO] Estimated time: ' + est + ' (' + items.length + ' compounds, exhaustiveness ' + grid.exhaustiveness + ')', 'li');
+  alog(S.backendMode ? '[NexusMD] ⚡ REAL BACKEND — AutoDock Vina 1.2.5'
+                     : '[NexusMD] 🔬 Simulation mode (connect backend for real docking)', S.backendMode ? 'lr' : 'li');
+  alog('[INFO] Target: ' + S.target.id + ' | Compounds: ' + items.length + ' | Exhaustiveness: ' + grid.exhaustiveness, 'li');
+  alog('[INFO] Grid centre: (' + grid.center_x + ', ' + grid.center_y + ', ' + grid.center_z + ') | Box: ' +
+       grid.size_x + '×' + grid.size_y + '×' + grid.size_z + ' Å', 'li');
+
+  if (!S.backendMode){ simulateDocking(); return; }
+
+  var job;
+  try {
+    alog('[API] Submitting job to backend…', 'li');
+    job = await apiPost('/api/docking/submit', {
+      protein_id: S.target.id,
+      protein_uniprot: S.target.uid || null,
+      ligand_smiles: items.map(function(i){ return i.smiles || SMILES_DB[i.name] || ''; }),
+      ligand_names: items.map(function(i){ return i.name; }),
+      engine: 'vina', grid: grid,
+      admet_filter: !!($('adpre') && $('adpre').checked)
+    });
+  } catch (err) {
+    alog('[ERROR] Submit failed (' + (err && err.message) + ') — falling back to simulation', 'lw');
+    S.backendMode = false; simulateDocking(); return;
+  }
+
+  RUN.jobId = job.job_id; S.activeJobId = job.job_id;
+  try { localStorage.setItem('nexusmd_job', job.job_id); } catch(e){}
+  alog('[API] Job ' + job.job_id + ' accepted.', 'li');
+  setProg(0, 'Job ' + job.job_id + ' queued…');
+
+  /* --- WebSocket: nice when it works, never load-bearing --- */
+  try {
+    var ws = new WebSocket(apiBase().replace(/^http/, 'ws') + '/ws/' + job.job_id);
+    RUN.ws = ws;
+    ws.onopen    = function(){ alog('[WS] Connected — streaming Vina output.', 'li'); };
+    ws.onmessage = function(evt){
+      var m; try { m = JSON.parse(evt.data); } catch(e){ alog('[WS] ' + evt.data, 'li'); return; }
+      if (m.line) alog(m.line, m.level === 'done' ? 'ld' : m.level === 'warn' ? 'lw' : /Vina/.test(m.line) ? 'lr' : 'li');
+      if (typeof m.progress === 'number') setProg(m.progress, m.message || '');
+      if (m.status === 'done'   && !RUN.done){ runStop(); finishDocking(m.result, true); }
+      if (m.status === 'failed' && !RUN.done){ runStop(); alog('[FAILED] ' + (m.message || 'backend reported failure'), 'lw'); runIdle(); }
+    };
+    ws.onerror = function(){ alog('[WS] Stream unavailable — the status poll is still running.', 'lw'); };
+    ws.onclose = function(){ if (!RUN.done) alog('[WS] Stream closed — still polling job status.', 'lw'); };
+  } catch (e) {
+    alog('[WS] Could not open stream (' + e.message + ') — polling instead.', 'lw');
+  }
+
+  /* --- the poll that actually decides the outcome --- */
+  var ticks = 0, lastP = null, lastChange = Date.now();
+  RUN.poll = setInterval(async function(){
+    if (RUN.done) { clearInterval(RUN.poll); return; }
+    ticks++;
+    var j;
+    try { j = await apiGet('/api/docking/status/' + RUN.jobId); }
+    catch (err) {
+      if (ticks > 8) alog('[POLL] Status endpoint not answering (' + (err && err.message) + ')', 'lw');
+      return;
+    }
+    if (typeof j.progress === 'number'){
+      if (j.progress !== lastP){ lastP = j.progress; lastChange = Date.now(); }
+      setProg(j.progress, j.message || j.stage || ('Job ' + RUN.jobId + ' running…'));
+    }
+    if (ticks === 4 && (lastP === null || lastP === 0))
+      alog('[POLL] Backend accepted the job but reports 0% — it is probably still preparing the receptor.', 'lw');
+
+    if (j.status === 'done'){ runStop(); finishDocking(j.result, true); return; }
+    if (j.status === 'failed'){
+      runStop(); alog('[FAILED] ' + (j.message || 'backend reported failure'), 'lw'); runIdle(); return;
+    }
+    /* 5 minutes with no movement at all = say so, and hand back control */
+    if (Date.now() - lastChange > 300000){
+      runStop();
+      alog('[STALLED] No progress for 5 minutes. Job ' + RUN.jobId + ' is still queued on the server — ' +
+           'check it with nexusDiag(). Run button re-enabled.', 'lw');
+      runIdle();
+    }
+  }, 4000);
+};
+
+/* --- console diagnostics: nexusDiag() --- */
+window.nexusDiag = async function(jobId){
+  var id = jobId || RUN.jobId || S.activeJobId;
+  try { id = id || localStorage.getItem('nexusmd_job'); } catch(e){}
+  var out = { base: apiBase(), job: id || '(none)' };
+  try { out.health = await (await fetch(apiBase() + '/api/health')).json(); }
+  catch(e){ out.health = 'unreachable: ' + e.message; }
+  if (id){
+    try { out.status = await (await fetch(apiBase() + '/api/docking/status/' + id)).json(); }
+    catch(e){ out.status = 'unreachable: ' + e.message; }
+  }
+  console.log('%c[NexusMD diagnostics]', 'color:#00C6CF;font-weight:700', out);
+  return out;
 };
 
 /* ---------- 4. polling: 0 is a real progress value, and give up eventually ---------- */
@@ -2714,8 +2848,19 @@ window.runMultiTarget = async function(){
   setTimeout(step, 150);
 };
 
-/* ---------- 8. repaint once the library data is in ---------- */
-function boot(){ try { if (LIB().length) renderDrugs(); mtStrip(); } catch(e){ console.error(e); } }
+/* ---------- 8. paint on demand, never on boot ----------
+   navTo('drugs') already calls renderDrugs(); switchLib() did not, so the
+   in-page drug tab stayed empty. Painting eagerly at load blocked the main
+   thread long enough for checkBackend()'s 2.8 s timeout to abort, which made
+   a perfectly healthy backend show up as "Simulation mode". */
+var _origSwitchLib = window.switchLib;
+window.switchLib = function(tab, btn){
+  var r = _origSwitchLib.apply(this, arguments);
+  if (tab === 'drugs') setTimeout(function(){ paint('mini'); }, 0);
+  return r;
+};
+
+function boot(){ try { mtStrip(); } catch(e){ console.error(e); } }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
 
