@@ -216,55 +216,34 @@ async def run_vina_single(
         "--exhaustiveness", str(grid.get("exhaustiveness", 8)),
         "--num_modes", str(grid.get("num_modes", 9)),
         "--energy_range", str(grid.get("energy_range", 3.0)),
-        "--seed", str(int(os.environ.get("NEXUS_VINA_SEED", "42"))),
-        "--cpu", "1",
     ]
-    output_lines: List[str] = []
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
+
+        output_lines = []
         async for line in proc.stdout:
             decoded = line.decode("utf-8", errors="replace").rstrip()
             output_lines.append(decoded)
+            # Stream relevant lines to WebSocket
             if any(kw in decoded for kw in ["mode", "-----", "Refining", "Writing"]):
                 await log_fn(job_id, f"[Vina] {decoded}", "info")
-        rc = await asyncio.wait_for(proc.wait(), timeout=300)
 
-        poses = parse_vina_output(output_lines, name)
-
-        if not poses:
-            # Vina said something and we ignored it. Say it out loud.
-            tail = [l for l in output_lines if l.strip()][-15:]
-            detail = " | ".join(tail) if tail else "(no output at all)"
-            await log_fn(
-                job_id,
-                f"[ERROR] Vina returned no poses for {name} (exit {rc}). Output: {detail}",
-                "warn",
-            )
-            logger.error("vina no poses for %s (exit %s) cmd=%s output=%s",
-                         name, rc, " ".join(cmd), " | ".join(tail))
-            if not output.exists():
-                await log_fn(job_id, f"[ERROR] Vina wrote no pose file for {name}", "warn")
-        return poses
+        await asyncio.wait_for(proc.wait(), timeout=300)
+        return parse_vina_output(output_lines, name)
 
     except asyncio.TimeoutError:
-        await log_fn(job_id, f"[WARN] Vina timed out for {name} after 300s", "warn")
-        try:
-            proc.kill()
-            await proc.wait()
-        except Exception:
-            pass
+        await log_fn(job_id, f"[WARN] Vina timed out for {name}", "warn")
         return []
     except FileNotFoundError:
-        await log_fn(job_id, f"[ERROR] Vina binary not found at '{VINA_BINARY}'.", "warn")
+        await log_fn(job_id, f"[ERROR] Vina binary not found at '{VINA_BINARY}'. Install AutoDock Vina.", "warn")
         return []
     except Exception as e:
-        tail = " | ".join([l for l in output_lines if l.strip()][-10:])
-        await log_fn(job_id, f"[ERROR] Vina failed for {name}: {e}. Output: {tail}", "warn")
-        logger.error("Vina error for %s: %s | output: %s", name, e, tail)
+        logger.error(f"Vina error for {name}: {e}")
         return []
 
 
