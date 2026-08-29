@@ -78,86 +78,43 @@ async def run_vina_docking(
     return all_poses
 
 
-OBABEL_TIMEOUT = int(os.environ.get("NEXUS_OBABEL_TIMEOUT", "90"))
-
-
-def _largest_fragment(smiles: str) -> str:
-    """Salts/hydrates arrive as 'parent.counterion.O.O'. Keep the parent."""
-    parts = [p for p in (smiles or "").split(".") if p.strip()]
-    if len(parts) <= 1:
-        return (smiles or "").strip()
-    return max(parts, key=lambda p: (sum(c.isalpha() for c in p), len(p)))
-
-
-async def _run_tool(cmd: list, timeout: int, label: str):
-    """Run a subprocess and actually kill it if it overruns."""
+async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
+    """Convert SMILES to 3D SDF using Open Babel."""
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
+        result = await asyncio.create_subprocess_exec(
+            OBABEL_BINARY,
+            f"-:{smiles}",
+            "--gen3d", "--ff", "MMFF94",
+            "-O", str(output_path),
+            "-p", "7.4",
+            "--title", name,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-    except FileNotFoundError:
-        return False, f"{cmd[0]} not found on PATH"
-    try:
-        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        return True, (stderr or b"").decode("utf-8", errors="replace")
-    except asyncio.TimeoutError:
-        try:
-            proc.kill()
-            await proc.wait()
-        except Exception:
-            pass
-        return False, f"{label} exceeded {timeout}s and was killed"
-
-
-async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
-    """SMILES -> 3D SDF. Desalts, then escalates gen3d quality only if needed."""
-    parent = _largest_fragment(smiles)
-    if not parent:
-        logger.error("no usable SMILES for %s", name)
+        stdout, stderr = await asyncio.wait_for(result.communicate(), timeout=30)
+        return output_path.exists() and output_path.stat().st_size > 0
+    except Exception as e:
+        logger.error(f"SMILES→SDF failed for {name}: {e}")
         return False
-    if parent != (smiles or "").strip():
-        logger.info("desalted %s: %s -> %s", name, smiles, parent)
-
-    # cheapest first; a version that rejects the speed argument falls through
-    attempts = [
-        (["--gen3d", "fastest"], min(OBABEL_TIMEOUT, 60)),
-        (["--gen3d", "fast"],    min(OBABEL_TIMEOUT, 90)),
-        (["--gen3d"],            OBABEL_TIMEOUT),
-    ]
-    last_err = ""
-    for flags, timeout in attempts:
-        if output_path.exists():
-            try:
-                output_path.unlink()
-            except Exception:
-                pass
-        cmd = [OBABEL_BINARY, f"-:{parent}", "-O", str(output_path)] + flags + [
-            "-p", "7.4", "--title", name,
-        ]
-        ok, err = await _run_tool(cmd, timeout, f"obabel {' '.join(flags)}")
-        if output_path.exists() and output_path.stat().st_size > 0:
-            return True
-        last_err = (err or "no output produced").strip()
-
-    logger.error("SMILES->SDF failed for %s (%s): %s", name, parent[:60], last_err[:300])
-    return False
 
 
 async def sdf_to_pdbqt(sdf_path: Path, pdbqt_path: Path) -> bool:
-    """SDF -> PDBQT with Gasteiger charges."""
-    cmd = [
-        OBABEL_BINARY,
-        str(sdf_path),
-        "-O", str(pdbqt_path),
-        "--partialcharge", "gasteiger",
-    ]
-    ok, err = await _run_tool(cmd, min(OBABEL_TIMEOUT, 60), "obabel sdf->pdbqt")
-    if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
-        return True
-    logger.error("SDF->PDBQT failed for %s: %s", sdf_path.name, (err or "no output").strip()[:300])
-    return False
+    """Convert SDF to PDBQT using Open Babel (adds Gasteiger charges)."""
+    try:
+        result = await asyncio.create_subprocess_exec(
+            OBABEL_BINARY,
+            str(sdf_path),
+            "-O", str(pdbqt_path),
+            "--partialcharge", "gasteiger",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        await asyncio.wait_for(result.communicate(), timeout=30)
+        return pdbqt_path.exists() and pdbqt_path.stat().st_size > 0
+    except Exception as e:
+        logger.error(f"SDF→PDBQT failed: {e}")
+        return False
+
 
 async def run_vina_single(
     receptor: Path,
