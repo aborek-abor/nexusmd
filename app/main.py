@@ -81,18 +81,29 @@ app.include_router(fasta.router,    prefix="/api/fasta",    tags=["FASTA"])
 
 # ── Health ─────────────────────────────────────────
 def _check_binary(name: str) -> bool:
-    try:
-        result = subprocess.run(
-            [name, "--version"], capture_output=True, timeout=5
-        )
-        return result.returncode == 0
-    except Exception:
+    """Check if a binary is available and working."""
+    candidates = [
+        name,
+        os.environ.get(f"{name.upper()}_BINARY", ""),
+        f"/usr/bin/{name}",
+        f"/usr/local/bin/{name}",
+    ]
+    for path in candidates:
+        if not path:
+            continue
         try:
-            path = os.environ.get(f"{name.upper()}_BINARY", f"/usr/local/bin/{name}")
-            result = subprocess.run([path, "--version"], capture_output=True, timeout=5)
-            return result.returncode == 0
+            # obabel returns non-zero for --version, check stderr/stdout instead
+            result = subprocess.run(
+                [path, "--version"], capture_output=True, timeout=5
+            )
+            output = (result.stdout + result.stderr).decode("utf-8", errors="replace")
+            if "Open Babel" in output or "AutoDock" in output or result.returncode == 0:
+                return True
+        except (FileNotFoundError, PermissionError):
+            continue
         except Exception:
-            return False
+            continue
+    return False
 
 @app.get("/api/health", response_model=HealthResponse)
 async def health():

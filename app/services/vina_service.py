@@ -208,17 +208,47 @@ def parse_vina_output(lines: List[str], name: str) -> List[dict]:
 
 
 async def write_combined_sdf(poses: List[dict], output_path: Path):
-    """Write a simple SDF record for each pose (placeholder atoms)."""
-    lines = []
-    for p in poses:
-        lines.append(f"\n  NexusMD   3D\n\n")
-        lines.append("  0  0  0  0  0  0  0  0  0  0999 V2000\n")
-        lines.append("M  END\n")
-        lines.append(f"> <COMPOUND_NAME>\n{p['name']}\n\n")
-        lines.append(f"> <DOCKING_SCORE>\n{p['score']}\n\n")
-        lines.append(f"> <RMSD_LB>\n{p.get('rmsd_lb', 0)}\n\n")
-        lines.append("$$$$\n")
-    output_path.write_text("".join(lines))
+    """Convert docked PDBQT poses to SDF using Open Babel for real 3D coordinates."""
+    job_dir = output_path.parent
+    combined_lines = []
+
+    for i, p in enumerate(poses):
+        out_pdbqt = job_dir / f"out_{i}.pdbqt"
+        if out_pdbqt.exists():
+            # Convert best pose PDBQT to SDF using Open Babel
+            tmp_sdf = job_dir / f"pose_{i}.sdf"
+            try:
+                result = await asyncio.create_subprocess_exec(
+                    OBABEL_BINARY, str(out_pdbqt),
+                    "-O", str(tmp_sdf),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                await asyncio.wait_for(result.communicate(), timeout=15)
+                if tmp_sdf.exists() and tmp_sdf.stat().st_size > 10:
+                    sdf_content = tmp_sdf.read_text()
+                    # Add metadata fields
+                    sdf_content = sdf_content.rstrip().rstrip("$$$$").rstrip()
+                    sdf_content += f"\n> <COMPOUND_NAME>\n{p['name']}\n\n"
+                    sdf_content += f"> <DOCKING_SCORE>\n{p['score']}\n\n"
+                    sdf_content += f"> <RMSD_LB>\n{p.get('rmsd_lb', 0)}\n\n"
+                    sdf_content += "$$$$\n"
+                    combined_lines.append(sdf_content)
+                    continue
+            except Exception:
+                pass
+
+        # Fallback: write minimal SDF with metadata only
+        combined_lines.append(
+            f"{p['name']}\n  NexusMD\n\n"
+            "  0  0  0  0  0  0  0  0  0  0999 V2000\n"
+            f"M  END\n> <COMPOUND_NAME>\n{p['name']}\n\n"
+            f"> <DOCKING_SCORE>\n{p['score']}\n\n"
+            f"> <RMSD_LB>\n{p.get('rmsd_lb', 0)}\n\n"
+            "$$$$\n"
+        )
+
+    output_path.write_text("".join(combined_lines))
 
 
 async def prepare_receptor_pdbqt(pdb_id: str, log_fn) -> Optional[Path]:
