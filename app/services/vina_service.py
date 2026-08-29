@@ -111,6 +111,39 @@ async def _run_tool(cmd: list, timeout: int, label: str):
         return False, f"{label} exceeded {timeout}s and was killed"
 
 
+OBABEL_TIMEOUT = int(os.environ.get("NEXUS_OBABEL_TIMEOUT", "90"))
+
+
+def _largest_fragment(smiles: str) -> str:
+    """Salts/hydrates arrive as 'parent.counterion.O.O'. Keep the parent."""
+    parts = [p for p in (smiles or "").split(".") if p.strip()]
+    if len(parts) <= 1:
+        return (smiles or "").strip()
+    return max(parts, key=lambda p: (sum(c.isalpha() for c in p), len(p)))
+
+
+async def _run_tool(cmd: list, timeout: int, label: str):
+    """Run a subprocess and actually kill it if it overruns."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        return False, f"{cmd[0]} not found on PATH"
+    try:
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        return True, (stderr or b"").decode("utf-8", errors="replace")
+    except asyncio.TimeoutError:
+        try:
+            proc.kill()
+            await proc.wait()
+        except Exception:
+            pass
+        return False, f"{label} exceeded {timeout}s and was killed"
+
+
 async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
     """SMILES -> 3D SDF. Desalts, then escalates gen3d quality only if needed."""
     parent = _largest_fragment(smiles)
