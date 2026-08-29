@@ -348,46 +348,15 @@ async def write_combined_sdf(poses: List[dict], output_path: Path):
     output_path.write_text("".join(combined_lines))
 
 
-async def _alphafold_sources(acc: str) -> list:
-    """Ask AlphaFold where this model lives. Returns [(url, label), ...]."""
-    import httpx
-
-    out = []
-    api = f"https://alphafold.ebi.ac.uk/api/prediction/{acc}"
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            r = await client.get(api, follow_redirects=True)
-        if r.status_code == 200:
-            data = r.json()
-            entries = data if isinstance(data, list) else [data]
-            for entry in entries:
-                if not isinstance(entry, dict):
-                    continue
-                for key in ("pdbUrl", "pdbFile"):
-                    if entry.get(key):
-                        out.append((entry[key], f"AlphaFold API ({entry.get('latestVersion', '?')})"))
-        else:
-            logger.error("alphafold api %s -> HTTP %s", api, r.status_code)
-    except Exception as e:
-        logger.error("alphafold api failed for %s: %s", acc, e)
-
-    # fallbacks, newest first, in case the API is unreachable
-    for v in (6, 5, 4, 3):
-        out.append((f"https://alphafold.ebi.ac.uk/files/AF-{acc}-F1-model_v{v}.pdb",
-                    f"AlphaFold file v{v}"))
-    return out
-
-
-async def prepare_receptor_pdbqt(pdb_id: str, log_fn, job_id=None) -> Optional[Path]:
+async def prepare_receptor_pdbqt(pdb_id: str, log_fn) -> Optional[Path]:
     """Download a structure and convert it to PDBQT.
 
-    4-character identifiers go to RCSB; anything else is treated as a UniProt
-    accession and resolved through the AlphaFold prediction API.
-    Returns None only after saying exactly why.
+    Accepts 4-character RCSB codes and UniProt accessions (served by AlphaFold).
+    Returns None only after saying exactly why, never silently.
     """
     ident = (pdb_id or "").strip().upper()
     if not ident:
-        await log_fn(job_id, "[ERROR] No protein identifier supplied", "warn")
+        await log_fn(None, "[ERROR] No protein identifier supplied", "warn")
         return None
 
     PDB_CACHE_DIR.mkdir(parents=True, exist_ok=True)
@@ -395,43 +364,47 @@ async def prepare_receptor_pdbqt(pdb_id: str, log_fn, job_id=None) -> Optional[P
     pdbqt_path = PDB_CACHE_DIR / f"{ident}.pdbqt"
 
     if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
-        await log_fn(job_id, f"[INFO] Using cached receptor: {ident}", "info")
+        await log_fn(None, f"[INFO] Using cached receptor: {ident}", "info")
         return pdbqt_path
-
-    import httpx
 
     if len(ident) == 4:
         sources = [(f"https://files.rcsb.org/download/{ident}.pdb", "RCSB")]
     else:
-        await log_fn(job_id, f"[INFO] {ident} looks like a UniProt accession — asking AlphaFold", "info")
-        sources = await _alphafold_sources(ident)
+        sources = [
+            (f"https://alphafold.ebi.ac.uk/files/AF-{ident}-F1-model_v4.pdb", "AlphaFold v4"),
+            (f"https://alphafold.ebi.ac.uk/files/AF-{ident}-F1-model_v3.pdb", "AlphaFold v3"),
+        ]
+
+    import httpx
 
     content = None
     for url, label in sources:
         try:
+            await log_fn(None, f"[INFO] Fetching {ident} from {label}", "info")
             async with httpx.AsyncClient(timeout=60) as client:
                 r = await client.get(url, follow_redirects=True)
             if r.status_code == 200 and b"ATOM" in r.content:
                 content = r.content
-                await log_fn(job_id, f"[INFO] Structure from {label}: {len(content)//1024} KB", "info")
+                await log_fn(None, f"[INFO] {label} returned {len(content)//1024} KB", "info")
                 break
-            await log_fn(job_id, f"[WARN] {label}: HTTP {r.status_code}", "warn")
+            await log_fn(None, f"[WARN] {label} returned HTTP {r.status_code} for {ident}", "warn")
             logger.error("structure fetch %s -> HTTP %s", url, r.status_code)
         except Exception as e:
-            await log_fn(job_id, f"[WARN] {label} failed: {e}", "warn")
+            await log_fn(None, f"[WARN] {label} fetch failed for {ident}: {e}", "warn")
             logger.error("structure fetch %s failed: %s", url, e)
 
     if content is None:
         await log_fn(
-            job_id,
-            f"[ERROR] No structure available for '{ident}'. If this is a UniProt "
-            "accession with no AlphaFold model, use a 4-character PDB code instead.",
+            None,
+            f"[ERROR] No structure available for '{ident}'. RCSB needs a 4-character "
+            "PDB code; AlphaFold needs a UniProt accession such as P19484.",
             "warn",
         )
         return None
 
     pdb_path.write_bytes(content)
 
+    # keep protein atoms only: no waters, no ligands, first model of an ensemble
     clean_path = PDB_CACHE_DIR / f"{ident}_clean.pdb"
     kept = 0
     with pdb_path.open() as src, clean_path.open("w") as dst:
@@ -442,25 +415,37 @@ async def prepare_receptor_pdbqt(pdb_id: str, log_fn, job_id=None) -> Optional[P
             elif line.startswith("ENDMDL"):
                 break
     if kept < 50:
-        await log_fn(job_id, f"[ERROR] {ident}: only {kept} protein atoms after cleaning", "warn")
+        await log_fn(None, f"[ERROR] {ident} has only {kept} protein atoms after cleaning", "warn")
         return None
 
-    ok, err = await _run_tool(
-        [OBABEL_BINARY, str(clean_path), "-O", str(pdbqt_path),
-         "--partialcharge", "gasteiger", "-xr"],
-        180, "obabel receptor",
-    )
-    if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
-        await log_fn(
-            job_id,
-            f"[INFO] Receptor ready: {pdbqt_path.name} "
-            f"({pdbqt_path.stat().st_size // 1024} KB, {kept} atoms)",
-            "info",
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            OBABEL_BINARY,
+            str(clean_path),
+            "-O", str(pdbqt_path),
+            "--partialcharge", "gasteiger",
+            "-xr",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        return pdbqt_path
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=180)
+        if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
+            await log_fn(
+                None,
+                f"[INFO] Receptor ready: {pdbqt_path.name} "
+                f"({pdbqt_path.stat().st_size // 1024} KB, {kept} atoms)",
+                "info",
+            )
+            return pdbqt_path
+        detail = (stderr or b"").decode(errors="replace")[:300]
+        await log_fn(None, f"[ERROR] Open Babel produced no PDBQT: {detail}", "warn")
+        logger.error("obabel produced no pdbqt for %s: %s", ident, detail)
+    except asyncio.TimeoutError:
+        await log_fn(None, "[ERROR] Receptor conversion timed out after 180s", "warn")
+        logger.error("obabel timeout for %s", ident)
+    except Exception as e:
+        await log_fn(None, f"[ERROR] Receptor conversion failed: {e}", "warn")
+        logger.error("receptor conversion failed for %s: %s", ident, e)
 
-    await log_fn(job_id, f"[ERROR] Open Babel produced no PDBQT: {(err or 'no output').strip()[:300]}", "warn")
-    logger.error("obabel produced no pdbqt for %s: %s", ident, err)
     return None
-
 
