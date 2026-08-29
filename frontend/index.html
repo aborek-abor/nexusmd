@@ -1319,6 +1319,14 @@ function updatePrereqs(){
   const set=(id,color,text)=>{const el=document.getElementById(id);if(el)el.style.background=color;const tl=document.getElementById(id+'l');if(tl)tl.textContent=text;};
   set('prq-t',ht?'var(--green)':'var(--dim)',S.target?S.target.id:'none');
   set('prq-b',bn>0?'var(--green)':'var(--dim)',bn+' compounds');
+  // Update dock-lbl to reflect actual status
+  var dl=document.getElementById('dock-lbl');
+  if(dl&&dl.textContent.indexOf('Running')<0&&dl.textContent.indexOf('Done')<0){
+    if(!ht&&!bn) dl.textContent='Ready — select target and add compounds first';
+    else if(!ht) dl.textContent='Step 1: Load a target protein first';
+    else if(!bn) dl.textContent='Step 2: Add compounds to basket ('+bn+' added)';
+    else dl.textContent='Ready — '+S.target.id+' · '+bn+' compound'+(bn!==1?'s':'');
+  }
   set('prq-k',S.backendMode?'var(--green)':'var(--amber)',S.backendMode?'Real backend ✓':'Simulation mode');
 }
 
@@ -1390,7 +1398,7 @@ async function runDocking(){
   const items=Object.values(S.basket);
   if(!items.length){alert('Please add at least one compound first (Step 2)');navTo('library',null);return;}
   const btn=document.getElementById('dock-btn');
-  btn.disabled=true; btn.textContent='Running&#8230;';
+  btn.disabled=true; btn.textContent='Running…';
   document.getElementById('dock-log').innerHTML='';
   document.getElementById('dock-fill').style.width='0%';
   document.getElementById('dock-pct').textContent='0%';
