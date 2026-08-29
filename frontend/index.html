@@ -2848,6 +2848,71 @@ window.runMultiTarget = async function(){
   setTimeout(step, 150);
 };
 
+/* ---------- 7b. honest provenance labelling ----------
+   The original finishDocking() hardcoded real:true for anything that arrived
+   over the API, so a backend running its own simulation still got a "Real ✓"
+   badge. Now the backend has to vouch for the engine: either the result says
+   real/engine, or the poses do. Otherwise the scores are labelled Simulated,
+   loudly, even though they came from the server.                        */
+window.finishDocking = function(apiResult, fromBackend){
+  runIdle();
+
+  var vouched = false;
+  if (fromBackend && apiResult && apiResult.poses && apiResult.poses.length){
+    vouched = apiResult.real === true
+           || !!apiResult.engine
+           || apiResult.poses.some(function(p){ return p.real === true || !!p.engine; });
+    if (!vouched)
+      alog('[WARN] Backend returned scores but did not certify that a docking engine ran. '
+         + 'Labelling these Simulated.', 'lw');
+
+    S.results = apiResult.poses.map(function(p){
+      var b = S.basket[p.name] || {};
+      return {
+        name: p.name,
+        score: p.score,
+        rmsd: (typeof p.rmsd_lb === 'number' ? p.rmsd_lb : (typeof p.rmsd === 'number' ? p.rmsd : 0)),
+        admet: p.admet_status || p.admet || '—',
+        real: vouched,
+        engine: p.engine || apiResult.engine || null,
+        src: b.src || 'API',
+        smiles: p.smiles || b.smiles || SMILES_DB[p.name] || ''
+      };
+    });
+    if (apiResult.failures && apiResult.failures.length)
+      alog('[INFO] ' + apiResult.failures.length + ' ligand(s) failed on the backend and were '
+         + 'excluded rather than scored.', 'lw');
+  } else {
+    S.results = Object.values(S.basket).map(function(item){
+      var mw = item.mw || 300, lp = item.logp || 2;
+      var base = -(4.5 + Math.min(mw/75, 4.5) + Math.min(Math.abs(lp-2.5), 2)*0.6 + Math.random()*1.8);
+      var score = Math.max(-13, Math.min(-4, base));
+      var ro5 = (mw > 500 ? 1 : 0) + (lp > 5 ? 1 : 0) + (mw > 700 ? 1 : 0);
+      return {
+        name: item.name, score: parseFloat(score.toFixed(1)),
+        rmsd: parseFloat((Math.random()*2).toFixed(2)),
+        admet: ro5 >= 2 ? 'Fail' : ro5 >= 1 ? 'Warn' : 'Pass',
+        real: false, src: item.src || '—',
+        smiles: item.smiles || SMILES_DB[item.name] || (window.getSMILES ? getSMILES(item.name) : '') || ''
+      };
+    });
+  }
+
+  S.results.sort(function(a, b){ return a.score - b.score; });
+  renderResults();
+  markDone('dock');
+  var ss = $('ss-results'); if (ss) ss.textContent = S.results.length + ' poses';
+
+  var nHits = S.results.filter(function(r){ return r.score <= -8; }).length;
+  alog('[DONE] ' + S.results.length + ' poses' + (vouched ? ' (real docking)' : ' (SIMULATED — not docking output)')
+     + '. ' + nHits + ' at or below -8 kcal/mol', vouched ? 'ld' : 'lw');
+
+  if (window.showCompletionBanner)
+    showCompletionBanner(S.results.length, nHits, S.results[0] && S.results[0].score, S.results[0] && S.results[0].name);
+  setTimeout(function(){ try { saveToHistory(); } catch(e){} }, 200);
+  setTimeout(function(){ navTo('results', document.querySelector('.tb[onclick*="results"]')); }, 800);
+};
+
 /* ---------- 8. paint on demand, never on boot ----------
    navTo('drugs') already calls renderDrugs(); switchLib() did not, so the
    in-page drug tab stayed empty. Painting eagerly at load blocked the main

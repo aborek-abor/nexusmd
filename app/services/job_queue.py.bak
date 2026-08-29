@@ -181,8 +181,5 @@ class JobManager:
             self._subscribers.pop(job_id, None)
 
 
-    # the websocket route calls this name
-    stream_job = subscribe
-
 # Singleton
 job_manager = JobManager()
