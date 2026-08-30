@@ -80,24 +80,38 @@ async def run_vina_docking(
 
 OBABEL_TIMEOUT = int(os.environ.get("NEXUS_OBABEL_TIMEOUT", "90"))
 
-try:
-    from rdkit import Chem
-    from rdkit.Chem import AllChem
-    from rdkit import RDLogger
 
-    RDLogger.DisableLog("rdApp.*")
-    _RDKIT = True
-except Exception as _e:  # pragma: no cover
-    _RDKIT = False
-    logger.warning("RDKit unavailable (%s) — falling back to Open Babel", _e)
+def _largest_fragment(smiles: str) -> str:
+    """Salts/hydrates arrive as 'parent.counterion.O.O'. Keep the parent."""
+    parts = [p for p in (smiles or "").split(".") if p.strip()]
+    if len(parts) <= 1:
+        return (smiles or "").strip()
+    return max(parts, key=lambda p: (sum(c.isalpha() for c in p), len(p)))
 
-try:
-    from meeko import MoleculePreparation, PDBQTWriterLegacy
 
-    _MEEKO = True
-except Exception as _e:  # pragma: no cover
-    _MEEKO = False
-    logger.warning("Meeko unavailable (%s) — falling back to Open Babel", _e)
+async def _run_tool(cmd: list, timeout: int, label: str):
+    """Run a subprocess and actually kill it if it overruns."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+    except FileNotFoundError:
+        return False, f"{cmd[0]} not found on PATH"
+    try:
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        return True, (stderr or b"").decode("utf-8", errors="replace")
+    except asyncio.TimeoutError:
+        try:
+            proc.kill()
+            await proc.wait()
+        except Exception:
+            pass
+        return False, f"{label} exceeded {timeout}s and was killed"
+
+
+OBABEL_TIMEOUT = int(os.environ.get("NEXUS_OBABEL_TIMEOUT", "90"))
 
 
 def _largest_fragment(smiles: str) -> str:
@@ -130,98 +144,49 @@ async def _run_tool(cmd: list, timeout: int, label: str):
         return False, f"{label} exceeded {timeout}s and was killed"
 
 
-def _embed_3d(smiles: str, name: str):
-    """SMILES -> RDKit mol with 3D coords. Returns (mol, error_string)."""
+async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
+    """SMILES -> 3D SDF. Desalts, then escalates gen3d quality only if needed."""
     parent = _largest_fragment(smiles)
     if not parent:
-        return None, "empty SMILES"
-    mol = Chem.MolFromSmiles(parent)
-    if mol is None:
-        return None, f"RDKit could not parse SMILES: {parent[:80]}"
-    mol = Chem.AddHs(mol)
+        logger.error("no usable SMILES for %s", name)
+        return False
+    if parent != (smiles or "").strip():
+        logger.info("desalted %s: %s -> %s", name, smiles, parent)
 
-    params = AllChem.ETKDGv3()
-    params.randomSeed = int(os.environ.get("NEXUS_VINA_SEED", "42"))
-    params.useRandomCoords = False
-    if AllChem.EmbedMolecule(mol, params) != 0:
-        params.useRandomCoords = True
-        if AllChem.EmbedMolecule(mol, params) != 0:
-            return None, "3D embedding failed (ETKDGv3 and random coords)"
-
-    try:
-        AllChem.MMFFOptimizeMolecule(mol, maxIters=500)
-    except Exception:
-        try:
-            AllChem.UFFOptimizeMolecule(mol, maxIters=500)
-        except Exception:
-            pass  # unoptimised geometry still docks; Vina refines
-
-    mol.SetProp("_Name", name)
-    return mol, None
-
-
-async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
-    """SMILES -> 3D SDF. RDKit when available, Open Babel otherwise."""
-    if _RDKIT:
-        mol, err = _embed_3d(smiles, name)
-        if mol is None:
-            logger.error("3D generation failed for %s: %s", name, err)
-            return False
-        try:
-            writer = Chem.SDWriter(str(output_path))
-            writer.write(mol)
-            writer.close()
-        except Exception as e:
-            logger.error("SDF write failed for %s: %s", name, e)
-            return False
-        return output_path.exists() and output_path.stat().st_size > 0
-
-    parent = _largest_fragment(smiles)
-    for flags, timeout in ((["--gen3d", "fastest"], 60), (["--gen3d"], OBABEL_TIMEOUT)):
-        cmd = [OBABEL_BINARY, f"-:{parent}", "-O", str(output_path)] + flags + ["-p", "7.4", "--title", name]
-        ok, err = await _run_tool(cmd, timeout, "obabel gen3d")
+    # cheapest first; a version that rejects the speed argument falls through
+    attempts = [
+        (["--gen3d", "fastest"], min(OBABEL_TIMEOUT, 60)),
+        (["--gen3d", "fast"],    min(OBABEL_TIMEOUT, 90)),
+        (["--gen3d"],            OBABEL_TIMEOUT),
+    ]
+    last_err = ""
+    for flags, timeout in attempts:
+        if output_path.exists():
+            try:
+                output_path.unlink()
+            except Exception:
+                pass
+        cmd = [OBABEL_BINARY, f"-:{parent}", "-O", str(output_path)] + flags + [
+            "-p", "7.4", "--title", name,
+        ]
+        ok, err = await _run_tool(cmd, timeout, f"obabel {' '.join(flags)}")
         if output_path.exists() and output_path.stat().st_size > 0:
             return True
-    logger.error("SMILES->SDF failed for %s", name)
+        last_err = (err or "no output produced").strip()
+
+    logger.error("SMILES->SDF failed for %s (%s): %s", name, parent[:60], last_err[:300])
     return False
 
 
 async def sdf_to_pdbqt(sdf_path: Path, pdbqt_path: Path) -> bool:
-    """SDF -> PDBQT. Meeko produces the torsion tree Vina 1.2.x requires;
-    Open Babel's PDBQT triggers 'internal error in tree.h'."""
-    if _RDKIT and _MEEKO:
-        try:
-            supplier = Chem.SDMolSupplier(str(sdf_path), removeHs=False)
-            mol = next((m for m in supplier if m is not None), None)
-            if mol is None:
-                logger.error("could not read SDF %s", sdf_path.name)
-                return False
-
-            prep = MoleculePreparation()
-            setups = prep.prepare(mol)
-            if not setups:
-                logger.error("meeko produced no setup for %s", sdf_path.name)
-                return False
-
-            result = PDBQTWriterLegacy.write_string(setups[0])
-            pdbqt_string = result[0] if isinstance(result, (tuple, list)) else result
-            if isinstance(result, (tuple, list)) and len(result) >= 3 and not result[1]:
-                logger.error("meeko refused %s: %s", sdf_path.name, result[2])
-                return False
-            if not pdbqt_string or "ROOT" not in pdbqt_string:
-                logger.error("meeko output for %s has no ROOT record", sdf_path.name)
-                return False
-
-            pdbqt_path.write_text(pdbqt_string)
-            return pdbqt_path.exists() and pdbqt_path.stat().st_size > 0
-        except Exception as e:
-            logger.error("meeko PDBQT failed for %s: %s — trying Open Babel", sdf_path.name, e)
-
-    ok, err = await _run_tool(
-        [OBABEL_BINARY, str(sdf_path), "-O", str(pdbqt_path), "--partialcharge", "gasteiger"],
-        min(OBABEL_TIMEOUT, 60),
-        "obabel sdf->pdbqt",
-    )
+    """SDF -> PDBQT with Gasteiger charges."""
+    cmd = [
+        OBABEL_BINARY,
+        str(sdf_path),
+        "-O", str(pdbqt_path),
+        "--partialcharge", "gasteiger",
+    ]
+    ok, err = await _run_tool(cmd, min(OBABEL_TIMEOUT, 60), "obabel sdf->pdbqt")
     if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
         return True
     logger.error("SDF->PDBQT failed for %s: %s", sdf_path.name, (err or "no output").strip()[:300])
@@ -283,7 +248,7 @@ async def run_vina_single(
                 "warn",
             )
             logger.error("vina no poses for %s (exit %s) cmd=%s output=%s",
-                         name, rc, " ".join(cmd), detail)
+                         name, rc, " ".join(cmd), " | ".join(tail))
             if not output.exists():
                 await log_fn(job_id, f"[ERROR] Vina wrote no pose file for {name}", "warn")
         return poses
