@@ -269,8 +269,6 @@ async def run_vina_single(
         rc = await asyncio.wait_for(proc.wait(), timeout=300)
 
         poses = parse_vina_output(output_lines, name)
-        for _p in poses:
-            _p["pose_file"] = output.name
 
         if not poses:
             # Vina said something and we ignored it. Say it out loud.

@@ -78,8 +78,6 @@ app.include_router(pockets.router,  prefix="/api/pockets",  tags=["Pockets"])
 app.include_router(scaffold.router, prefix="/api/scaffold", tags=["Scaffold"])
 app.include_router(mmgbsa.router,   prefix="/api/mmgbsa",   tags=["MM-GBSA"])
 app.include_router(fasta.router,    prefix="/api/fasta",    tags=["FASTA"])
-from app.routers import export
-app.include_router(export.router, prefix="/api", tags=["export"])
 
 # ── Health ─────────────────────────────────────────
 def _check_binary(name: str) -> bool:
