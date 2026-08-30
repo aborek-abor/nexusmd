@@ -237,11 +237,8 @@ async def run_vina_single(
 
         if not poses:
             # Vina said something and we ignored it. Say it out loud.
-            nonempty = [l for l in output_lines if l.strip()]
-            hits = [l for l in nonempty
-                    if re.search(r"error|parse|cannot|unable|invalid|not a valid|atom type|search space", l, re.I)]
-            picked = list(dict.fromkeys(nonempty[:12] + hits))[:25]
-            detail = " | ".join(picked) if picked else "(no output at all)"
+            tail = [l for l in output_lines if l.strip()][-15:]
+            detail = " | ".join(tail) if tail else "(no output at all)"
             await log_fn(
                 job_id,
                 f"[ERROR] Vina returned no poses for {name} (exit {rc}). Output: {detail}",
