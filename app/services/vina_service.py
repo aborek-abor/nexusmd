@@ -266,7 +266,7 @@ async def run_vina_single(
             output_lines.append(decoded)
             if any(kw in decoded for kw in ["mode", "-----", "Refining", "Writing"]):
                 await log_fn(job_id, f"[Vina] {decoded}", "info")
-        rc = await asyncio.wait_for(proc.wait(), timeout=300)
+        rc = await asyncio.wait_for(proc.wait(), timeout=120)
 
         poses = parse_vina_output(output_lines, name)
         for _p in poses:
@@ -291,7 +291,7 @@ async def run_vina_single(
         return poses
 
     except asyncio.TimeoutError:
-        await log_fn(job_id, f"[WARN] Vina timed out for {name} after 300s", "warn")
+        await log_fn(job_id, f"[WARN] Vina timed out for {name} after 120s", "warn")
         try:
             proc.kill()
             await proc.wait()
