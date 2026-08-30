@@ -22,6 +22,8 @@ DATA_DIR = Path(__file__).parent.parent.parent / "data"
 RESULTS_DIR = DATA_DIR / "results"
 PDB_CACHE_DIR = DATA_DIR / "pdb_cache"
 
+VINA_SINGLE_TIMEOUT = int(os.environ.get("NEXUS_VINA_SINGLE_TIMEOUT", "300"))
+
 
 async def run_vina_docking(
     job_id: str,
@@ -30,16 +32,24 @@ async def run_vina_docking(
     ligand_names: List[str],
     grid: dict,
     log_fn,
-) -> List[dict]:
+) -> Tuple[List[dict], dict]:
     """
     Run AutoDock Vina for a list of ligands against a prepared receptor.
-    Returns list of pose dicts with scores.
+    Returns (poses, stats) where stats is a dict with attempted/succeeded/
+    failed/no_poses counts, so callers can log a summary.
     """
     job_dir = RESULTS_DIR / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
 
     all_poses = []
     n = len(ligand_smiles)
+    succeeded = 0
+    failed = 0
+    no_poses = 0
+
+    # Log progress every 10 ligands (or every ligand for small batches) so the
+    # frontend never appears stalled during long runs.
+    progress_interval = max(1, min(50, max(10, n // 100)))
 
     for i, (smi, name) in enumerate(zip(ligand_smiles, ligand_names)):
         await log_fn(job_id, f"[Vina] ({i+1}/{n}) Preparing ligand: {name}", "info")
@@ -52,18 +62,28 @@ async def run_vina_docking(
         sdf_ok = await smiles_to_3d_sdf(smi, lig_sdf, name)
         if not sdf_ok:
             await log_fn(job_id, f"[WARN] Could not generate 3D for {name} — skipping", "warn")
+            failed += 1
+            await _log_progress(job_id, i + 1, n, progress_interval, log_fn)
             continue
 
         pdbqt_ok = await sdf_to_pdbqt(lig_sdf, lig_pdbqt)
         if not pdbqt_ok:
             await log_fn(job_id, f"[WARN] PDBQT conversion failed for {name} — skipping", "warn")
+            failed += 1
+            await _log_progress(job_id, i + 1, n, progress_interval, log_fn)
             continue
 
         await log_fn(job_id, f"[Vina] Running docking: {name}", "info")
         poses = await run_vina_single(
             protein_pdbqt, lig_pdbqt, out_pdbqt, grid, name, job_id, log_fn
         )
+        if poses:
+            succeeded += 1
+        else:
+            no_poses += 1
         all_poses.extend(poses)
+
+        await _log_progress(job_id, i + 1, n, progress_interval, log_fn)
 
     # Sort by score (most negative = best)
     all_poses.sort(key=lambda p: p["score"])
@@ -74,8 +94,27 @@ async def run_vina_docking(
     # Write combined SDF
     await write_combined_sdf(all_poses, job_dir / "poses.sdf")
     await log_fn(job_id, f"[Vina] Docking complete — {len(all_poses)} poses", "done")
+    stats = {
+        "attempted": n,
+        "succeeded": succeeded,
+        "failed": failed,
+        "no_poses": no_poses,
+    }
+    await log_fn(
+        job_id,
+        f"[Vina] Ligand summary: {n} attempted, {succeeded} succeeded, "
+        f"{failed} failed (timeouts/errors), {no_poses} with no poses",
+        "info",
+    )
 
-    return all_poses
+    return all_poses, stats
+
+
+async def _log_progress(job_id: str, processed: int, total: int, interval: int, log_fn):
+    """Emit a periodic progress line so the frontend sees continuous updates
+    on large batches instead of appearing stalled."""
+    if processed == total or processed % interval == 0:
+        await log_fn(job_id, f"[Vina] Processed {processed}/{total}", "info")
 
 
 OBABEL_TIMEOUT = int(os.environ.get("NEXUS_OBABEL_TIMEOUT", "90"))
@@ -160,10 +199,27 @@ def _embed_3d(smiles: str, name: str):
     return mol, None
 
 
+SMILES_TO_3D_TIMEOUT = int(os.environ.get("NEXUS_SMILES3D_TIMEOUT", "120"))
+SDF_TO_PDBQT_TIMEOUT = int(os.environ.get("NEXUS_SDF_PDBQT_TIMEOUT", "30"))
+
+
 async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") -> bool:
-    """SMILES -> 3D SDF. RDKit when available, Open Babel otherwise."""
+    """SMILES -> 3D SDF. RDKit when available, Open Babel otherwise.
+
+    Bounded by SMILES_TO_3D_TIMEOUT (default 120s) — on timeout the ligand is
+    skipped rather than allowed to hang the whole docking job.
+    """
     if _RDKIT:
-        mol, err = _embed_3d(smiles, name)
+        try:
+            mol, err = await asyncio.wait_for(
+                asyncio.to_thread(_embed_3d, smiles, name), timeout=SMILES_TO_3D_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.error(
+                "3D generation timed out for %s after %ss — skipping ligand",
+                name, SMILES_TO_3D_TIMEOUT,
+            )
+            return False
         if mol is None:
             logger.error("3D generation failed for %s: %s", name, err)
             return False
@@ -177,49 +233,68 @@ async def smiles_to_3d_sdf(smiles: str, output_path: Path, name: str = "LIG") ->
         return output_path.exists() and output_path.stat().st_size > 0
 
     parent = _largest_fragment(smiles)
-    for flags, timeout in ((["--gen3d", "fastest"], 60), (["--gen3d"], OBABEL_TIMEOUT)):
+    for flags, timeout in (
+        (["--gen3d", "fastest"], min(60, SMILES_TO_3D_TIMEOUT)),
+        (["--gen3d"], min(OBABEL_TIMEOUT, SMILES_TO_3D_TIMEOUT)),
+    ):
         cmd = [OBABEL_BINARY, f"-:{parent}", "-O", str(output_path)] + flags + ["-p", "7.4", "--title", name]
         ok, err = await _run_tool(cmd, timeout, "obabel gen3d")
         if output_path.exists() and output_path.stat().st_size > 0:
             return True
-    logger.error("SMILES->SDF failed for %s", name)
+    logger.error("SMILES->SDF failed for %s (timeout=%ss)", name, SMILES_TO_3D_TIMEOUT)
     return False
 
 
 async def sdf_to_pdbqt(sdf_path: Path, pdbqt_path: Path) -> bool:
     """SDF -> PDBQT. Meeko produces the torsion tree Vina 1.2.x requires;
-    Open Babel's PDBQT triggers 'internal error in tree.h'."""
+    Open Babel's PDBQT triggers 'internal error in tree.h'.
+
+    Bounded by SDF_TO_PDBQT_TIMEOUT (default 30s) — on timeout the ligand is
+    skipped rather than allowed to hang the whole docking job.
+    """
     if _RDKIT and _MEEKO:
-        try:
+        def _meeko_convert():
             supplier = Chem.SDMolSupplier(str(sdf_path), removeHs=False)
             mol = next((m for m in supplier if m is not None), None)
             if mol is None:
-                logger.error("could not read SDF %s", sdf_path.name)
-                return False
+                return None, "could not read SDF"
 
             prep = MoleculePreparation()
             setups = prep.prepare(mol)
             if not setups:
-                logger.error("meeko produced no setup for %s", sdf_path.name)
-                return False
+                return None, "meeko produced no setup"
 
             result = PDBQTWriterLegacy.write_string(setups[0])
             pdbqt_string = result[0] if isinstance(result, (tuple, list)) else result
             if isinstance(result, (tuple, list)) and len(result) >= 3 and not result[1]:
-                logger.error("meeko refused %s: %s", sdf_path.name, result[2])
-                return False
+                return None, f"meeko refused: {result[2]}"
             if not pdbqt_string or "ROOT" not in pdbqt_string:
-                logger.error("meeko output for %s has no ROOT record", sdf_path.name)
-                return False
+                return None, "meeko output has no ROOT record"
 
-            pdbqt_path.write_text(pdbqt_string)
-            return pdbqt_path.exists() and pdbqt_path.stat().st_size > 0
+            return pdbqt_string, None
+
+        try:
+            pdbqt_string, err = await asyncio.wait_for(
+                asyncio.to_thread(_meeko_convert), timeout=SDF_TO_PDBQT_TIMEOUT
+            )
+            if pdbqt_string is None:
+                logger.error("%s for %s", err, sdf_path.name)
+            else:
+                pdbqt_path.write_text(pdbqt_string)
+                if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
+                    return True
+        except asyncio.TimeoutError:
+            logger.error(
+                "meeko PDBQT conversion timed out for %s after %ss — skipping ligand",
+                sdf_path.name, SDF_TO_PDBQT_TIMEOUT,
+            )
+            return False
         except Exception as e:
             logger.error("meeko PDBQT failed for %s: %s — trying Open Babel", sdf_path.name, e)
 
     ok, err = await _run_tool(
         [OBABEL_BINARY, str(sdf_path), "-O", str(pdbqt_path), "--partialcharge", "gasteiger"],
-        min(OBABEL_TIMEOUT, 60),
+        min(OBABEL_TIMEOUT, SDF_TO_PDBQT_TIMEOUT),
         "obabel sdf->pdbqt",
     )
     if pdbqt_path.exists() and pdbqt_path.stat().st_size > 0:
@@ -255,18 +330,20 @@ async def run_vina_single(
         "--cpu", "1",
     ]
     output_lines: List[str] = []
+    proc = None
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        async for line in proc.stdout:
-            decoded = line.decode("utf-8", errors="replace").rstrip()
-            output_lines.append(decoded)
-            if any(kw in decoded for kw in ["mode", "-----", "Refining", "Writing"]):
-                await log_fn(job_id, f"[Vina] {decoded}", "info")
-        rc = await asyncio.wait_for(proc.wait(), timeout=300)
+        async with asyncio.timeout(VINA_SINGLE_TIMEOUT):
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+            async for line in proc.stdout:
+                decoded = line.decode("utf-8", errors="replace").rstrip()
+                output_lines.append(decoded)
+                if any(kw in decoded for kw in ["mode", "-----", "Refining", "Writing"]):
+                    await log_fn(job_id, f"[Vina] {decoded}", "info")
+            rc = await proc.wait()
 
         poses = parse_vina_output(output_lines, name)
         for _p in poses:
@@ -290,13 +367,15 @@ async def run_vina_single(
                 await log_fn(job_id, f"[ERROR] Vina wrote no pose file for {name}", "warn")
         return poses
 
-    except asyncio.TimeoutError:
-        await log_fn(job_id, f"[WARN] Vina timed out for {name} after 300s", "warn")
-        try:
-            proc.kill()
-            await proc.wait()
-        except Exception:
-            pass
+    except (asyncio.TimeoutError, TimeoutError):
+        await log_fn(job_id, f"[WARN] Vina timed out for {name} after {VINA_SINGLE_TIMEOUT}s — skipping ligand", "warn")
+        logger.error("vina timed out for %s after %ss", name, VINA_SINGLE_TIMEOUT)
+        if proc is not None:
+            try:
+                proc.kill()
+                await proc.wait()
+            except Exception:
+                pass
         return []
     except FileNotFoundError:
         await log_fn(job_id, f"[ERROR] Vina binary not found at '{VINA_BINARY}'.", "warn")
