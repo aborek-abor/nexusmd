@@ -109,7 +109,7 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
 
             # Step 3: Run docking
             await update(job_id, "running", 40, f"Docking {len(filtered_smiles)} ligands…")
-            poses = await run_vina_docking(
+            poses, docking_stats = await run_vina_docking(
                 job_id, receptor_path, filtered_smiles, filtered_names,
                 req.grid.model_dump(), log
             )
@@ -120,6 +120,14 @@ async def _run_docking_job(job_id: str, req: DockingRequest):
                 pose["admet_status"] = admet.get("status", "—")
                 pose["real"] = True
                 pose["engine"] = "AutoDock Vina"
+
+            await log(
+                job_id,
+                f"[INFO] Docking complete: {docking_stats['attempted']} attempted, "
+                f"{docking_stats['succeeded']} succeeded, "
+                f"{docking_stats['failed']} failed (timeouts/errors), "
+                f"{docking_stats['no_poses']} with no poses",
+            )
 
         await update(job_id, "running", 90, "Finalising results…")
         await log(job_id, f"[INFO] {len(poses)} total poses generated")
