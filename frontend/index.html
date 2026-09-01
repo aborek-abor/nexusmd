@@ -2260,7 +2260,7 @@ async function initViewer3d(smiles){
   container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Loading complex...</div>';
   if(!S.currentProteinPDB&&S.target&&S.target.id){
     try{var isAF=!!(S.target.source==='alphafold')||/^[A-Z][0-9][A-Z0-9]{3}[0-9]$/.test(S.target.id);
-    var url=isAF?(S.backendMode?apiBase()+'/api/protein/alphafold/'+(S.target.uid||S.target.id)+'/pdb':'https://alphafold.ebi.ac.uk/files/AF-'+(S.target.uid||S.target.id)+'-F1-model_v6.pdb'):(S.backendMode?apiBase()+'/api/protein/'+S.target.id+'/pdb':'https://files.rcsb.org/download/'+S.target.id+'.pdb');
+    var url=isAF?(S.backendMode?apiBase()+'/api/protein/alphafold/'+(S.target.uid||S.target.id)+'/pdb':'https://alphafold.ebi.ac.uk/files/AF-'+(S.target.uid||S.target.id)+'-F1-model_v4.pdb'):(S.backendMode?apiBase()+'/api/protein/'+S.target.id+'/pdb':'https://files.rcsb.org/download/'+S.target.id+'.pdb');
     var pr=await fetch(url);if(pr.ok){var t=await pr.text();if(t&&t.includes('ATOM'))S.currentProteinPDB=t;}}catch(e){}
   }
   if(!currentLigandSDF&&S.backendMode&&S.activeJobId){try{var sr=await fetch(apiBase()+'/api/results/'+S.activeJobId+'/sdf');if(sr.ok){var sdf=await sr.text();if(sdf&&sdf.includes('M  END'))currentLigandSDF=sdf;}}catch(e){}}
@@ -2930,6 +2930,282 @@ if (document.readyState === 'loading') document.addEventListener('DOMContentLoad
 else boot();
 
 console.log('[NexusMD] repair patch active — estimateDockingTime + 12 missing handlers restored');
+})();
+
+/* ===== binding site preview ===== */
+/* ============================================================
+   NexusMD — binding site preview
+   Shows the protein and the docking box together, live, before
+   you commit CPU to a run. Counts how much protein is actually
+   inside the box: zero residues means the box is in solvent,
+   which is what a wrong grid centre looks like.
+   ============================================================ */
+(function(){
+'use strict';
+
+var $ = function(id){ return document.getElementById(id); };
+var GV = { viewer: null, shape: null, pdb: null, plddt: false };
+
+/* ---------- geometry, computed from the PDB text ---------- */
+function atomsOf(pdb){
+  var out = [];
+  (pdb || '').split('\n').forEach(function(l){
+    if (l.indexOf('ATOM') !== 0 && l.indexOf('HETATM') !== 0) return;
+    var x = parseFloat(l.substr(30, 8)), y = parseFloat(l.substr(38, 8)), z = parseFloat(l.substr(46, 8));
+    if (isNaN(x) || isNaN(y) || isNaN(z)) return;
+    out.push({
+      x: x, y: y, z: z,
+      name: l.substr(12, 4).trim(),
+      resn: l.substr(17, 3).trim(),
+      chain: l.substr(21, 1).trim(),
+      resi: parseInt(l.substr(22, 4), 10),
+      b: parseFloat(l.substr(60, 6))
+    });
+  });
+  return out;
+}
+
+function centroid(atoms){
+  if (!atoms.length) return null;
+  var s = atoms.reduce(function(a, p){ return [a[0]+p.x, a[1]+p.y, a[2]+p.z]; }, [0,0,0]);
+  return { x: s[0]/atoms.length, y: s[1]/atoms.length, z: s[2]/atoms.length };
+}
+
+function bbox(atoms){
+  if (!atoms.length) return null;
+  var lo = { x: Infinity, y: Infinity, z: Infinity }, hi = { x:-Infinity, y:-Infinity, z:-Infinity };
+  atoms.forEach(function(p){
+    lo.x = Math.min(lo.x, p.x); hi.x = Math.max(hi.x, p.x);
+    lo.y = Math.min(lo.y, p.y); hi.y = Math.max(hi.y, p.y);
+    lo.z = Math.min(lo.z, p.z); hi.z = Math.max(hi.z, p.z);
+  });
+  return { lo: lo, hi: hi };
+}
+
+function boxNow(){
+  var num = function(id, d){ var v = parseFloat((($(id)||{}).value)); return isNaN(v) ? d : v; };
+  return {
+    cx: num('gx', 0), cy: num('gy', 0), cz: num('gz', 0),
+    sx: num('bx', 22), sy: num('by', 22), sz: num('bz', 22)
+  };
+}
+
+/* residues with at least one atom inside the box */
+function contents(atoms, b){
+  var half = { x: b.sx/2, y: b.sy/2, z: b.sz/2 };
+  var res = {}, inside = 0, plddt = [];
+  atoms.forEach(function(p){
+    if (Math.abs(p.x - b.cx) <= half.x &&
+        Math.abs(p.y - b.cy) <= half.y &&
+        Math.abs(p.z - b.cz) <= half.z){
+      inside++;
+      var key = p.chain + ':' + p.resi;
+      if (!res[key]) { res[key] = p.resn + p.resi; if (!isNaN(p.b)) plddt.push(p.b); }
+    }
+  });
+  var keys = Object.keys(res);
+  return {
+    atoms: inside,
+    residues: keys.length,
+    names: keys.slice(0, 40).map(function(k){ return res[k]; }),
+    meanB: plddt.length ? plddt.reduce(function(a,b){return a+b;},0)/plddt.length : null
+  };
+}
+
+/* a PDB where B-factors are all 0-100 and vary is probably AlphaFold pLDDT */
+function looksLikePlddt(atoms){
+  if (atoms.length < 50) return false;
+  var vals = atoms.map(function(p){ return p.b; }).filter(function(v){ return !isNaN(v); });
+  if (vals.length < 50) return false;
+  var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+  return min >= 0 && max <= 100 && (max - min) > 15;
+}
+
+/* ---------- the panel ---------- */
+function ensurePanel(){
+  if ($('gv-card')) return true;
+  var grid = $('gx');
+  if (!grid) return false;
+  var gridCard = grid.closest('.card');
+  if (!gridCard || !gridCard.parentNode) return false;
+
+  var card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'gv-card';
+  card.style.gridColumn = '1 / -1';
+  card.innerHTML =
+    '<div class="ch"><div class="ct">🧭 Binding Site Preview</div>' +
+    '<span class="bdg" id="gv-verdict" style="background:rgba(107,139,170,.15);color:var(--muted)">no structure</span></div>' +
+    '<div class="cb">' +
+      '<div style="display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start">' +
+        '<div id="gv-viewer" style="position:relative;height:330px;border:1px solid var(--border);' +
+             'border-radius:10px;background:#020810;overflow:hidden"></div>' +
+        '<div>' +
+          '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' +
+            '<button class="btn btn-g btn-sm" onclick="gvCentreOnProtein()">Centre on protein</button>' +
+            '<button class="btn btn-g btn-sm" onclick="gvFitBox()">Fit box to protein</button>' +
+            '<button class="btn btn-g btn-sm" onclick="gvRefresh(true)">Reset view</button>' +
+          '</div>' +
+          '<div style="font-size:12px;line-height:1.9;color:var(--muted)" id="gv-stats"></div>' +
+          '<div id="gv-residues" style="margin-top:8px;font-size:11px;color:var(--dim);max-height:110px;' +
+               'overflow:auto;font-family:DM Mono,monospace"></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  gridCard.parentNode.insertBefore(card, gridCard);
+  return true;
+}
+
+function setVerdict(text, colour){
+  var el = $('gv-verdict');
+  if (!el) return;
+  el.textContent = text;
+  el.style.background = colour + '22';
+  el.style.color = colour;
+}
+
+/* ---------- render ---------- */
+window.gvRefresh = function(resetView){
+  if (!ensurePanel()) return;
+
+  var pdb = S.currentProteinPDB || null;
+  var stats = $('gv-stats'), reslist = $('gv-residues');
+
+  if (!pdb){
+    setVerdict('no structure loaded', '#6B8BAA');
+    if (stats) stats.innerHTML = 'Load a target on the Target page first — the preview needs its coordinates.';
+    if (reslist) reslist.textContent = '';
+    return;
+  }
+
+  var newStructure = (GV.pdb !== pdb);
+  if (newStructure){
+    GV.pdb = pdb;
+    GV.atoms = atomsOf(pdb);
+    GV.plddt = looksLikePlddt(GV.atoms);
+  }
+  var atoms = GV.atoms || [];
+  var b = boxNow();
+  var inside = contents(atoms, b);
+
+  /* verdict — the check that would have caught a 70 A off-target box */
+  if (inside.residues === 0)
+    setVerdict('box is empty — no protein inside', '#FF4D6D');
+  else if (inside.residues < 8)
+    setVerdict(inside.residues + ' residues — box barely touches the protein', '#F5A623');
+  else if (inside.residues > 220)
+    setVerdict(inside.residues + ' residues — box covers much of the protein', '#F5A623');
+  else
+    setVerdict(inside.residues + ' residues in box', '#00EC8C');
+
+  var vol = (b.sx * b.sy * b.sz).toFixed(0);
+  var html =
+    '<b style="color:var(--text)">' + inside.residues + '</b> residues, ' +
+    '<b style="color:var(--text)">' + inside.atoms.toLocaleString() + '</b> atoms inside the box<br>' +
+    'Box ' + b.sx + ' × ' + b.sy + ' × ' + b.sz + ' Å  ·  ' + Number(vol).toLocaleString() + ' Å<sup>3</sup><br>' +
+    'Centre (' + b.cx + ', ' + b.cy + ', ' + b.cz + ')<br>' +
+    'Structure: ' + atoms.length.toLocaleString() + ' atoms';
+  if (GV.plddt && inside.meanB != null){
+    var q = inside.meanB >= 90 ? 'very high' : inside.meanB >= 70 ? 'confident'
+          : inside.meanB >= 50 ? 'low' : 'very low';
+    var col = inside.meanB >= 70 ? '#00EC8C' : inside.meanB >= 50 ? '#F5A623' : '#FF4D6D';
+    html += '<br>Mean pLDDT in box: <b style="color:' + col + '">' + inside.meanB.toFixed(1) +
+            '</b> (' + q + ')';
+    if (inside.meanB < 70)
+      html += '<br><span style="color:#F5A623">This region is predicted with low confidence — ' +
+              'a pose here may describe a conformation the protein does not hold.</span>';
+  }
+  if (stats) stats.innerHTML = html;
+  if (reslist) reslist.textContent = inside.names.length
+      ? inside.names.join('  ') + (inside.residues > inside.names.length ? '  …' : '')
+      : '';
+
+  /* 3D */
+  if (typeof $3Dmol === 'undefined') return;
+  var container = $('gv-viewer');
+  if (!container) return;
+
+  if (!GV.viewer || newStructure){
+    container.innerHTML = '';
+    GV.viewer = $3Dmol.createViewer(container, { backgroundColor: '#020810' });
+    GV.viewer.addModel(pdb, 'pdb');
+    if (GV.plddt){
+      GV.viewer.setStyle({}, { cartoon: { colorscheme:
+        { prop: 'b', gradient: 'roygb', min: 50, max: 90 } } });
+    } else {
+      GV.viewer.setStyle({}, { cartoon: { colorscheme: 'ssJmol' } });
+    }
+    resetView = true;
+  }
+
+  if (GV.shape){ try { GV.viewer.removeShape(GV.shape); } catch(e){} GV.shape = null; }
+  GV.shape = GV.viewer.addBox({
+    center: { x: b.cx, y: b.cy, z: b.cz },
+    dimensions: { w: b.sx, h: b.sy, d: b.sz },
+    wireframe: true,
+    color: inside.residues === 0 ? '#FF4D6D' : '#00C6CF',
+    linewidth: 2
+  });
+
+  /* highlight what the box actually contains */
+  GV.viewer.setStyle({}, GV.plddt
+    ? { cartoon: { colorscheme: { prop:'b', gradient:'roygb', min:50, max:90 }, opacity: 0.65 } }
+    : { cartoon: { colorscheme: 'ssJmol', opacity: 0.65 } });
+  GV.viewer.addStyle(
+    { within: { distance: Math.max(b.sx, b.sy, b.sz) / 2,
+                sel: { x: b.cx, y: b.cy, z: b.cz } } },
+    { stick: { radius: 0.12, colorscheme: 'cyanCarbon' } });
+
+  if (resetView) GV.viewer.zoomTo();
+  GV.viewer.render();
+};
+
+window.gvCentreOnProtein = function(){
+  if (!GV.atoms || !GV.atoms.length) return;
+  var c = centroid(GV.atoms.filter(function(a){ return a.name === 'CA'; }).length
+                   ? GV.atoms.filter(function(a){ return a.name === 'CA'; })
+                   : GV.atoms);
+  if (!c) return;
+  $('gx').value = c.x.toFixed(1);
+  $('gy').value = c.y.toFixed(1);
+  $('gz').value = c.z.toFixed(1);
+  gvRefresh(true);
+};
+
+window.gvFitBox = function(){
+  if (!GV.atoms || !GV.atoms.length) return;
+  var bb = bbox(GV.atoms);
+  var pad = 4;
+  $('gx').value = ((bb.lo.x + bb.hi.x) / 2).toFixed(1);
+  $('gy').value = ((bb.lo.y + bb.hi.y) / 2).toFixed(1);
+  $('gz').value = ((bb.lo.z + bb.hi.z) / 2).toFixed(1);
+  $('bx').value = Math.ceil(bb.hi.x - bb.lo.x + pad);
+  $('by').value = Math.ceil(bb.hi.y - bb.lo.y + pad);
+  $('bz').value = Math.ceil(bb.hi.z - bb.lo.z + pad);
+  gvRefresh(true);
+  var s = $('gv-stats');
+  if (s) s.innerHTML = '<span style="color:var(--amber)">Blind docking box — covers the whole ' +
+    'protein. Slower and less reliable than a box on a known site; use it to explore, ' +
+    'not to conclude.</span><br>' + s.innerHTML;
+};
+
+/* live updates as the boxes are typed in */
+['gx','gy','gz','bx','by','bz'].forEach(function(id){
+  document.addEventListener('input', function(e){
+    if (e.target && e.target.id === id) gvRefresh(false);
+  });
+});
+
+/* refresh whenever the docking page is opened */
+var _navTo = window.navTo;
+window.navTo = function(page, btn){
+  var r = _navTo.apply(this, arguments);
+  if (page === 'dock') setTimeout(function(){ gvRefresh(true); }, 60);
+  return r;
+};
+
+document.addEventListener('DOMContentLoaded', function(){ setTimeout(function(){ gvRefresh(true); }, 500); });
+console.log('[NexusMD] binding site preview loaded');
 })();
 </script>
 
