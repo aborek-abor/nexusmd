@@ -22,3 +22,6 @@ logs/*
 # OS
 .DS_Store
 Thumbs.db
+
+*.bak
+*.bak[0-9]

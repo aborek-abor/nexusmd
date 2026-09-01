@@ -30,6 +30,7 @@ RUN wget -q https://github.com/ccsb-scripps/AutoDock-Vina/releases/download/v1.2
 
 # App code
 COPY app/ ./app/
+COPY app/templates/ ./app/templates/
 
 # Static frontend — served by FastAPI at /
 COPY frontend/ ./frontend/
