@@ -121,7 +121,7 @@ async def fetch_alphafold_info(uniprot_id: str) -> Optional[dict]:
             entry = data[0]
             uniprot_desc = entry.get("uniprotDescription") or entry.get("proteinFullName") or "—"
             plddt = entry.get("globalMetricValue")
-            pdb_url = entry.get("pdbUrl") or f"{AF_FILE_BASE}/AF-{uniprot_id}-F1-model_v4.pdb"
+            pdb_url = entry.get("pdbUrl") or f"{AF_FILE_BASE}/AF-{uniprot_id}-F1-model_v6.pdb"
             return {
                 "uniprot_id": uniprot_id,
                 "description": uniprot_desc,
@@ -135,27 +135,49 @@ async def fetch_alphafold_info(uniprot_id: str) -> Optional[dict]:
 
 
 async def download_alphafold_pdb(uniprot_id: str) -> Optional[Path]:
-    """Download AlphaFold predicted structure PDB file."""
+    """Download an AlphaFold predicted structure, resolving the URL properly."""
     uniprot_id = uniprot_id.upper().strip()
     cached = PDB_CACHE_DIR / f"AF_{uniprot_id}.pdb"
     if cached.exists() and cached.stat().st_size > 1000:
         return cached
 
-    # Try version 4 → 3 → 2
+    urls = []
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
-        for ver in [4, 3, 2]:
-            url = f"{AF_FILE_BASE}/AF-{uniprot_id}-F1-model_v{ver}.pdb"
+        # 1. ask the API where this model actually lives
+        try:
+            r = await client.get(f"{AF_API}/{uniprot_id}")
+            if r.status_code == 200:
+                data = r.json() or []
+                entries = [e for e in (data if isinstance(data, list) else [data])
+                           if isinstance(e, dict)]
+                # exact accession first, isoforms after
+                entries.sort(
+                    key=lambda e: (e.get("uniprotAccession", "").upper() != uniprot_id)
+                )
+                for entry in entries:
+                    if entry.get("pdbUrl"):
+                        urls.append(entry["pdbUrl"])
+            else:
+                logger.warning("AlphaFold API %s -> HTTP %s", uniprot_id, r.status_code)
+        except Exception as e:
+            logger.error("AlphaFold API failed for %s: %s", uniprot_id, e)
+
+        # 2. guessed filenames as a fallback, newest version first
+        urls += [f"{AF_FILE_BASE}/AF-{uniprot_id}-F1-model_v{v}.pdb" for v in (6, 5, 4)]
+
+        for url in urls:
             try:
                 r = await client.get(url)
-                if r.status_code == 200:
+                if r.status_code == 200 and b"ATOM" in r.content:
                     cached.write_bytes(r.content)
-                    logger.info(f"AlphaFold PDB downloaded: {uniprot_id} v{ver}")
+                    logger.info("AlphaFold PDB for %s from %s", uniprot_id, url)
                     return cached
+                logger.debug("AF %s -> HTTP %s", url, r.status_code)
             except Exception as e:
-                logger.debug(f"AF download attempt failed: {e}")
+                logger.debug("AF download attempt failed: %s", e)
 
+    logger.error("no AlphaFold structure available for %s", uniprot_id)
     return None
-
 
 async def fetch_alphafold_pdb_content(uniprot_id: str) -> Optional[str]:
     """Return AlphaFold PDB as string."""

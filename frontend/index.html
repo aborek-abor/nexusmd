@@ -2260,7 +2260,7 @@ async function initViewer3d(smiles){
   container.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#6B8BAA;font-size:13px">Loading complex...</div>';
   if(!S.currentProteinPDB&&S.target&&S.target.id){
     try{var isAF=!!(S.target.source==='alphafold')||/^[A-Z][0-9][A-Z0-9]{3}[0-9]$/.test(S.target.id);
-    var url=isAF?(S.backendMode?apiBase()+'/api/protein/alphafold/'+(S.target.uid||S.target.id)+'/pdb':'https://alphafold.ebi.ac.uk/files/AF-'+(S.target.uid||S.target.id)+'-F1-model_v4.pdb'):(S.backendMode?apiBase()+'/api/protein/'+S.target.id+'/pdb':'https://files.rcsb.org/download/'+S.target.id+'.pdb');
+    var url=isAF?(S.backendMode?apiBase()+'/api/protein/alphafold/'+(S.target.uid||S.target.id)+'/pdb':'https://alphafold.ebi.ac.uk/files/AF-'+(S.target.uid||S.target.id)+'-F1-model_v6.pdb'):(S.backendMode?apiBase()+'/api/protein/'+S.target.id+'/pdb':'https://files.rcsb.org/download/'+S.target.id+'.pdb');
     var pr=await fetch(url);if(pr.ok){var t=await pr.text();if(t&&t.includes('ATOM'))S.currentProteinPDB=t;}}catch(e){}
   }
   if(!currentLigandSDF&&S.backendMode&&S.activeJobId){try{var sr=await fetch(apiBase()+'/api/results/'+S.activeJobId+'/sdf');if(sr.ok){var sdf=await sr.text();if(sdf&&sdf.includes('M  END'))currentLigandSDF=sdf;}}catch(e){}}
